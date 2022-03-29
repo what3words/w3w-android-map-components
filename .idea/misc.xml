@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_grid_fuchsia.xml" value="0.2435" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_grid_green.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_blue.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_bright_orange.xml" value="0.188" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_coral.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_fuchsia.xml" value="0.221" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_green.xml" value="0.165" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_orange.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_purple.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_red.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_sky_blue.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_turquoise.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_circle_yellow.xml" value="0.241" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_pin_blue.xml" value="0.195" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_pin_sky_blue.xml" value="0.195" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/lib/src/main/res/drawable/ic_marker_pin_white.xml" value="0.195" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/sample/src/main/res/layout/activity_main.xml" value="0.1" />
+        <entry key="..\:/Users/mani/work/w3w-android-map-components/sample/src/main/res/layout/activity_mapbox.xml" value="0.2234375" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>

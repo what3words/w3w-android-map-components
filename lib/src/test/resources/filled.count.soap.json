@@ -1,0 +1,22 @@
+{
+  "country": "GB",
+  "square": {
+    "southwest": {
+      "lng": -0.195543,
+      "lat": 51.520833
+    },
+    "northeast": {
+      "lng": -0.195499,
+      "lat": 51.52086
+    }
+  },
+  "nearestPlace": "Bayswater, London",
+  "words": "filled.count.soap",
+  "coordinates": {
+    "lng": -0.195521,
+    "lat": 51.520847
+  },
+  "rank": 1,
+  "language": "en",
+  "map": "https://w3w.co/filled.count.soap"
+}
