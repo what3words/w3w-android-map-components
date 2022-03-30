@@ -5,17 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import com.google.gson.JsonObject
-import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.Image
 import com.mapbox.maps.MapView
-import com.mapbox.maps.QueriedFeature
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.Style
@@ -35,7 +32,6 @@ import com.mapbox.maps.extension.style.sources.generated.imageSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.toCameraOptions
@@ -58,14 +54,14 @@ import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
+import java.nio.ByteBuffer
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.function.Consumer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.nio.ByteBuffer
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.function.Consumer
-import org.json.JSONObject
 
 class W3WMapBoxWrapper(
     private val context: Context,
@@ -97,35 +93,38 @@ class W3WMapBoxWrapper(
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
 
+    //TODO: Rethink this logic, MapBox v10 really complicated this, and the suggestion from someone at mapbox was this: https://github.com/mapbox/mapbox-maps-android/issues/1245#issuecomment-1082884148
     init {
+        var latch: CountDownLatch
+        var callbackResult: Boolean
         mapView.getMapboxMap().addOnMapClickListener { point ->
-            mapView.getMapboxMap().queryRenderedFeatures(
-                RenderedQueryGeometry(mapView.getMapboxMap().pixelForCoordinate(point)),
-                RenderedQueryOptions(
-                    w3wMapManager.suggestionsCached.map { it.suggestion.words },
-                    null
-                )
-            ) {
-                if (it.isValue && it.value!!.isNotEmpty()) {
-                    it.value!![0].source.let { source ->
-                        w3wMapManager.suggestionsCached.firstOrNull { it.suggestion.words == source }
-                            ?.let {
-                                w3wMapManager.selectExistingMarker(it.suggestion)
-                                onMarkerClickedCallback?.accept(it.suggestion)
-                            }
+            callbackResult = false
+            latch = CountDownLatch(1)
+            mapView.getMapboxMap().executeOnRenderThread {
+                mapView.getMapboxMap().queryRenderedFeatures(
+                    RenderedQueryGeometry(mapView.getMapboxMap().pixelForCoordinate(point)),
+                    RenderedQueryOptions(
+                        w3wMapManager.suggestionsCached.map { it.suggestion.words },
+                        null
+                    )
+                ) {
+                    if (it.isValue && it.value!!.isNotEmpty()) {
+                        it.value!![0].source.let { source ->
+                            w3wMapManager.suggestionsCached.firstOrNull { it.suggestion.words == source }
+                                ?.let {
+                                    isDirty = true
+                                    w3wMapManager.selectExistingMarker(it.suggestion)
+                                    onMarkerClickedCallback?.accept(it.suggestion)
+                                    callbackResult = true
+                                }
+                        }
                     }
+                    latch.countDown()
                 }
             }
-            return@addOnMapClickListener false
+            latch.await()
+            return@addOnMapClickListener callbackResult
         }
-    }
-
-    private val annotationsApi by lazy {
-        mapView.annotations
-    }
-
-    private val polylineManager by lazy {
-        annotationsApi.createPolylineAnnotationManager()
     }
 
     /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
@@ -695,24 +694,6 @@ class W3WMapBoxWrapper(
                 }
             }
         } catch (e: Exception) {
-        }
-    }
-
-    /** [drawMarkersOnMap] will be responsible for the drawing of [W3WZoomedOutMarkerStyle]s using [GoogleMap] [markerManager].*/
-    private fun drawMarkersOnMap2() {
-        w3wMapManager.suggestionsCached.forEach {
-            if (w3wMapManager.selectedSuggestion?.square?.contains(
-                    it.suggestion.coordinates.lat,
-                    it.suggestion.coordinates.lng
-                ) == true
-            ) {
-                drawPin(it)
-            } else {
-                drawCircle(it)
-            }
-        }
-        if (w3wMapManager.selectedSuggestion != null && w3wMapManager.suggestionsCached.all { it.suggestion.words != w3wMapManager.selectedSuggestion!!.words }) {
-            drawSelectedPin(w3wMapManager.selectedSuggestion!!)
         }
     }
 

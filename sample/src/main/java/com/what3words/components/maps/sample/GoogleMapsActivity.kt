@@ -1,6 +1,5 @@
 package com.what3words.components.maps.sample
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -30,7 +29,6 @@ class GoogleMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         setContentView(binding.root)
     }
 
-    @SuppressLint("PotentialBehaviorOverride")
     override fun onMapReady(p0: GoogleMap) {
         val wrapper = What3WordsV3(BuildConfig.W3W_API_KEY, this@GoogleMapsActivity)
         this.w3wMapsWrapper = W3WGoogleMapsWrapper(
@@ -92,10 +90,12 @@ class GoogleMapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         p0.setOnCameraIdleListener {
+            Log.i("TEST", "addOnMapIdleListener")
             this.w3wMapsWrapper.updateMap()
         }
 
         p0.setOnCameraMoveListener {
+            Log.i("TEST", "addOnCameraChangeListener")
             this.w3wMapsWrapper.updateMove()
         }
 

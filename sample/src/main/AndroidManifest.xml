@@ -24,7 +24,7 @@
             android:value="@integer/google_play_services_version" />
 
         <activity
-            android:name="com.what3words.components.maps.sample.GoogleMapsActivity"
+            android:name="com.what3words.components.maps.sample.MapboxActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
