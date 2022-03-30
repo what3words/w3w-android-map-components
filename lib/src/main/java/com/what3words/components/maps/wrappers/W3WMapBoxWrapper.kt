@@ -7,18 +7,17 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
-import com.google.gson.JsonObject
-import com.mapbox.geojson.Feature
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.Image
-import com.mapbox.maps.MapView
+import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.Style
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.generated.LineLayer
 import com.mapbox.maps.extension.style.layers.generated.RasterLayer
+import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
 import com.mapbox.maps.extension.style.layers.generated.symbolLayer
 import com.mapbox.maps.extension.style.layers.getLayerAs
@@ -31,8 +30,6 @@ import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.imageSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
-import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.toCameraOptions
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
@@ -43,8 +40,6 @@ import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
-import com.what3words.components.maps.models.W3WZoomedInMarkerStyle
-import com.what3words.components.maps.models.W3WZoomedOutMarkerStyle
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
@@ -54,24 +49,22 @@ import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
-import java.nio.ByteBuffer
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.CountDownLatch
-import java.util.function.Consumer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.nio.ByteBuffer
+import java.util.concurrent.CountDownLatch
+import java.util.function.Consumer
 
 class W3WMapBoxWrapper(
     private val context: Context,
-    private val mapView: MapView,
+    private val map: MapboxMap,
     private val w3wDataSource: W3WDataSource,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
     private var isDirty: Boolean = false
     private var w3wMapManager: W3WMapManager = W3WMapManager(w3wDataSource, this, dispatchers)
-    private val pointList = CopyOnWriteArrayList<Feature>()
 
     companion object {
         const val GRID_LAYER = "GRID_LAYER"
@@ -93,16 +86,16 @@ class W3WMapBoxWrapper(
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
 
-    //TODO: Rethink this logic, MapBox v10 really complicated this, and the suggestion from someone at mapbox was this: https://github.com/mapbox/mapbox-maps-android/issues/1245#issuecomment-1082884148
+    // TODO: Rethink this logic, MapBox v10 really complicated this, and the suggestion from someone at mapbox was this: https://github.com/mapbox/mapbox-maps-android/issues/1245#issuecomment-1082884148
     init {
         var latch: CountDownLatch
         var callbackResult: Boolean
-        mapView.getMapboxMap().addOnMapClickListener { point ->
+        map.addOnMapClickListener { point ->
             callbackResult = false
             latch = CountDownLatch(1)
-            mapView.getMapboxMap().executeOnRenderThread {
-                mapView.getMapboxMap().queryRenderedFeatures(
-                    RenderedQueryGeometry(mapView.getMapboxMap().pixelForCoordinate(point)),
+            map.executeOnRenderThread {
+                map.queryRenderedFeatures(
+                    RenderedQueryGeometry(map.pixelForCoordinate(point)),
                     RenderedQueryOptions(
                         w3wMapManager.suggestionsCached.map { it.suggestion.words },
                         null
@@ -407,43 +400,42 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraIdleListener] if [gridEnabled] is set to true (default).
+    /** This method should be called on [MapboxMap.addOnMapIdleListener] if [gridEnabled] is set to true (default).
      * This will allow to refresh the grid bounds on camera idle.
      */
     override fun updateMap() {
         if (isDirty) {
-            onMapMoved()
+            redrawMapLayers()
         }
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraMoveListener] if [gridEnabled] is set to true (default).
+    /** This method should be called on [MapboxMap.addOnCameraChangeListener] if [gridEnabled] is set to true (default).
      * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [ZOOM_SWITCH_LEVEL] threshold.
      */
     override fun updateMove() {
         lastScaledBounds =
             scaleBounds(DEFAULT_BOUNDS_SCALE)
-        if (mapView.getMapboxMap().cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
-            onMapMoved(true)
+        if (map.cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+            redrawMapLayers(true)
             isGridVisible = false
             return
         }
-        if (mapView.getMapboxMap().cameraState.zoom >= ZOOM_SWITCH_LEVEL && !isGridVisible) {
-            onMapMoved(true)
+        if (map.cameraState.zoom >= ZOOM_SWITCH_LEVEL && !isGridVisible) {
+            redrawMapLayers(true)
             return
         }
     }
 
-    /** Scale bounds to [scale] times to get the grid larger than the visible [GoogleMap.getProjection] bounds. This will increase performance and keep the grid visible for longer when moving camera.
+    /** Scale bounds to [scale] times to get the grid larger than the visible [MapboxMap.coordinateBoundsForCamera] with [MapboxMap.cameraState]. This will increase performance and keep the grid visible for longer when moving camera.
      *
-     * @param bounds the [GoogleMap.getCameraPosition] bounds.
-     * @param scale the factor scale to be applied to [bounds], e.g: 8f (8 times larger) or 0.5f (to cut by half)
+     * @param scale the factor scale to be applied to [MapboxMap.coordinateBoundsForCamera], e.g: 8f (8 times larger) or 0.5f (to cut by half)
      *
      */
     private fun scaleBounds(
         scale: Float = DEFAULT_BOUNDS_SCALE
     ): BoundingBox {
-        val bounds = mapView.getMapboxMap()
-            .coordinateBoundsForCamera(mapView.getMapboxMap().cameraState.toCameraOptions())
+        val bounds = map
+            .coordinateBoundsForCamera(map.cameraState.toCameraOptions())
         val center = bounds.center()
         val finalNELat =
             ((scale * (bounds.northeast.latitude() - center.latitude()) + center.latitude()))
@@ -463,18 +455,17 @@ class W3WMapBoxWrapper(
         )
     }
 
-    private fun onMapMoved(
+    private fun redrawMapLayers(
         shouldCancelPreviousJob: Boolean = true,
         scale: Float = W3WGoogleMapsWrapper.DEFAULT_BOUNDS_SCALE
     ) {
         isDirty = false
-        updateFeatures()
-        if (mapView.getMapboxMap().cameraState.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
+        if (map.cameraState.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
             clearMarkers()
             drawMarkersOnMap()
             return
         }
-        if (mapView.getMapboxMap().cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+        if (map.cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
             isGridVisible = false
             clearGridAndZoomedInMarkers()
             drawMarkersOnMap()
@@ -498,35 +489,6 @@ class W3WMapBoxWrapper(
         }
     }
 
-    private fun updateFeatures() {
-        w3wMapManager.suggestionsCached.forEach { suggestion ->
-            if (pointList.all { it.id() != suggestion.suggestion.words }) {
-                pointList.add(
-                    Feature.fromGeometry(
-                        Point.fromLngLat(
-                            suggestion.suggestion.coordinates.lng,
-                            suggestion.suggestion.coordinates.lat
-                        ), JsonObject().apply {
-                            this.addProperty("COLOR", suggestion.markerColor.toString())
-                        }, suggestion.suggestion.words
-                    )
-                )
-            }
-            pointList.forEach { feature ->
-                if (w3wMapManager.suggestionsCached.all { it.suggestion.words != feature.id() }) {
-                    pointList.remove(feature)
-                }
-            }
-        }
-//        pointList.add(Feature.fromGeometry(point, null, currentId))
-//        val featureCollection = FeatureCollection.fromFeatures(pointList)
-//        mapboxMap.getStyle { style ->
-//            style.getSourceAs<GeoJsonSource>(SOURCE_ID)?.featureCollection(featureCollection)
-//        }
-//        return currentId
-    }
-
-    /** [drawZoomedMarkers] will be responsible for the drawing all [W3WZoomedInMarkerStyle]s using [GoogleMap] [polylineManager] and [groundOverlayManager].*/
     private fun drawZoomedMarkers() {
         w3wMapManager.suggestionsCached.forEach {
             drawFilledZoomedMarker(it)
@@ -536,6 +498,7 @@ class W3WMapBoxWrapper(
         }
     }
 
+    /** [drawOutlineZoomedMarker] will be responsible for the highlighting the selected square by adding four lines to [MapboxMap.style] using [LineLayer].*/
     private fun drawOutlineZoomedMarker(suggestion: SuggestionWithCoordinates) {
         val listLines = LineString.fromLngLats(
             listOf(
@@ -561,10 +524,10 @@ class W3WMapBoxWrapper(
                 )
             )
         )
-        mapView.getMapboxMap().getStyle { style ->
-            style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.let {
-                it.data(listLines.toJson())
-            } ?: run {
+        map.getStyle { style ->
+            if (!style.styleSourceExists(SELECTED_ZOOMED_SOURCE)) {
+                style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.data(listLines.toJson())
+            } else {
                 style.addSource(
                     geoJsonSource(SELECTED_ZOOMED_SOURCE) {
                         data(listLines.toJson())
@@ -575,7 +538,7 @@ class W3WMapBoxWrapper(
                 style.addLayer(
                     lineLayer(SELECTED_ZOOMED_LAYER, SELECTED_ZOOMED_SOURCE) {
                         lineColor(
-                            if (mapView.getMapboxMap().getStyle()?.styleURI == Style.SATELLITE) {
+                            if (map.getStyle()?.styleURI == Style.SATELLITE) {
                                 context.getColor(R.color.grid_selected_sat)
                             } else {
                                 context.getColor(R.color.grid_selected_normal)
@@ -588,12 +551,12 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawZoomedMarkers] will be responsible for the drawing all [W3WZoomedInMarkerStyle.FILL] and [W3WZoomedInMarkerStyle.FILLANDOUTLINE] using [GoogleMap] [groundOverlayManager].*/
+    /** [drawZoomedMarkers] will be responsible for the drawing all square images to four coordinates (top right, then clockwise) by adding them [MapboxMap.style] using [RasterLayer], still looking for a better option for this, this is the way I found it online.*/
     private fun drawFilledZoomedMarker(suggestion: SuggestionWithCoordinatesAndStyle) {
         main(dispatchers) {
             val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.words)
             bitmapFromDrawableRes(context, suggestion.markerColor.toGridFill())?.let { image ->
-                mapView.getMapboxMap().getStyle { style ->
+                map.getStyle { style ->
                     if (!style.styleSourceExists(id)) {
                         style.addSource(
                             imageSource(id) {
@@ -647,9 +610,9 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawLinesOnMap] will be responsible for the drawing of the grid using [GoogleMap] [polylineManager].*/
+    /** [drawLinesOnMap] will be responsible for the drawing of the grid with data from the GeoJSON return from our API/SDK then adding the lines to [MapboxMap.style] using an [LineLayer].*/
     private fun drawLinesOnMap(geoJson: String) {
-        mapView.getMapboxMap().getStyle {
+        map.getStyle {
             if (it.styleSourceExists(GRID_SOURCE)) {
                 val source = it.getSourceAs<GeoJsonSource>(GRID_SOURCE)
                 source?.data(geoJson)
@@ -673,31 +636,28 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [clearGridAndZoomedInMarkers] will clear the grid and all [W3WZoomedInMarkerStyle]s from [polylineManager] and [groundOverlayManager].*/
+    /** [clearGridAndZoomedInMarkers] will clear the grid [LineLayer] and all square images [RasterLayer] from [MapboxMap.style].*/
     private fun clearGridAndZoomedInMarkers() {
-        try {
-            mapView.getMapboxMap().getStyle { style ->
-                if (style.styleLayerExists(GRID_LAYER)) {
-                    val layer = style.getLayerAs<LineLayer>(GRID_LAYER)
-                    layer?.visibility(Visibility.NONE)
-                }
-                if (style.styleLayerExists(SELECTED_ZOOMED_LAYER)) {
-                    style.removeStyleLayer(SELECTED_ZOOMED_LAYER)
-                    style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
-                }
-                w3wMapManager.suggestionsCached.forEach {
-                    val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.words)
-                    if (style.styleLayerExists(id)) {
-                        style.removeStyleLayer(id)
-                        style.removeStyleSource(id)
-                    }
+        map.getStyle { style ->
+            if (style.styleLayerExists(GRID_LAYER)) {
+                val layer = style.getLayerAs<LineLayer>(GRID_LAYER)
+                layer?.visibility(Visibility.NONE)
+            }
+            if (style.styleLayerExists(SELECTED_ZOOMED_LAYER)) {
+                style.removeStyleLayer(SELECTED_ZOOMED_LAYER)
+                style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
+            }
+            w3wMapManager.suggestionsCached.forEach {
+                val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.words)
+                if (style.styleLayerExists(id)) {
+                    style.removeStyleLayer(id)
+                    style.removeStyleSource(id)
                 }
             }
-        } catch (e: Exception) {
         }
     }
 
-    /** [drawMarkersOnMap] will be responsible for the drawing of [W3WZoomedOutMarkerStyle]s using [GoogleMap] [markerManager].*/
+    /** [drawMarkersOnMap] holds the logic to decide which kind of pin should be added to [MapboxMap.style] based on selection and added points.*/
     private fun drawMarkersOnMap() {
         w3wMapManager.suggestionsCached.forEach {
             if (w3wMapManager.selectedSuggestion?.square?.contains(
@@ -715,9 +675,9 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawPin] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.PIN]s using [GoogleMap] [markerManager].*/
+    /** [drawSelectedPin] will be responsible for the drawing of the selected but not added w3w pins (i.e [R.drawable.ic_marker_pin_white] for [Style.SATELLITE]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
     private fun drawSelectedPin(data: SuggestionWithCoordinates) {
-        val image = if (mapView.getMapboxMap().getStyle()?.styleURI == Style.SATELLITE) {
+        val image = if (map.getStyle()?.styleURI == Style.SATELLITE) {
             R.drawable.ic_marker_pin_white
         } else {
             R.drawable.ic_marker_pin_dark_blue
@@ -726,12 +686,11 @@ class W3WMapBoxWrapper(
             context,
             image
         )?.let { bitmap ->
-            mapView.getMapboxMap().getStyle { style ->
+            map.getStyle { style ->
                 style.addImage(image.toString(), bitmap)
                 if (style.styleSourceExists(SELECTED_SOURCE)) {
-                    style.getSourceAs<GeoJsonSource>(SELECTED_SOURCE)?.let {
-                        it.geometry(Point.fromLngLat(data.coordinates.lng, data.coordinates.lat))
-                    }
+                    style.getSourceAs<GeoJsonSource>(SELECTED_SOURCE)
+                        ?.geometry(Point.fromLngLat(data.coordinates.lng, data.coordinates.lat))
                 } else {
                     style.addSource(
                         geoJsonSource(SELECTED_SOURCE) {
@@ -752,11 +711,11 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawPin] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.PIN]s using [GoogleMap] [markerManager].*/
+    /** [drawPin] will be responsible for the drawing of the selected and added w3w pins (i.e [R.drawable.ic_marker_pin_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
     private fun drawPin(data: SuggestionWithCoordinatesAndStyle) {
         data.markerColor.toPin()?.let { markerFillColor ->
             bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
-                mapView.getMapboxMap().getStyle { style ->
+                map.getStyle { style ->
                     style.addImage(
                         String.format(PIN_ID_PREFIX, data.markerColor.toString()),
                         bitmap
@@ -787,11 +746,11 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawPin] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.PIN]s using [GoogleMap] [markerManager].*/
+    /** [drawCircle] will be responsible for the drawing of the w3w circle pins (i.e [R.drawable.ic_marker_circle_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
     private fun drawCircle(data: SuggestionWithCoordinatesAndStyle) {
         data.markerColor.toCircle().let { markerFillColor ->
             bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
-                mapView.getMapboxMap().getStyle { style ->
+                map.getStyle { style ->
                     style.addImage(
                         String.format(CIRCLE_ID_PREFIX, data.markerColor.toString()),
                         bitmap
@@ -824,7 +783,6 @@ class W3WMapBoxWrapper(
                     }
                 }
             }
-
         }
     }
 
@@ -852,8 +810,8 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
-    private fun getGridColorBasedOnZoomLevel(zoom: Double = mapView.getMapboxMap().cameraState.zoom): Int {
+    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
+    private fun getGridColorBasedOnZoomLevel(zoom: Double = map.cameraState.zoom): Int {
         return when {
             zoom < ZOOM_SWITCH_LEVEL -> context.getColor(R.color.grid_mapbox)
             zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.getColor(R.color.grid_mapbox)
@@ -862,8 +820,8 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
-    private fun getGridBorderSizeBasedOnZoomLevel(zoom: Double = mapView.getMapboxMap().cameraState.zoom): Double {
+    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
+    private fun getGridBorderSizeBasedOnZoomLevel(zoom: Double = map.cameraState.zoom): Double {
         return when {
             zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
@@ -875,8 +833,8 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
-    private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.getMapboxMap().cameraState.zoom): Double {
+    /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
+    private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = map.cameraState.zoom): Double {
         return when {
             zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
@@ -889,9 +847,9 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [removeAllMarkers] will clear all [W3WZoomedOutMarkerStyle]s from [markerManager].*/
+    /** [removeAllMarkers] will clear the [SELECTED_LAYER] and all [W3WMapManager.suggestionsCached] added [SymbolLayer]'s from [MapboxMap.style].*/
     private fun clearMarkers() {
-        mapView.getMapboxMap().getStyle { style ->
+        map.getStyle { style ->
             if (style.styleLayerExists(SELECTED_LAYER)) {
                 style.removeStyleLayer(SELECTED_LAYER)
                 style.removeStyleSource(SELECTED_SOURCE)
