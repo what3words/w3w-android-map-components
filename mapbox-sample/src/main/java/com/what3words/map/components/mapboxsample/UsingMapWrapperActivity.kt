@@ -54,7 +54,10 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                                 )
                                 points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
                             }
-                            val options = binding.mapView.getMapboxMap().cameraForCoordinates(points, EdgeInsets(100.0,100.0,100.0,100.0))
+                            val options = binding.mapView.getMapboxMap().cameraForCoordinates(
+                                points,
+                                EdgeInsets(100.0, 100.0, 100.0, 100.0)
+                            )
                             binding.mapView.getMapboxMap().setCamera(options)
                         }
                     },
@@ -67,11 +70,13 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                     }
                 )
             } else {
-                Toast.makeText(
-                    this@UsingMapWrapperActivity,
-                    "${res.error.key}, ${res.error.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                CoroutineScope(Dispatchers.Main).launch {
+                    Toast.makeText(
+                        this@UsingMapWrapperActivity,
+                        "${res.error.key}, ${res.error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
 

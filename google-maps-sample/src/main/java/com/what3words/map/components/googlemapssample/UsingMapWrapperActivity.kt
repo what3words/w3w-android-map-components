@@ -54,7 +54,10 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
                         CoroutineScope(Dispatchers.Main).launch {
                             val latLngBounds = LatLngBounds.Builder()
                             list.forEach {
-                                Log.i("UsingMapWrapperActivity", "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\"")
+                                Log.i(
+                                    "UsingMapWrapperActivity",
+                                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
+                                )
                                 latLngBounds.include(LatLng(it.coordinates.lat, it.coordinates.lng))
                             }
                             p0.animateCamera(
@@ -74,11 +77,13 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                 )
             } else {
-                Toast.makeText(
-                    this@UsingMapWrapperActivity,
-                    "${res.error.key}, ${res.error.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                CoroutineScope(Dispatchers.Main).launch {
+                    Toast.makeText(
+                        this@UsingMapWrapperActivity,
+                        "${res.error.key}, ${res.error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
 
