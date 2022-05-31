@@ -1,21 +1,18 @@
 package com.what3words.components.maps.wrappers
 
+import androidx.core.util.Consumer
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
-import com.what3words.components.maps.extensions.io
 import com.what3words.components.maps.extensions.main
 import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
-import com.what3words.components.maps.models.W3WZoomedInMarkerStyle
-import com.what3words.components.maps.models.W3WZoomedOutMarkerStyle
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import kotlinx.coroutines.runBlocking
-import java.util.function.Consumer
 
 /**
  * [W3WMapManager] an abstract layer to retrieve data from [W3WDataSource] save it in memory [suggestionsCached] and be used in multiple map wrapper. i.e: [W3WGoogleMapsWrapper].
@@ -38,7 +35,7 @@ internal class W3WMapManager(
     /** Add [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
      *
      * @param coordinates [Coordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
      */
     fun addCoordinates(
@@ -103,7 +100,7 @@ internal class W3WMapManager(
     /** Add a list of [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] for each [Coordinates] and if ALL succeed will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep in memory all [SuggestionWithCoordinates] and all the styles applied to it.
      *
      * @param listCoordinates list of [Coordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added,.
      * @return [Either] where will be [Either.Left] if any error occurs or [Either.Right] with a list of [SuggestionWithCoordinates] if ALL [W3WDataSource.getSuggestionByCoordinates] are successful.
      */
     fun addCoordinates(
@@ -184,9 +181,11 @@ internal class W3WMapManager(
                     listToRemove.add(toRemove)
                 }
             }
-            suggestionsCached.removeAll(listToRemove)
-            main(dispatchers) {
-                w3WMapWrapper.updateMap()
+            if (listToRemove.isNotEmpty()) {
+                suggestionsCached.removeAll(listToRemove)
+                main(dispatchers) {
+                    w3WMapWrapper.updateMap()
+                }
             }
         }
     }
@@ -194,10 +193,9 @@ internal class W3WMapManager(
     /** Add three word address [words] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByWords] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
      *
      * @param words to be added.
-     * @param zoomedOutMarkerStyle is the [W3WZoomedOutMarkerStyle] for the [Coordinates] added. This parameter will be the zoomed-out marker, set [W3WZoomedOutMarkerStyle.NONE] if you don't want the marker to be visible on the map.
-     * @param markerZoomedInStyle is the [W3WZoomedInMarkerStyle] for all [Coordinates]s added. This parameter will be the zoomed-in marker, set [W3WZoomedInMarkerStyle.NONE] if you don't want the square to be visible on the map.
-     * @param markerFillColor is the [markerFillColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByWords] it's successful.
+     * @param markerColor is the [W3WMarkerColor] for the [words] added.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
+     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addWords(
         words: String,
@@ -232,53 +230,13 @@ internal class W3WMapManager(
         }
     }
 
-    /** Set a three word address [words] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates].
-     *
-     * @param words three word address to be selected.
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
-     */
-    fun selectWords(
-        words: String,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        runBlocking(dispatchers.io()) {
-            when (val c23wa = w3wDataSource.getSuggestionByWords(words)) {
-                is Either.Left -> {
-                    main(dispatchers) {
-                        onError?.accept(c23wa.a)
-                    }
-                }
-                is Either.Right -> {
-                    selectedSuggestion = c23wa.b
-                    main(dispatchers) {
-                        onSuccess?.accept(c23wa.b)
-                        w3WMapWrapper.updateMap()
-                    }
-                }
-            }
-        }
-    }
-
-    /** Set [Coordinates] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates].
-     *
-     * @param coordinates [Coordinates] to be added.
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
-     */
-    fun unselect() {
-        selectedSuggestion = null
-        main(dispatchers) {
-            w3WMapWrapper.updateMap()
-        }
-    }
-
     /** Add a list of three word addresses to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByWords] for each words in [listWords] and if ALL succeed will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep in memory all [SuggestionWithCoordinates] and all the styles applied to it.
+     * finally calls [W3WMapWrapper.updateMap] to reflect the changes.
      *
      * @param listWords list of words to be added.
-     * @param zoomedOutMarkerStyle is the [W3WZoomedOutMarkerStyle] for the [Coordinates] added. This parameter will be the zoomed-out marker, set [W3WZoomedOutMarkerStyle.NONE] if you don't want the marker to be visible on the map.
-     * @param markerZoomedInStyle is the [W3WZoomedInMarkerStyle] for all [Coordinates]s added. This parameter will be the zoomed-in marker, set [W3WZoomedInMarkerStyle.NONE] if you don't want the square to be visible on the map.
-     * @param markerFillColor is the [markerFillColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
-     * @return [Either] where will be [Either.Left] if ANY error occurs or [Either.Right] with a list of [SuggestionWithCoordinates] if ALL [W3WDataSource.getSuggestionByWords] are successful.
+     * @param markerColor is the [W3WMarkerColor] for the [listWords] added.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [listWords].
+     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addWords(
         listWords: List<String>,
@@ -331,6 +289,43 @@ internal class W3WMapManager(
         }
     }
 
+    /** Set a three word address [words] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates] and calls [W3WMapWrapper.updateMap] to reflect the changes.
+     *
+     * @param words three word address to be selected.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
+     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
+    fun selectWords(
+        words: String,
+        onSuccess: Consumer<SuggestionWithCoordinates>?,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        runBlocking(dispatchers.io()) {
+            when (val c23wa = w3wDataSource.getSuggestionByWords(words)) {
+                is Either.Left -> {
+                    main(dispatchers) {
+                        onError?.accept(c23wa.a)
+                    }
+                }
+                is Either.Right -> {
+                    selectedSuggestion = c23wa.b
+                    main(dispatchers) {
+                        onSuccess?.accept(c23wa.b)
+                        w3WMapWrapper.updateMap()
+                    }
+                }
+            }
+        }
+    }
+
+    /** Clears [selectedSuggestion] and calls [W3WMapWrapper.updateMap] to reflect the changes */
+    fun unselect() {
+        selectedSuggestion = null
+        main(dispatchers) {
+            w3WMapWrapper.updateMap()
+        }
+    }
+
     /** Remove three word address from [suggestionsCached].
      *
      * @param words the three word address to be removed.
@@ -358,9 +353,11 @@ internal class W3WMapManager(
                     listToRemove.add(toRemove)
                 }
             }
-            suggestionsCached.removeAll(listToRemove)
-            main(dispatchers) {
-                w3WMapWrapper.updateMap()
+            if (listToRemove.isNotEmpty()) {
+                suggestionsCached.removeAll(listToRemove)
+                main(dispatchers) {
+                    w3WMapWrapper.updateMap()
+                }
             }
         }
     }
@@ -372,9 +369,11 @@ internal class W3WMapManager(
             suggestionsCached.forEach { data ->
                 listToRemove.add(data)
             }
-            suggestionsCached.removeAll(listToRemove)
-            main(dispatchers) {
-                w3WMapWrapper.updateMap()
+            if (listToRemove.isNotEmpty()) {
+                suggestionsCached.removeAll(listToRemove)
+                main(dispatchers) {
+                    w3WMapWrapper.updateMap()
+                }
             }
         }
     }
@@ -385,7 +384,7 @@ internal class W3WMapManager(
      * @param longitude the longitude search query.
      * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] will return it if not will return null.
      */
-    private fun findByExactLocation(
+    internal fun findByExactLocation(
         latitude: Double,
         longitude: Double
     ): SuggestionWithCoordinatesAndStyle? {

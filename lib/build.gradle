@@ -28,6 +28,9 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
@@ -39,9 +42,6 @@ dependencies {
     compileOnly 'com.google.android.gms:play-services-maps:18.0.2'
     compileOnly 'com.google.maps.android:android-maps-utils:2.3.0'
     compileOnly 'com.mapbox.maps:android:10.4.0'
-
-    implementation("com.android.volley:volley:1.2.1")
-
 
     // kotlin
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
