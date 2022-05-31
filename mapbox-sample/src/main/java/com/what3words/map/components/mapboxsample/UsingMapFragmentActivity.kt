@@ -50,7 +50,7 @@ class UsingMapFragmentActivity : AppCompatActivity() , W3WMapboxMapFragment.OnFr
             }
         )
 
-        //if you want to access the google map instance inside W3WGoogleMapFragment do the following
+        //if you want to access the mapbox map instance inside W3WMapboxMapFragment do the following
         (fragment as? W3WMapboxMapFragment)?.getMap()?.let {
             it.loadStyleUri(Style.MAPBOX_STREETS)
         }
