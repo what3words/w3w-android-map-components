@@ -1,9 +1,8 @@
 package com.what3words.components.maps.models
 
 import android.content.Context
-import com.android.volley.Request
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
 import com.what3words.androidwrapper.What3WordsV3
 import com.what3words.components.maps.extensions.toSuggestionWithCoordinates
 import com.what3words.javawrapper.request.BoundingBox
@@ -16,8 +15,6 @@ import kotlin.coroutines.suspendCoroutine
 
 class W3WApiDataSource(private val wrapper: What3WordsV3, private val context: Context) :
     W3WDataSource {
-
-    val requestQueue = Volley.newRequestQueue(this.context)
 
     override suspend fun getSuggestionByCoordinates(
         coordinates: Coordinates,
@@ -61,25 +58,20 @@ class W3WApiDataSource(private val wrapper: What3WordsV3, private val context: C
             }
         }
 
+    //TO BE FIXED ON THE WRAPPER
     override suspend fun getGeoJsonGrid(boundingBox: BoundingBox): Either<APIResponse.What3WordsError, String> =
         suspendCoroutine { cont ->
-            val apiUrl =
-                "https://api.what3words.com/v3/grid-section?bounding-box=${boundingBox.sw.lat},${boundingBox.sw.lng},${boundingBox.ne.lat},${boundingBox.ne.lng}&format=geojson&key=TCRPZKEE"
-            val jsonObjectRequest = StringRequest(
-                Request.Method.GET, apiUrl,
-                {
-                    cont.resume(Either.Right(it))
-                },
-                {
-                    cont.resume(
-                        Either.Left(
-                            APIResponse.What3WordsError.UNKNOWN_ERROR.apply {
-                                this.message = it.message
-                            }
-                        )
-                    )
-                }
-            )
-            requestQueue.add(jsonObjectRequest)
+            val grid = wrapper.gridSectionGeoJson(
+                boundingBox
+            ).execute()
+            if (grid.isSuccessful) {
+                val t = Test(grid.features, "FeatureCollection")
+                cont.resume(Either.Right(GsonBuilder().create().toJson(t)))
+            } else {
+                cont.resume(Either.Left(grid.error))
+            }
         }
 }
+
+//TO DELETE
+data class Test(val features: JsonArray, val type: String)

@@ -11,12 +11,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url "https://oss.sonatype.org/content/repositories/comwhat3words-1190"
-        }
-        maven {
-            url "https://oss.sonatype.org/content/repositories/comwhat3words-1189"
-        }
-        maven {
             url 'https://api.mapbox.com/downloads/v2/releases/maven'
             authentication {
                 basic(BasicAuthentication)
@@ -32,5 +26,6 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "w3w-android-components-maps"
-include ':sample'
 include ':lib'
+include ':google-maps-sample'
+include ':mapbox-sample'

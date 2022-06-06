@@ -25,8 +25,6 @@ import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
-import com.what3words.components.maps.models.W3WZoomedInMarkerStyle
-import com.what3words.components.maps.models.W3WZoomedOutMarkerStyle
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
@@ -41,15 +39,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.function.Consumer
+import androidx.core.util.Consumer
 import kotlin.math.roundToInt
 
 /**
  * [W3WGoogleMapsWrapper] a wrapper to add what3words support to [GoogleMap].
  **
- * @param w3wDataSource source of what3words data can be API or SDK.
- * @param mapView the [GoogleMap] view that [W3WGoogleMapsWrapper] should apply changes to.
  * @param context app context.
+ * @param mapView the [GoogleMap] view that [W3WGoogleMapsWrapper] should apply changes to.
+ * @param w3wDataSource source of what3words data can be API or SDK.
  * @param dispatchers for custom dispatcher provider using [DefaultDispatcherProvider] by default.
  */
 class W3WGoogleMapsWrapper(
@@ -108,6 +106,10 @@ class W3WGoogleMapsWrapper(
         return this
     }
 
+    /** A callback for when an existing marker on the map is clicked.
+     *
+     * @param callback it will be invoked when an existing marker on the map is clicked by the user.
+     */
     override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WGoogleMapsWrapper {
         onMarkerClickedCallback = callback
         return this
@@ -118,7 +120,7 @@ class W3WGoogleMapsWrapper(
     /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
      *
      * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
@@ -139,7 +141,7 @@ class W3WGoogleMapsWrapper(
     /** Add a list of [Suggestion] to the map. This method will add multiple markers/squares to the map after getting the suggestions from our W3WAutosuggestEditText.
      *
      * @param listSuggestions list of [Suggestion]s returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the suggestion added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the suggestion added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
@@ -173,6 +175,12 @@ class W3WGoogleMapsWrapper(
         w3wMapManager.removeWords(listSuggestions.map { it.words })
     }
 
+    /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
+     *
+     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
     override fun selectAtSuggestion(
         suggestion: Suggestion,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
@@ -191,7 +199,7 @@ class W3WGoogleMapsWrapper(
     /** Add [Coordinates] to the map. This method will add a marker/square to the map based on each of the [Coordinates] provided latitude and longitude.
      *
      * @param coordinates [Coordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
@@ -212,7 +220,7 @@ class W3WGoogleMapsWrapper(
     /** Add a list of [Coordinates] to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
      *
      * @param listCoordinates list of [Coordinates]s to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
+     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
@@ -230,6 +238,12 @@ class W3WGoogleMapsWrapper(
         )
     }
 
+    /** Set [Coordinates] as selected marker on the map, it can only have one selected marker at the time.
+     *
+     * @param coordinates [Coordinates] to be added.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
     override fun selectAtCoordinates(
         coordinates: Coordinates,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
@@ -266,9 +280,9 @@ class W3WGoogleMapsWrapper(
     //region add/remove by words
     /** Add a three word address to the map. This method will add a marker/square to the map if [words] are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
      *
-     * @param words, three word address to be added.
-     * @param markerColor, the [W3WMarkerColor] for the [Coordinates] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
+     * @param words three word address to be added.
+     * @param markerColor the [W3WMarkerColor] for the [Coordinates] added.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
      * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     override fun addMarkerAtWords(
@@ -287,10 +301,10 @@ class W3WGoogleMapsWrapper(
 
     /** Add a list of three word addresses to the map. This method will add a marker/square to the map if all [listWords] are a valid three word addresses, e.g., filled.count.soap. If any valid three word address is not valid, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
      *
-     * @param listWords, list of three word address to be added.
-     * @param markerColor, the [W3WMarkerColor] for the [listWords] added, the same color will be applied to both [W3WZoomedOutMarkerStyle] and [W3WZoomedInMarkerStyle].
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param listWords list of three word address to be added.
+     * @param markerColor the [W3WMarkerColor] for the [listWords] added.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [listWords].
+     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message. If one item on the list fails to be added, this process will be fully reverted, only adds if all succeed.
      */
     override fun addMarkerAtWords(
         listWords: List<String>,
@@ -306,6 +320,12 @@ class W3WGoogleMapsWrapper(
         )
     }
 
+    /** Set [words] as selected marker on the map, it can only have one selected marker at the time.
+     *
+     * @param words three word address to be added.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
     override fun selectAtWords(
         words: String,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
@@ -334,7 +354,10 @@ class W3WGoogleMapsWrapper(
         w3wMapManager.removeWords(listWords)
     }
 
-    /** Remove all items add to the map. */
+    //endregion
+
+    //region general public methods
+    /** Remove all markers from the map. */
     override fun removeAllMarkers() {
         w3wMapManager.clearList()
     }
@@ -353,14 +376,14 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraIdleListener] if [gridEnabled] is set to true (default).
+    /** This method should be called on [GoogleMap.setOnCameraIdleListener].
      * This will allow to refresh the grid bounds on camera idle.
      */
     override fun updateMap() {
         onMapMoved()
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraMoveListener] if [gridEnabled] is set to true (default).
+    /** This method should be called on [GoogleMap.setOnCameraMoveListener].
      * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [ZOOM_SWITCH_LEVEL] threshold.
      */
     override fun updateMove() {
@@ -401,52 +424,6 @@ class W3WGoogleMapsWrapper(
 
     //region private methods
 
-    /** Remove a collection of IDs [idsToDelete] from all managers [polylineManager], [markerManager] and [groundOverlayManager].
-     *
-     * @param idsToDelete the list of IDs to delete (IDs are [SuggestionWithCoordinates.words] since they are unique).
-     */
-    private fun clearFromMap(idsToDelete: List<String>) {
-        idsToDelete.forEach { id ->
-            polylineManager.getCollection(id)?.polylines?.forEach {
-                main(dispatchers) {
-                    polylineManager.getCollection(id).remove(it)
-                }
-            }
-            markerManager.getCollection(id)?.markers?.forEach {
-                main(dispatchers) {
-                    markerManager.getCollection(id).remove(it)
-                }
-            }
-            groundOverlayManager.getCollection(id)?.groundOverlays?.forEach {
-                main(dispatchers) {
-                    groundOverlayManager.getCollection(id).remove(it)
-                }
-            }
-        }
-    }
-
-    /** Remove a collection of IDs [idsToDelete] from all managers [polylineManager], [markerManager] and [groundOverlayManager].
-     *
-     * @param idsToDelete the list of IDs to delete (IDs are [SuggestionWithCoordinates.words] since they are unique).
-     */
-    private fun clearSelectedFromMap() {
-        polylineManager.getCollection(SELECTED)?.polylines?.forEach {
-            main(dispatchers) {
-                polylineManager.getCollection(SELECTED).remove(it)
-            }
-        }
-        markerManager.getCollection(SELECTED)?.markers?.forEach {
-            main(dispatchers) {
-                markerManager.getCollection(SELECTED).remove(it)
-            }
-        }
-        groundOverlayManager.getCollection(SELECTED)?.groundOverlays?.forEach {
-            main(dispatchers) {
-                groundOverlayManager.getCollection(SELECTED).remove(it)
-            }
-        }
-    }
-
     /** Scale bounds to [scale] times to get the grid larger than the visible [GoogleMap.getProjection] bounds. This will increase performance and keep the grid visible for longer when moving camera.
      *
      * @param bounds the [GoogleMap.getCameraPosition] bounds.
@@ -476,9 +453,9 @@ class W3WGoogleMapsWrapper(
 
     /** [onMapMoved] will be responsible for the drawing of grid, markers and squares depending on the zoom levels.
      * when:
-     * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible -> should draw all [W3WZoomedOutMarkerStyle]s.
-     * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && isGridVisible -> should clear the grid and all [W3WZoomedInMarkerStyle]s and draw [W3WZoomedOutMarkerStyle].
-     * - else -> should clear all [W3WZoomedOutMarkerStyle]s and add get the grid from [w3wDataSource], draw the grid and all [W3WZoomedInMarkerStyle]s.
+     * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible -> should draw all zoomed out markers .
+     * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && isGridVisible -> should clear the grid and all zoomed in markers and draw zoomed out markers.
+     * - else -> should clear all zoomed out markers and add get the grid from [w3wDataSource], draw the grid and all zoomed in markers.
      *
      * @param shouldCancelPreviousJob if it should cancel previous [w3wDataSource] call to get the grid, to improve performance and API requests.
      */
@@ -536,7 +513,6 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawMarkersOnMap] will be responsible for the drawing of [W3WZoomedOutMarkerStyle]s using [GoogleMap] [markerManager].*/
     private fun drawMarkersOnMap() {
         w3wMapManager.suggestionsCached.filter {
             if (lastScaledBounds != null) {
@@ -560,9 +536,9 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawPin] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.PIN]s using [GoogleMap] [markerManager].*/
+    /** [drawPin] will be responsible for the drawing of the zoomed out marker if it's cached [W3WMapManager.suggestionsCached] AND selected [W3WMapManager.selectedSuggestion] using [GoogleMap] [markerManager]. (only one at the time)*/
     private fun drawPin(data: SuggestionWithCoordinatesAndStyle) {
-        data.markerColor.toPin()?.let { markerFillColor ->
+        data.markerColor.toPin().let { markerFillColor ->
             val markerOptions = MarkerOptions()
                 .position(LatLng(data.suggestion.coordinates.lat, data.suggestion.coordinates.lng))
                 .icon(getBitmapDescriptorFromVector(context, markerFillColor))
@@ -578,7 +554,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawPin] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.PIN]s using [GoogleMap] [markerManager].*/
+    /** [drawSelectedPin] will be responsible for the drawing of the zoomed out marker if it's selected [W3WMapManager.selectedSuggestion] AND NOT cached [W3WMapManager.suggestionsCached] using [GoogleMap] [markerManager]. (only one at the time)*/
     private fun drawSelectedPin(data: SuggestionWithCoordinates) {
         val markerOptions = MarkerOptions()
             .position(LatLng(data.coordinates.lat, data.coordinates.lng))
@@ -605,7 +581,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawCircle] will be responsible for the drawing of [W3WZoomedOutMarkerStyle.CIRCLE]s using [GoogleMap] [markerManager].*/
+    /** [drawCircle] will be responsible for the drawing of the zoomed out marker if it's cached [W3WMapManager.suggestionsCached] AND NOT selected [W3WMapManager.selectedSuggestion] using [GoogleMap] [markerManager].*/
     private fun drawCircle(data: SuggestionWithCoordinatesAndStyle) {
         val markerOptions = MarkerOptions()
             .position(LatLng(data.suggestion.coordinates.lat, data.suggestion.coordinates.lng))
@@ -699,7 +675,6 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawZoomedMarkers] will be responsible for the drawing all [W3WZoomedInMarkerStyle]s using [GoogleMap] [polylineManager] and [groundOverlayManager].*/
     private fun drawZoomedMarkers() {
         w3wMapManager.suggestionsCached.filter {
             if (lastScaledBounds != null) {
@@ -715,7 +690,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawZoomedMarkers] will be responsible for the drawing all [W3WZoomedInMarkerStyle.FILL] and [W3WZoomedInMarkerStyle.FILLANDOUTLINE] using [GoogleMap] [groundOverlayManager].*/
+    /** [drawFilledZoomedMarker] will be responsible for the drawing of the zoomed in marker if it's cached [W3WMapManager.suggestionsCached] using [GoogleMap] [groundOverlayManager].*/
     private fun drawFilledZoomedMarker(suggestion: SuggestionWithCoordinates, image: Int) {
         main(dispatchers) {
             val optionsVisible3wa = GroundOverlayOptions().clickable(true)
@@ -742,7 +717,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [drawZoomedMarkers] will be responsible for the drawing all [W3WZoomedInMarkerStyle.OUTLINE] and [W3WZoomedInMarkerStyle.FILLANDOUTLINE] using [GoogleMap] [polylineManager].*/
+    /** [drawOutlineZoomedMarker] will be responsible for the drawing of the zoomed in marker if it's selected [W3WMapManager.selectedSuggestion] using [GoogleMap] [polylineManager]. (only one at the time)*/
     private fun drawOutlineZoomedMarker(
         suggestion: SuggestionWithCoordinates
     ) {
@@ -792,7 +767,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [clearGridAndZoomedInMarkers] will clear the grid and all [W3WZoomedInMarkerStyle]s from [polylineManager] and [groundOverlayManager].*/
+    /** [clearGridAndZoomedInMarkers] will clear the grid and all zoomed in markers from [polylineManager] and [groundOverlayManager].*/
     private fun clearGridAndZoomedInMarkers() {
         try {
             runBlocking {
@@ -823,7 +798,7 @@ class W3WGoogleMapsWrapper(
         }
     }
 
-    /** [removeAllMarkers] will clear all [W3WZoomedOutMarkerStyle]s from [markerManager].*/
+    /** [clearMarkers] will clear all zoomed out markers from [markerManager].*/
     private fun clearMarkers() {
         try {
             runBlocking {
@@ -847,8 +822,8 @@ class W3WGoogleMapsWrapper(
     //endregion
 }
 
-/** [computeVerticalLines] will compute vertical lines to work with [polylineManager], it will invert every odd line to avoid diagonal connection.
- * @param lines will come from [w3wDataSource] with the following logic:
+/** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
+ * List of [Line]'s will come from [W3WDataSource] with the following logic:
  * 1     3      5
  * |  /  |  /  |
  * 2     4     6 ..
@@ -883,8 +858,8 @@ internal fun List<Line>.computeVerticalLines(): List<com.what3words.javawrapper.
     return computedVerticalLines
 }
 
-/** [computeHorizontalLines] will compute horizontal lines to work with [polylineManager], it will invert every odd line to avoid diagonal connection.
- * @param lines will come from [w3wDataSource] with the following logic:
+/** [computeHorizontalLines] will compute horizontal lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
+ * List of [Line]'s will come from [W3WDataSource] with the following logic:
  * A-----B
  *    /
  * C-----D

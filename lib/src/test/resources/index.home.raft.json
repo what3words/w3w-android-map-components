@@ -1,0 +1,22 @@
+{
+  "country": "GB",
+  "square": {
+    "southwest": {
+      "lng": -0.203607,
+      "lat": 51.521238
+    },
+    "northeast": {
+      "lng": -0.203564,
+      "lat": 51.521265
+    }
+  },
+  "nearestPlace": "Bayswater, London",
+  "words": "index.home.raft",
+  "coordinates": {
+    "lng": -0.203586,
+    "lat": 51.521251
+  },
+  "rank": 1,
+  "language": "en",
+  "map": "https://w3w.co/index.home.raft"
+}

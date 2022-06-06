@@ -7,10 +7,9 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
 import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.W3WDataSource
-import com.what3words.components.maps.models.W3WMarkerFillColor
-import com.what3words.components.maps.models.W3WZoomedInMarkerStyle
-import com.what3words.components.maps.models.W3WZoomedOutMarkerStyle
+import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.wrappers.W3WMapManager
+import com.what3words.components.maps.wrappers.W3WMapWrapper
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -22,6 +21,9 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import androidx.core.util.Consumer
+import io.mockk.justRun
+import io.mockk.verify
 import org.junit.rules.TestRule
 
 /**
@@ -31,14 +33,22 @@ import org.junit.rules.TestRule
  */
 @ExperimentalCoroutinesApi
 class W3WMapManagerTests {
+    private lateinit var manager: W3WMapManager
+
     @MockK
     private lateinit var dataSource: W3WDataSource
 
     @MockK
-    private lateinit var map: GoogleMap
+    private var wrapper = mockk<W3WMapWrapper>()
 
     @MockK
-    private lateinit var context: Context
+    private var suggestionCallback: Consumer<SuggestionWithCoordinates> = mockk()
+
+    @MockK
+    private var suggestionsCallback: Consumer<List<SuggestionWithCoordinates>> = mockk()
+
+    @MockK
+    private var errorCallback: Consumer<APIResponse.What3WordsError> = mockk()
 
     @get:Rule
     internal var coroutinesTestRule = CoroutineTestRule()
@@ -49,19 +59,28 @@ class W3WMapManagerTests {
     @Before
     fun setup() {
         dataSource = mockk()
+        manager = W3WMapManager(
+            dataSource,
+            wrapper,
+            coroutinesTestRule.testDispatcherProvider
+        )
+        justRun {
+            suggestionCallback.accept(any())
+            suggestionsCallback.accept(any())
+            errorCallback.accept(any())
+            wrapper.updateMap()
+            wrapper.updateMove()
+        }
     }
 
     @Test
-    fun addByCoordinatesSuccess() {
-        val suggestionJson =
-            ClassLoader.getSystemResource("filled.count.soap.json").readText()
-        val suggestion =
-            Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
-        val wrapper = W3WMapManager(
-            dataSource,
-            coroutinesTestRule.testDispatcherProvider
-        )
+    fun addAndRemoveByCoordinatesSuccess() {
         coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
             val coordinates = Coordinates(51.520847, -0.195521)
 
             coEvery {
@@ -70,24 +89,44 @@ class W3WMapManagerTests {
                 Either.Right(suggestion)
             }
 
-            val res = wrapper.addCoordinates(
+            //when adding coordinates
+            manager.addCoordinates(
                 coordinates,
-                W3WZoomedOutMarkerStyle.CIRCLE,
-                W3WZoomedInMarkerStyle.FILLANDOUTLINE,
-                W3WMarkerFillColor.YELLOW
+                W3WMarkerColor.YELLOW,
+                suggestionCallback,
+                errorCallback
             )
-            assertThat(res.isRight).isTrue()
-            assertThat(wrapper.getAll().first().words == suggestion.words).isNotNull()
+
+            //then
+            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().first().words == suggestion.words).isNotNull()
+
+            //when removing existing coordinates
+            manager.removeCoordinates(
+                coordinates
+            )
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+
+            //when removing non-existing coordinates
+            manager.removeCoordinates(
+                coordinates
+            )
+
+            //then map should not update, ignore
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
         }
     }
 
     @Test
     fun addByCoordinatesError() {
-        val wrapper = W3WMapManager(
-            dataSource,
-            coroutinesTestRule.testDispatcherProvider
-        )
         coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
             val coordinates = Coordinates(51.520847, -0.195521)
 
             coEvery {
@@ -96,14 +135,613 @@ class W3WMapManagerTests {
                 Either.Left(APIResponse.What3WordsError.INVALID_KEY)
             }
 
-            val res = wrapper.addCoordinates(
+            //when
+            manager.addCoordinates(
                 coordinates,
-                W3WZoomedOutMarkerStyle.CIRCLE,
-                W3WZoomedInMarkerStyle.FILLANDOUTLINE,
-                W3WMarkerFillColor.YELLOW
+                W3WMarkerColor.YELLOW,
+                suggestionCallback,
+                errorCallback
             )
-            assertThat(res.isLeft).isTrue()
-            assertThat(wrapper.getAll().isEmpty()).isTrue()
+
+            //then
+            verify(exactly = 0) { suggestionCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.INVALID_KEY) }
+            assertThat(manager.getList().isEmpty()).isTrue()
+        }
+    }
+
+    @Test
+    fun addAndRemoveMultipleCoordinatesSuccess() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion2Json =
+                ClassLoader.getSystemResource("index.home.raft.json").readText()
+            val suggestion2 =
+                Gson().fromJson(suggestion2Json, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates2, any())
+            } answers {
+                Either.Right(suggestion2)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates3, any())
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addCoordinates(
+                listCoordinates,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().count()).isEqualTo(3)
+
+            //when removing existing words
+            manager.removeCoordinates(
+                listCoordinates
+            )
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+
+            //when removing non-existing words
+            manager.removeCoordinates(
+                listCoordinates
+            )
+
+            //then map should not update, ignore
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun addMultipleCoordinatesAndClearList() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion2Json =
+                ClassLoader.getSystemResource("index.home.raft.json").readText()
+            val suggestion2 =
+                Gson().fromJson(suggestion2Json, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates2, any())
+            } answers {
+                Either.Right(suggestion2)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates3, any())
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addCoordinates(
+                listCoordinates,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().count()).isEqualTo(3)
+
+            //when clearList
+            manager.clearList()
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+
+            //when try to clear empty list
+            manager.clearList()
+
+            //then map should not update, ignore
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun addMultipleCoordinatesAndFindOneByLatLng() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion2Json =
+                ClassLoader.getSystemResource("index.home.raft.json").readText()
+            val suggestion2 =
+                Gson().fromJson(suggestion2Json, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates2, any())
+            } answers {
+                Either.Right(suggestion2)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates3, any())
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addCoordinates(
+                listCoordinates,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().count()).isEqualTo(3)
+
+            //when
+            var searchRes = manager.findByExactLocation(coordinates.lat, coordinates.lng)
+
+            //then
+            assertThat(searchRes).isNotNull()
+            assertThat(searchRes!!.suggestion.words == suggestion.words).isTrue()
+
+            //when
+            searchRes = manager.findByExactLocation(51.23, 2.0)
+
+            //then map should not update, ignore
+            assertThat(searchRes).isNull()
+        }
+    }
+
+    @Test
+    fun addMultipleCoordinatesFailsOneCancelAll() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates2, any())
+            } answers {
+                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates3, any())
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addCoordinates(
+                listCoordinates,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 0) { suggestionsCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun selectAndUnselectByCoordinatesSuccess() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+
+            val coordinates = Coordinates(51.520847, -0.195521)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            //when
+            manager.selectCoordinates(
+                coordinates,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.selectedSuggestion?.words == suggestion.words).isNotNull()
+
+            //when
+            manager.unselect()
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.selectedSuggestion).isNull()
+        }
+    }
+
+    @Test
+    fun selectByCoordinatesFails() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val coordinates = Coordinates(51.520847, -0.195521)
+
+            coEvery {
+                dataSource.getSuggestionByCoordinates(coordinates, any())
+            } answers {
+                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+            }
+
+            //when
+            manager.selectCoordinates(
+                coordinates,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 0) { suggestionCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            assertThat(manager.selectedSuggestion).isNull()
+        }
+    }
+
+    @Test
+    fun addAndRemoveByWordsSuccess() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val words = "filled.count.soap"
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            //when
+            manager.addWords(
+                words,
+                W3WMarkerColor.YELLOW,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().first().words == suggestion.words).isNotNull()
+
+            //when removing existing words
+            manager.removeWords(
+                words
+            )
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+
+            //when removing non-existing words
+            manager.removeWords(
+                words
+            )
+
+            //then map should not update, ignore
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun addAndRemoveMultipleWordsSuccess() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion2Json =
+                ClassLoader.getSystemResource("index.home.raft.json").readText()
+            val suggestion2 =
+                Gson().fromJson(suggestion2Json, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val words = "filled.count.soap"
+            val words2 = "index.home.raft"
+            val words3 = "limit.broom.fade"
+            val listWords = listOf(words, words2, words3)
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByWords(words2)
+            } answers {
+                Either.Right(suggestion2)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByWords(words3)
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addWords(
+                listWords,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.getList().count()).isEqualTo(3)
+
+            //when removing existing words
+            manager.removeWords(
+                listWords
+            )
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+
+            //when removing non-existing words
+            manager.removeWords(
+                listWords
+            )
+
+            //then map should not update, ignore
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun addMultipleWordsFailsOneCancelAll() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val suggestion3Json =
+                ClassLoader.getSystemResource("limit.broom.fade.json").readText()
+            val suggestion3 =
+                Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
+            val words = "filled.count.soap"
+            val words2 = "index.home.raft"
+            val words3 = "limit.broom.fade"
+            val listWords = listOf(words, words2, words3)
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByWords(words2)
+            } answers {
+                Either.Left(APIResponse.What3WordsError.BAD_WORDS)
+            }
+
+            coEvery {
+                dataSource.getSuggestionByWords(words3)
+            } answers {
+                Either.Right(suggestion3)
+            }
+
+            //when
+            manager.addWords(
+                listWords,
+                W3WMarkerColor.YELLOW,
+                suggestionsCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 0) { suggestionsCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_WORDS) }
+            assertThat(manager.getList()).isEmpty()
+        }
+    }
+
+    @Test
+    fun addByWordsError() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val words = "filled.count.soap"
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Left(APIResponse.What3WordsError.INVALID_KEY)
+            }
+
+            //when
+            manager.addWords(
+                words,
+                W3WMarkerColor.YELLOW,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 0) { suggestionCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.INVALID_KEY) }
+            assertThat(manager.getList().isEmpty()).isTrue()
+        }
+    }
+
+    @Test
+    fun selectAndUnselectByWordsSuccess() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val suggestionJson =
+                ClassLoader.getSystemResource("filled.count.soap.json").readText()
+            val suggestion =
+                Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
+            val words = "filled.count.soap"
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Right(suggestion)
+            }
+
+            //when
+            manager.selectWords(
+                words,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { wrapper.updateMap() }
+            verify(exactly = 0) { errorCallback.accept(any()) }
+            assertThat(manager.selectedSuggestion?.words == suggestion.words).isNotNull()
+
+            //when
+            manager.unselect()
+
+            //then
+            verify(exactly = 2) { wrapper.updateMap() }
+            assertThat(manager.selectedSuggestion).isNull()
+        }
+    }
+
+    @Test
+    fun selectByWordsFails() {
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            //given
+            val words = "filled.count.soap"
+
+            coEvery {
+                dataSource.getSuggestionByWords(words)
+            } answers {
+                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+            }
+
+            //when
+            manager.selectWords(
+                words,
+                suggestionCallback,
+                errorCallback
+            )
+
+            //then
+            verify(exactly = 0) { suggestionCallback.accept(any()) }
+            verify(exactly = 0) { wrapper.updateMap() }
+            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            assertThat(manager.selectedSuggestion).isNull()
         }
     }
 }

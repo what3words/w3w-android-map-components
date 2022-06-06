@@ -1,0 +1,22 @@
+{
+  "country": "GB",
+  "square": {
+    "southwest": {
+      "lng": 0.323765,
+      "lat": 51.675049
+    },
+    "northeast": {
+      "lng": 0.323808,
+      "lat": 51.675075
+    }
+  },
+  "nearestPlace": "Ingatestone, Essex",
+  "words": "limit.broom.fade",
+  "coordinates": {
+    "lng": 0.323787,
+    "lat": 51.675062
+  },
+  "rank": 1,
+  "language": "en",
+  "map": "https://w3w.co/limit.broom.fade"
+}
