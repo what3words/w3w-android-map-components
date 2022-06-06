@@ -66,6 +66,13 @@ interface W3WMap {
      */
     fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>)
 
+    /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
+     *
+     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
+     * @param zoomOption the zoom option for these markers, by default will center and zoom to show all added, if not desired please use [W3WZoomOption.NONE]
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
     fun selectAtSuggestion(
         suggestion: Suggestion,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,

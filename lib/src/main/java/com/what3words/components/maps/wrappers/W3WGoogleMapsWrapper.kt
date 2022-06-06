@@ -40,6 +40,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.core.util.Consumer
+import com.what3words.androidwrapper.What3WordsV3
+import com.what3words.components.maps.models.W3WApiDataSource
 import kotlin.math.roundToInt
 
 /**
@@ -56,6 +58,20 @@ class W3WGoogleMapsWrapper(
     private val w3wDataSource: W3WDataSource,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
+
+    /**
+     * [W3WGoogleMapsWrapper] a wrapper to add what3words support to [GoogleMap].
+     **
+     * @param context app context.
+     * @param mapView the [GoogleMap] view that [W3WGoogleMapsWrapper] should apply changes to.
+     * @param wrapper what3words android API wrapper to be used as source of data (i.e: c2c, c3wa, grid-section, autosuggest...).
+     */
+    constructor(
+        context: Context,
+        mapView: GoogleMap,
+        wrapper: What3WordsV3
+    ) : this(context, mapView, W3WApiDataSource(wrapper, context))
+
     companion object {
         const val VERTICAL_LINES_COLLECTION = "VERTICAL_LINES_COLLECTION"
         const val HORIZONTAL_LINES_COLLECTION = "HORIZONTAL_LINES_COLLECTION"
