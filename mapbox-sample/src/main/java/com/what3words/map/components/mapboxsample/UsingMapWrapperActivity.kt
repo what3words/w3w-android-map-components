@@ -49,19 +49,19 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                     W3WMarkerColor.BLUE,
                     onSuccess = { list ->
                         //example adjusting camera to show the 3 results on the map.
-                        val points = mutableListOf<Point>()
-                        list.forEach {
-                            Log.i(
-                                "UsingMapWrapperActivity",
-                                "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
+                            val points = mutableListOf<Point>()
+                            list.forEach {
+                                Log.i(
+                                    "UsingMapWrapperActivity",
+                                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
+                                )
+                                points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
+                            }
+                            val options = binding.mapView.getMapboxMap().cameraForCoordinates(
+                                points,
+                                EdgeInsets(100.0, 100.0, 100.0, 100.0)
                             )
-                            points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
-                        }
-                        val options = binding.mapView.getMapboxMap().cameraForCoordinates(
-                            points,
-                            EdgeInsets(100.0, 100.0, 100.0, 100.0)
-                        )
-                        binding.mapView.getMapboxMap().setCamera(options)
+                            binding.mapView.getMapboxMap().setCamera(options)
                     },
                     onError = {
                         Toast.makeText(
@@ -72,12 +72,12 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                     }
                 )
             } else {
-                Toast.makeText(
-                    this@UsingMapWrapperActivity,
-                    "${res.error.key}, ${res.error.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+                    Toast.makeText(
+                        this@UsingMapWrapperActivity,
+                        "${res.error.key}, ${res.error.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
         }
 
         //click even on existing w3w added markers on the map.
