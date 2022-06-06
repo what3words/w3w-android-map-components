@@ -25,7 +25,6 @@ import kotlinx.coroutines.withContext
 class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var w3wMapsWrapper: W3WGoogleMapsWrapper
     private lateinit var binding: ActivityUsingMapWrapperBinding
-    private val dispatcherProvider: DefaultDispatcherProvider = DefaultDispatcherProvider()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +46,7 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
         //example how to add a autosuggest results from our w3w wrapper to the map
         CoroutineScope(Dispatchers.Main).launch {
             val res =
-                withContext(dispatcherProvider.io()) {
+                withContext(Dispatchers.IO) {
                     wrapper.autosuggest("filled.count.s").nResults(3).execute()
                 }
             if (res.isSuccessful) {
