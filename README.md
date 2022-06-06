@@ -143,12 +143,12 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 
 ## General map wrapper functions:
 
-| Name | Summary | Example |
-|---|---|----|
-|setLanguage|Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return. Parameter should be a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
-|gridEnabled|Enable grid overlay over map with all 3mx3m squares on the visible map bounds, enabled by default.|```gridEnabled(true)```|
-|onMarkerClicked|A callback for when an existing marker on the map is clicked.|```onMarkerClicked { w3wMarker -> }```|
-|addMarkerAtSuggestion|Add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, W3WMarkerColor.RED, {marker -> }, {error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, W3WMarkerColor.RED, {markers -> }, {error -> })```|
-|removeMarkerAtSuggestion|Remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
+| Name - Summary | Example |
+|---|----|
+|**setLanguage** - set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return. Parameter should be a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
+|**gridEnabled** - Enable grid overlay over map with all 3mx3m squares on the visible map bounds, enabled by default.|```gridEnabled(true)```|
+|**onMarkerClicked** - A callback for when an existing marker on the map is clicked.|```onMarkerClicked { w3wMarker -> }```|
+|**addMarkerAtSuggestion** - Add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, W3WMarkerColor.RED, {marker -> }, {error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, W3WMarkerColor.RED, {markers -> }, {error -> })```|
+|**removeMarkerAtSuggestion**|Remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
 |selectAtSuggestion|Set Suggestion as the selected marker on the map, it can only have one selected marker at the time.|```selectAtSuggestion(suggestion, {w3wMarker -> }, {error -> })```|
 |addMarkerAtCoordinates|Add marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and the longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { w3wMarker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { w3wMarkers -> }, { error -> }) ```|
