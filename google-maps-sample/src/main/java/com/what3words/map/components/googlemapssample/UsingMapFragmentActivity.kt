@@ -5,12 +5,10 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import com.google.android.gms.maps.GoogleMap.MAP_TYPE_NORMAL
-import com.google.android.gms.maps.GoogleMap.MAP_TYPE_SATELLITE
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
-import com.what3words.javawrapper.request.Coordinates
 import com.what3words.map.components.googlemapssample.databinding.ActivityUsingMapFragmentBinding
 
 class UsingMapFragmentActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCallback {
