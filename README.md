@@ -25,6 +25,11 @@ See the what3words public API [documentation](https://docs.what3words.com/api/v3
 
 ## Usage
 
+- [Initial setup](#initial-setup)
+- [Enable what3words features in an existing Google maps app](#enable-what3words-features-in-an-existing-google-maps-app)
+- [Enable what3words features in an existing Mapbox maps app](#enable-what3words-features-in-an-existing-mapbox-maps-app)
+- [General map wrapper functions](#general-map-wrapper-functions)
+
 ### Initial setup
 
 AndroidManifest.xml
