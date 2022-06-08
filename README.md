@@ -27,8 +27,10 @@ See the what3words public API [documentation](https://docs.what3words.com/api/v3
 
 - [Initial setup](#initial-setup)
 - [Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper)
-- [Enable what3words features in an existing Mapbox maps app](#enable-what3words-features-in-an-existing-mapbox-maps-app)
+- [Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper](#enable-what3words-features-in-an-existing-mapbox-maps-app-using-W3WMapBoxWrapper)
 - [General map wrapper functions](#general-map-wrapper-functions)
+- [Enable what3words features in an new Google maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
+- [Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment](#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment)
 
 ### Initial setup
 
@@ -145,7 +147,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 ### Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper
 
-To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/ 
+To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
 After a succesful Mapbox map run, you can start using our MapboxWrapper, using the following steps:
 
@@ -266,7 +268,12 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
  
 ### Enable what3words features in an new Google maps app using W3WGoogleMapFragment
 
-Since you are creating a new app you can always opt to use our W3WGoogleMapFragment advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access the the Google Map to apply normal customization (i.e mapTypes, etc.)
+Since you are creating a new app you can always opt to use our W3WGoogleMapFragment, the main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access to the Google Map to apply normal customization (i.e mapTypes, etc.)
+
+To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
+  
+After a succesful Google maps run, you can start using our W3WGoogleMapFragment, using the following steps:
+  
 
 activity_main.xml
 ```xml
@@ -288,31 +295,28 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
         setContentView(R.layout.main_activity)
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as W3WGoogleMapFragment
-
-        //W3WGoogleMapFragment needs W3WGoogleMapFragment.OnFragmentReadyCallback to receive the callback when GoogleMap and W3W features are ready to be used
-        mapFragment.apiKey(BuildConfig.W3W_API_KEY, this)
+        mapFragment.apiKey("YOUR_API_KEY_HERE", this)
     }
 
     override fun onFragmentReady(fragment: W3WMap) {
         //set language to get all the 3wa in the desired language (default english)
         fragment.setLanguage("en")
 
-        //example how to use W3WMap features (check interface for documentation).
+      //example how to add a blue marker on a valid 3 word address and move camera to the added marker.
         fragment.addMarkerAtWords(
             "filled.count.soap",
             W3WMarkerColor.BLUE,
             W3WZoomOption.CENTER_AND_ZOOM,
-            {
+            { marker ->
                 Log.i(
-                    "UsingMapFragmentActivity",
-                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
+                    "MainActivity",
+                    "added ${marker.words} at ${marker.coordinates.lat}, ${marker.coordinates.lng}"
                 )
-            }, {
-                Toast.makeText(
-                    this@UsingMapFragmentActivity,
-                    "${it.key}, ${it.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+            }, { error ->
+               	Log.e(
+               	    "MainActivity",
+               	    "${error.key}, ${error.message}"
+               	)
             }
         )
 
@@ -322,4 +326,65 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
         }
     }
 
+```
+
+### Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment
+
+Since you are creating a new app you can always opt to use our W3WMapboxMapFragment, the main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access to the Mapbox Map to apply normal customization (i.e map types, etc.)
+
+To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
+
+After a succesful Mapbox map run, you can start using our MapboxWrapper, using the following steps:
+
+activity_main.xml
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/map"
+    android:name="com.what3words.components.maps.views.W3WMapboxMapFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+```
+
+Kotlin
+```Kotlin
+class MainActivity : AppCompatActivity() , W3WMapboxMapFragment.OnFragmentReadyCallback {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map) as W3WMapboxMapFragment
+        mapFragment.apiKey("YOUR_API_KEY_HERE", this)
+    }
+
+    override fun onFragmentReady(fragment: W3WMap) {
+        //set language to get all the 3wa in the desired language (default english)
+        fragment.setLanguage("en")
+
+      //example how to add a blue marker on a valid 3 word address and move camera to the added marker.
+        fragment.addMarkerAtWords(
+            "filled.count.soap",
+            W3WMarkerColor.BLUE,
+            W3WZoomOption.CENTER_AND_ZOOM,
+            { marker ->
+                Log.i(
+                    "MainActivity",
+                    "added ${marker.words} at ${marker.coordinates.lat}, ${marker.coordinates.lng}"
+                )
+            }, { error ->
+               	Log.e(
+               	    "MainActivity",
+               	    "${error.key}, ${error.message}"
+               	)
+            }
+        )
+
+        //if you want to access the mapbox map instance inside W3WMapboxMapFragment do the following
+        (fragment as? W3WMapboxMapFragment)?.getMap()?.let {
+            it.loadStyleUri(Style.MAPBOX_STREETS)
+        }
+    }
+}
 ```
