@@ -54,7 +54,7 @@ add this the following proguard rules
 
 To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
   
-  After a succesful Google maps run, you can start using our GoogleMapsWrapper, using the following steps:
+After a succesful Google maps run, you can start using our GoogleMapsWrapper, using the following steps:
   
 
 activity_main.xml
@@ -140,9 +140,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 ### Enable what3words features in an existing Mapbox maps app
 
-To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://developers.google.com/maps/documentation/android-sdk/start
+To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/ 
 
-  After a succesful Google maps run, you can start using our MapboxWrapper, using the following steps:
+After a succesful Mapbox map run, you can start using our MapboxWrapper, using the following steps:
 
 activity_main.xml
 ```Kotlin
@@ -262,5 +262,6 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 ### Enable what3words features in an new Google maps app
 
 Since you are creating a new app you can always opt to use our W3WGoogleMapFragment advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access the the Google Map to apply normal customization (i.e mapTypes, etc.)
+
 
 
