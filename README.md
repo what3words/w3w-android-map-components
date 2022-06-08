@@ -26,7 +26,7 @@ See the what3words public API [documentation](https://docs.what3words.com/api/v3
 ## Usage
 
 - [Initial setup](#initial-setup)
-- [Enable what3words features in an existing Google maps app](#enable-what3words-features-in-an-existing-google-maps-app)
+- [Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google maps-app-using-w3wgooglemapswrapper) 
 - [Enable what3words features in an existing Mapbox maps app](#enable-what3words-features-in-an-existing-mapbox-maps-app)
 - [General map wrapper functions](#general-map-wrapper-functions)
 
@@ -55,7 +55,7 @@ add this the following proguard rules
 -keep class com.what3words.javawrapper.response.* { *; }
 ```
 
-### Enable what3words features in an existing Google maps app
+### Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper
 
 To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
   
@@ -85,11 +85,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         
     }
 
-    override fun onMapReady(p0: GoogleMap) {
+    override fun onMapReady(map: GoogleMap) {
         val apiWrapper = What3WordsV3("YOUR_API_KEY_HERE", this)
         val googleMapsWrapper = W3WGoogleMapsWrapper(
             this,
-            p0,
+            map,
             apiWrapper
         )
 
@@ -114,7 +114,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         //REQUIRED
-        p0.setOnCameraIdleListener {
+        map.setOnCameraIdleListener {
             //existing code here...
 
             //needed to draw the 3x3m grid on the map
@@ -122,14 +122,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         //REQUIRED
-        p0.setOnCameraMoveListener {
+        map.setOnCameraMoveListener {
             //existing code here...
 
             //needed to draw the 3x3m grid on the map
             googleMapsWrapper.updateMove()
         }
 
-        p0.setOnMapClickListener { latLng ->
+        map.setOnMapClickListener { latLng ->
             //existing code here...
 
             //example of how to select a 3x3m w3w square using lat/lng
@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 }
 ```
 
-### Enable what3words features in an existing Mapbox maps app
+### Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper
 
 To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/ 
 
@@ -264,9 +264,62 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 |**updateMove**, This method should be called on GoogleMap.setOnCameraMoveListener or MapboxMap.addOnCameraChangeListener, this will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the zoom level threshold (can differ per map provider).|```updateMove()```<br>*mandatory if gridEnabled is set to true (default)* |
  
  
-### Enable what3words features in an new Google maps app
+### Enable what3words features in an new Google maps app using W3WGoogleMapFragment
 
 Since you are creating a new app you can always opt to use our W3WGoogleMapFragment advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access the the Google Map to apply normal customization (i.e mapTypes, etc.)
 
+activity_main.xml
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/map"
+    android:name="com.what3words.components.maps.views.W3WGoogleMapFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+```
 
+Kotlin
+```Kotlin
+class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCallback {
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.main_activity)
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map) as W3WGoogleMapFragment
+
+        //W3WGoogleMapFragment needs W3WGoogleMapFragment.OnFragmentReadyCallback to receive the callback when GoogleMap and W3W features are ready to be used
+        mapFragment.apiKey(BuildConfig.W3W_API_KEY, this)
+    }
+
+    override fun onFragmentReady(fragment: W3WMap) {
+        //set language to get all the 3wa in the desired language (default english)
+        fragment.setLanguage("en")
+
+        //example how to use W3WMap features (check interface for documentation).
+        fragment.addMarkerAtWords(
+            "filled.count.soap",
+            W3WMarkerColor.BLUE,
+            W3WZoomOption.CENTER_AND_ZOOM,
+            {
+                Log.i(
+                    "UsingMapFragmentActivity",
+                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
+                )
+            }, {
+                Toast.makeText(
+                    this@UsingMapFragmentActivity,
+                    "${it.key}, ${it.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
+
+        //if you want to access the google map instance inside W3WGoogleMapFragment do the following
+        (fragment as? W3WGoogleMapFragment)?.getMap()?.let {
+            it.mapType = MAP_TYPE_NORMAL
+        }
+    }
+
+```
