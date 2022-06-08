@@ -32,7 +32,7 @@ class UsingMapWrapperActivity : AppCompatActivity() {
         this.w3wMapsWrapper = W3WMapBoxWrapper(
             this,
             binding.mapView.getMapboxMap(),
-            W3WApiDataSource(wrapper, this),
+            wrapper,
         ).setLanguage("en")
 
         //example how to add a autosuggest results from our w3w wrapper to the map

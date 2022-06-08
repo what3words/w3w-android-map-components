@@ -56,8 +56,11 @@ import kotlinx.coroutines.runBlocking
 import java.nio.ByteBuffer
 import java.util.concurrent.CountDownLatch
 import androidx.core.util.Consumer
+import com.google.android.gms.maps.GoogleMap
 import com.mapbox.maps.extension.style.layers.addLayerAbove
 import com.mapbox.maps.extension.style.layers.addLayerBelow
+import com.what3words.androidwrapper.What3WordsV3
+import com.what3words.components.maps.models.W3WApiDataSource
 
 /**
  * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
@@ -75,6 +78,19 @@ class W3WMapBoxWrapper(
 ) : W3WMapWrapper {
     private var isDirty: Boolean = false
     private var w3wMapManager: W3WMapManager = W3WMapManager(w3wDataSource, this, dispatchers)
+
+    /**
+     * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
+     **
+     * @param context app context.
+     * @param mapView the [MapboxMap] view that [W3WMapBoxWrapper] should apply changes to.
+     * @param wrapper what3words android API wrapper to be used as source of data (i.e: c2c, c3wa, grid-section, autosuggest...).
+     */
+    constructor(
+        context: Context,
+        mapView: MapboxMap,
+        wrapper: What3WordsV3
+    ) : this(context, mapView, W3WApiDataSource(wrapper, context))
 
     companion object {
         const val GRID_LAYER = "GRID_LAYER"
