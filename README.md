@@ -31,6 +31,7 @@ See the what3words public API [documentation](https://docs.what3words.com/api/v3
 - [General map wrapper functions](#general-map-wrapper-functions)
 - [Enable what3words features in an new Google maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
 - [Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment](#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment)
+- [General map fragment functions](#general-map-fragment-functions)
 
 ## Initial setup
 
