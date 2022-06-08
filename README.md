@@ -19,11 +19,7 @@ The artifact is available through [![Maven Central](https://img.shields.io/maven
 implementation 'com.what3words:w3w-android-map-components:1.0.0'
 ```
 
-## Documentation
-
-See the what3words public API [documentation](https://docs.what3words.com/api/v3/)
-
-## Usage summary
+## Documentation summary
 
 - [Initial setup](#initial-setup)
 - [Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper)
