@@ -58,7 +58,7 @@ add this the following proguard rules
 
 To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
   
-After a succesful Google maps run, you can start using our GoogleMapsWrapper, using the following steps:
+After a succesful Google maps run, you can start using our GoogleMapsWrapper following these steps:
   
 
 activity_main.xml
@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
-After a succesful Mapbox map run, you can start using our MapboxWrapper, using the following steps:
+After a succesful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
 activity_main.xml
 ```Kotlin
@@ -269,7 +269,7 @@ Since you are creating a new app you can always opt to use our W3WGoogleMapFragm
 
 To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
   
-After a succesful Google maps run, you can start using our W3WGoogleMapFragment, using the following steps:
+After a succesful Google maps run, you can start using our W3WGoogleMapFragment following these steps:
   
 
 activity_main.xml
@@ -331,7 +331,7 @@ Since you are creating a new app you can always opt to use our W3WMapboxMapFragm
 
 To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
-After a succesful Mapbox map run, you can start using our MapboxWrapper, using the following steps:
+After a succesful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
 activity_main.xml
 ```xml
