@@ -12,6 +12,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.what3words.androidwrapper.What3WordsV3
+import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
@@ -21,6 +22,7 @@ import com.what3words.map.components.googlemapssample.databinding.ActivityUsingM
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var w3wMapsWrapper: W3WGoogleMapsWrapper
@@ -65,16 +67,17 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         )
         //example how to add a autosuggest results from our w3w wrapper to the map
-        CoroutineScope(Dispatchers.IO).launch {
-            val res = wrapper.autosuggest("filled.count.s").nResults(3).execute()
+        CoroutineScope(Dispatchers.Main).launch {
+            val res =
+                withContext(Dispatchers.IO) {
+                    wrapper.autosuggest("filled.count.s").nResults(3).execute()
+                }
             if (res.isSuccessful) {
                 //in case of autosuggest success add the 3 suggestions to the map.
                 w3wMapsWrapper.addMarkerAtSuggestion(
                     res.suggestions,
                     W3WMarkerColor.BLUE,
                     onSuccess = { list ->
-                        //example adjusting camera to show the 3 results on the map.
-                        CoroutineScope(Dispatchers.Main).launch {
                             val latLngBounds = LatLngBounds.Builder()
                             list.forEach {
                                 Log.i(
@@ -89,7 +92,6 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
                                     100
                                 )
                             )
-                        }
                     },
                     onError = {
                         Toast.makeText(
@@ -100,14 +102,12 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                 )
             } else {
-                CoroutineScope(Dispatchers.Main).launch {
                     Toast.makeText(
                         this@UsingMapWrapperActivity,
                         "${res.error.key}, ${res.error.message}",
                         Toast.LENGTH_LONG
                     ).show()
                 }
-            }
         }
 
         //click even on existing w3w added markers on the map.
