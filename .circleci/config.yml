@@ -53,18 +53,18 @@ jobs:
       - run:
           name: Upload Coverage Report to SonarCloud
           command: ./gradlew sonarqube
-      - run:
-          name: Assemble google-maps-sample release build
-          command: ./gradlew google-maps-sample:assembleRelease
-      - run:
-          name: Assemble mapbox-sample release build
-          command: ./gradlew mapbox-sample:assembleRelease
+#      - run:
+#          name: Assemble google-maps-sample release build
+#          command: ./gradlew google-maps-sample:assembleRelease
+#      - run:
+#          name: Assemble mapbox-sample release build
+#          command: ./gradlew mapbox-sample:assembleRelease
       - store_test_results:
           path: lib/build/test-results/testDebugUnitTest
-      - store_artifacts:
-          path: google-maps-sample/build/outputs/apk/release
-      - store_artifacts:
-          path: mapbox-sample/build/outputs/apk/release
+#      - store_artifacts:
+#          path: google-maps-sample/build/outputs/apk/release
+#      - store_artifacts:
+#          path: mapbox-sample/build/outputs/apk/release
   deploy-to-sonatype:
     docker:
       - image: circleci/android:api-30
