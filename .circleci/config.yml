@@ -104,18 +104,25 @@ workflows:
       - build-test-sonar:
           name: Build, run tests, upload to sonar
           requires: [ build-run-UI-tests ]
-          context: SonarCloud
+          context:
+            - SonarCloud
+            - gradle-android
   build-test-sonar-publish:
     jobs:
 #      - build-ui-test:
 #          name: build-run-UI-tests
       - build-test-sonar:
           requires: [ build-run-UI-tests ]
-          context: SonarCloud
+          context:
+            - SonarCloud
+            - gradle-android
       - deploy-to-sonatype:
           name: Build, run tests, sonar and push to maven staging
           requires:
             - build-test-sonar
+          context:
+            - SonarCloud
+            - gradle-android
 #          filters:
 #            branches:
 #              only:
