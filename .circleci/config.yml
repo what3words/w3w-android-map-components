@@ -103,7 +103,7 @@ workflows:
 #          name: build-run-UI-tests
       - build-test-sonar:
           name: Build, run tests, upload to sonar
-          requires: [ build-run-UI-tests ]
+         # requires: [ build-run-UI-tests ]
           context:
             - SonarCloud
             - gradle-android
@@ -112,7 +112,7 @@ workflows:
 #      - build-ui-test:
 #          name: build-run-UI-tests
       - build-test-sonar:
-          requires: [ build-run-UI-tests ]
+         # requires: [ build-run-UI-tests ]
           context:
             - SonarCloud
             - gradle-android
