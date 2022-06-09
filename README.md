@@ -56,9 +56,9 @@ add this the following proguard rules
 
 ## Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper
 
-To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
-  
-After a succesful Google maps run, you can start using our GoogleMapsWrapper following these steps:
+To use Google Maps on your app, follow the quick start tutorial on the Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start
+
+After a successful Google maps run, you can start using our GoogleMapsWrapper following these steps:
   
 
 activity_main.xml
@@ -144,9 +144,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
 ## Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper
 
-To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
+To use Mapbox Maps on your app, follow the quick start tutorial on the Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
-After a succesful Mapbox map run, you can start using our MapboxWrapper following these steps:
+After a successful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
 activity_main.xml
 ```Kotlin
@@ -243,33 +243,33 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 
 | Name - Summary | Example |
 |---|---|
-|**setLanguage**, set the language of three word address that the onSuccess callback should return. Parameter should be a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
-|**gridEnabled**, enable grid overlay over map with all 3mx3m squares on the visible map bounds, enabled by default.|```gridEnabled(true)```|
+|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
+|**gridEnabled**, enable grid overlay over the map with all 3mx3m squares on the visible map bounds, enabled by default.|```gridEnabled(true)```|
 |**onMarkerClicked**, a callback for when an existing marker on the map is clicked.|```onMarkerClicked { marker -> }```|
 |**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
-|**selectAtSuggestion**, set Suggestion as the selected marker on the map, it can only have one selected marker at the time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
-|**addMarkerAtCoordinates**, add marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and the longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
+|**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
+|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
 |**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(Coordinates(50.180803, -8.001330), { selectedMarker -> }, { error -> }```|
-|**findMarkerByCoordinates**, find marker (returns null if no marker is added on the specified coordinates) added to map|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
-|**removeMarkerAtCoordinates**, remove marker at coordinates from the map.|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
-|**addMarkerAtWords**, add a three word address to the map. This method will add a marker/square to the map if the works are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
-|**selectAtWords**, set words as selected marker on the map, it can only have one selected marker at the time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
-|**removeMarkerAtWords**, remove marker at three word address from the map.|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|
-|**removeAllMarkers**, remove all markers added to the map |```removeAllMarkers()```|
-|**getAllMarkers**, Gets all added markers from the map | ```val markers = getAllMarkers()```|
-|**unselect**, remove selected marker from the map.|```unselect()```|
-|**updateMap**, this method should be called on GoogleMap.setOnCameraIdleListener or MapboxMap.addOnMapIdleListener, this will allow to refresh the grid bounds and draw the grid (if enabled) on camera idle.|```updateMap()```<br>*mandatory if gridEnabled  is set to true (default)* |
-|**updateMove**, This method should be called on GoogleMap.setOnCameraMoveListener or MapboxMap.addOnCameraChangeListener, this will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the zoom level threshold (can differ per map provider).|```updateMove()```<br>*mandatory if gridEnabled is set to true (default)* |
+|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
+|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
+|**addMarkerAtWords**, add a what3words address to the map. This method will add a marker/square to the map if the parameter is valid what3words address, e.g., filled.count.soap, if it's not valid, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
+|**selectAtWords**, set what3words address as the selected marker on the map. It can only have one selected marker at a time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
+|**removeMarkerAtWords**, remove a marker at what3words address from the map (if it exists).|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|
+|**removeAllMarkers**, remove all markers added to the map. |```removeAllMarkers()```|
+|**getAllMarkers**, Gets all added markers from the map. | ```val markers = getAllMarkers()```|
+|**unselect**, remove the selected marker from the map.|```unselect()```|
+|**updateMap**, this method should be called on GoogleMap.setOnCameraIdleListener or MapboxMap.addOnMapIdleListener. This method will allow to refresh the grid bounds and draw the grid (if enabled) on camera idle.|```updateMap()```<br>*mandatory if gridEnabled  is set to true (default)* |
+|**updateMove**, This method should be called on GoogleMap.setOnCameraMoveListener or MapboxMap.addOnCameraChangeListener. This method will allow swapping from markers to squares and show/hide grid when zoom goes higher or lower than the zoom level threshold (can differ per map provider).|```updateMove()```<br>*mandatory if gridEnabled is set to true (default)* |
  
  
 ## Enable what3words features in an new Google maps app using W3WGoogleMapFragment
 
-Since you are creating a new app you can always opt to use our W3WGoogleMapFragment, the main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access to the Google Map to apply normal customization (i.e mapTypes, etc.)
+Since you are creating a new app, you can always opt to use our W3WGoogleMapFragment. The main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still having access to the Google Map to apply standard customization (i.e. map types, etc.)
 
-To use Google Maps on your app follow the quick start tutorial on Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start  
-  
-After a succesful Google maps run, you can start using our W3WGoogleMapFragment following these steps:
+To use Google Maps on your app, follow the quick start tutorial on the Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start
+
+After a successful Google maps run, you can start using our W3WGoogleMapFragment following these steps:
   
 
 activity_main.xml
@@ -327,11 +327,11 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
 
 ## Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment
 
-Since you are creating a new app you can always opt to use our W3WMapboxMapFragment, the main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still have access to the Mapbox Map to apply normal customization (i.e map types, etc.)
+Since you are creating a new app, you can always opt to use our W3WMapboxMapFragment. The main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still having access to the Mapbox Map to apply standard customization (i.e. map types, etc.)
 
-To use Mapbox Maps on your app follow the quick start tutorial on Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
+To use Mapbox Maps on your app, follow the quick start tutorial on the Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
-After a succesful Mapbox map run, you can start using our MapboxWrapper following these steps:
+After a successful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
 activity_main.xml
 ```xml
@@ -391,18 +391,18 @@ class MainActivity : AppCompatActivity() , W3WMapboxMapFragment.OnFragmentReadyC
 
 | Name - Summary | Example |
 |---|---|
-|**setLanguage**, set the language of three word address that the onSuccess callback should return. Parameter should be a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
+|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
 |**onMarkerClicked**, a callback for when an existing marker on the map is clicked.|```onMarkerClicked { marker -> }```|
 |**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
-|**selectAtSuggestion**, set Suggestion as the selected marker on the map, it can only have one selected marker at the time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
-|**addMarkerAtCoordinates**, add marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and the longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
+|**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
+|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
 |**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(Coordinates(50.180803, -8.001330), { selectedMarker -> }, { error -> }```|
-|**findMarkerByCoordinates**, find marker (returns null if no marker is added on the specified coordinates) added to map|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
-|**removeMarkerAtCoordinates**, remove marker at coordinates from the map.|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
-|**addMarkerAtWords**, add a three word address to the map. This method will add a marker/square to the map if the works are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
-|**selectAtWords**, set words as selected marker on the map, it can only have one selected marker at the time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
-|**removeMarkerAtWords**, remove marker at three word address from the map.|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|
-|**removeAllMarkers**, remove all markers added to the map |```removeAllMarkers()```|
-|**getAllMarkers**, Gets all added markers from the map | ```val markers = getAllMarkers()```|
-|**unselect**, remove selected marker from the map.|```unselect()```|
+|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
+|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
+|**addMarkerAtWords**, add a what3words address to the map. This method will add a marker/square to the map if the parameter is valid what3words address, e.g., filled.count.soap, if it's not valid, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
+|**selectAtWords**, set what3words address as the selected marker on the map. It can only have one selected marker at a time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
+|**removeMarkerAtWords**, remove a marker at what3words address from the map (if it exists).|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|
+|**removeAllMarkers**, remove all markers added to the map. |```removeAllMarkers()```|
+|**getAllMarkers**, Gets all added markers from the map. | ```val markers = getAllMarkers()```|
+|**unselect**, remove the selected marker from the map.|```unselect()```|
