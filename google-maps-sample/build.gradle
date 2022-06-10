@@ -1,7 +1,6 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 
 android {
@@ -13,6 +12,7 @@ android {
         targetSdk 32
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [mapsApiKey: findProperty('MAPS_API_KEY') ? findProperty('MAPS_API_KEY') : "YOUR_GOOGLE_MAPS_API_KEY_HERE"]
         buildConfigField 'String', 'W3W_API_KEY', findProperty('W3W_API_KEY') ? "\"${findProperty('W3W_API_KEY')}\"" : "\"YOUR_API_KEY_HERE\""
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,12 +48,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
-    }
-
-    secrets {
-        // Change the properties file from the default "local.properties" in your root project
-        // to another properties file in your root project.
-        propertiesFileName 'gradle.properties'
     }
 }
 
