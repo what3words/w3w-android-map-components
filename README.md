@@ -2,8 +2,10 @@
 
 ## Introduction
 The what3words Map Component provides a straightforward way to add what3words to a Google or Mapbox map and display features such as the what3words grid and what3words markers with what3words address.
-If adding what3words to an existing map then we provide map wrappers: W3WGoogleMapsWrapper and W3WMapBoxWrapper
-If creating a new map using our component then we provide map fragments: W3WGoogleMapFragment and W3WMapboxMapFragment
+
+If adding what3words to an existing map then we provide map wrappers: [W3WGoogleMapsWrapper](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper) and [W3WMapBoxWrapper](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-existing-mapbox-maps-app-using-W3WMapBoxWrapper).
+
+If creating a new map using our component then we provide map fragments: [W3WGoogleMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment) and [W3WMapboxMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment).
 
 <img src="https://github.com/what3words/w3w-android-map-components/blob/readme/assets/google-maps-sample.gif" width=30% height=30%>
 
