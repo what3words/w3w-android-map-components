@@ -1,8 +1,11 @@
 # <img src="https://what3words.com/assets/images/w3w_square_red.png" width="64" height="64" alt="what3words">&nbsp;w3w-android-map-components
 
-An Android library to use the [what3words v3 grid and squares features on different map providers](https://developer.what3words.com/public-api/docs#grid-section).
+## Introduction
+The what3words Map Component provides a straightforward way to add what3words to a Google or Mapbox map and display features such as the what3words grid and what3words markers with what3words address.
+If adding what3words to an existing map then we provide map wrappers: W3WGoogleMapsWrapper and W3WMapBoxWrapper
+If creating a new map using our component then we provide map fragments: W3WGoogleMapFragment and W3WMapboxMapFragment
 
-TO INSERT GIF HERE
+<img src="https://github.com/what3words/w3w-android-map-components/blob/readme/assets/google-maps-sample.gif" width=30% height=30%>
 
 To obtain an API key, please visit [https://what3words.com/select-plan](https://what3words.com/select-plan) and sign up for an account.
 
@@ -22,10 +25,10 @@ implementation 'com.what3words:w3w-android-map-components:1.0.0'
 ## Documentation summary
 
 - [Initial setup](#initial-setup)
-- [Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper)
+- [Enable what3words features in an existing Google Maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper)
 - [Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper](#enable-what3words-features-in-an-existing-mapbox-maps-app-using-W3WMapBoxWrapper)
 - [General map wrapper functions](#general-map-wrapper-functions)
-- [Enable what3words features in an new Google maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
+- [Enable what3words features in an new Google Maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
 - [Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment](#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment)
 - [General map fragment functions](#general-map-fragment-functions)
 
@@ -54,11 +57,11 @@ add this the following proguard rules
 -keep class com.what3words.javawrapper.response.* { *; }
 ```
 
-## Enable what3words features in an existing Google maps app using W3WGoogleMapsWrapper
+## Enable what3words features in an existing Google Maps app using W3WGoogleMapsWrapper
 
 To use Google Maps on your app, follow the quick start tutorial on the Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start
 
-After a successful Google maps run, you can start using our GoogleMapsWrapper following these steps:
+After a successful Google Maps run, you can start using our GoogleMapsWrapper following these steps:
   
 
 activity_main.xml
@@ -243,10 +246,10 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 
 | Name - Summary | Example |
 |---|---|
-|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
+|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an [ISO 639-1 2 letter code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). Defaults to en (English).|```setLanguage("en")```|
 |**gridEnabled**, enable grid overlay over the map with all 3mx3m squares on the visible map bounds, enabled by default.|```gridEnabled(true)```|
 |**onMarkerClicked**, a callback for when an existing marker on the map is clicked.|```onMarkerClicked { marker -> }```|
-|**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
+|**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our [W3WAutosuggestEditText](https://github.com/what3words/w3w-android-components) allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
 |**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
 |**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
@@ -263,13 +266,13 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 |**updateMove**, This method should be called on GoogleMap.setOnCameraMoveListener or MapboxMap.addOnCameraChangeListener. This method will allow swapping from markers to squares and show/hide grid when zoom goes higher or lower than the zoom level threshold (can differ per map provider).|```updateMove()```<br>*mandatory if gridEnabled is set to true (default)* |
  
  
-## Enable what3words features in an new Google maps app using W3WGoogleMapFragment
+## Enable what3words features in an new Google Maps app using W3WGoogleMapFragment
 
 Since you are creating a new app, you can always opt to use our W3WGoogleMapFragment. The main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still having access to the Google Map to apply standard customization (i.e. map types, etc.)
 
-To use Google Maps on your app, follow the quick start tutorial on the Google developer portal here: https://developers.google.com/maps/documentation/android-sdk/start
+To use the what3words Google Maps Fragment in your app, first follow the quick start tutorial on the Google developer portal here:  https://developers.google.com/maps/documentation/android-sdk/start. This ensures that Google Maps can be used with the what3words Fragment.
 
-After a successful Google maps run, you can start using our W3WGoogleMapFragment following these steps:
+After a successful Google Maps run, you can start using our W3WGoogleMapFragment following these steps:
   
 
 activity_main.xml
@@ -329,7 +332,7 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
 
 Since you are creating a new app, you can always opt to use our W3WMapboxMapFragment. The main advantage is that all the required events to draw the grid are done under the hood, resulting in less boilerplate code and still having access to the Mapbox Map to apply standard customization (i.e. map types, etc.)
 
-To use Mapbox Maps on your app, follow the quick start tutorial on the Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
+To use the what3words Mapbox Maps Fragment in your app, first follow the quick start tutorial on the Mapbox developer portal here: https://docs.mapbox.com/android/navigation/guides/get-started/install/. This ensures that Mapbox Maps can be used with the what3words Fragment.
 
 After a successful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
@@ -391,9 +394,9 @@ class MainActivity : AppCompatActivity() , W3WMapboxMapFragment.OnFragmentReadyC
 
 | Name - Summary | Example |
 |---|---|
-|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an ISO 639-1 2 letter code. Defaults to en (English).|```setLanguage("en")```|
+|**setLanguage**, set the language of what3words address that the onSuccess callback should return. The parameter should be a supported what3words address language as an [ISO 639-1 2 letter code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). Defaults to en (English).|```setLanguage("en")```|
 |**onMarkerClicked**, a callback for when an existing marker on the map is clicked.|```onMarkerClicked { marker -> }```|
-|**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our W3WAutosuggestEditText allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
+|**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our [W3WAutosuggestEditText](https://github.com/what3words/w3w-android-components) allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
 |**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
 |**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
