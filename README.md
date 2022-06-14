@@ -7,7 +7,7 @@ If adding what3words to an existing map then we provide map wrappers: [W3WGoogle
 
 If creating a new map using our component then we provide map fragments: [W3WGoogleMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment) and [W3WMapboxMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment).
 
-<img src="https://github.com/what3words/w3w-android-map-components/blob/readme/assets/google-maps-sample.gif" width=30% height=30%>
+<img src="https://github.com/what3words/w3w-android-map-components/blob/main/assets/google-maps-sample.gif" width=30% height=30%>
 
 To obtain an API key, please visit [https://what3words.com/select-plan](https://what3words.com/select-plan) and sign up for an account.
 
