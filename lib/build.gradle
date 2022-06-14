@@ -2,7 +2,15 @@ plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
     id 'org.jlleitschuh.gradle.ktlint'
+    id 'maven-publish'
+    id 'signing'
+    id 'org.jetbrains.dokka' version '1.5.0'
 }
+
+def libVersion = findProperty('LIBRARY_VERSION') ? findProperty('LIBRARY_VERSION') : "1.0-debug"
+
+apply from: 'maven-push.gradle'
+apply from: '../jacoco.gradle'
 
 android {
     compileSdk 32
@@ -13,9 +21,13 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
+        buildConfigField("String", "VERSION_NAME", "\"${libVersion}\"")
     }
 
     buildTypes {
+        debug {
+            testCoverageEnabled = false
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -28,8 +40,17 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     buildFeatures {
         viewBinding true
+    }
+    tasks.dokkaGfm.configure {
+        suppressObviousFunctions.set(true)
+        suppressInheritedMembers.set(true)
     }
 }
 

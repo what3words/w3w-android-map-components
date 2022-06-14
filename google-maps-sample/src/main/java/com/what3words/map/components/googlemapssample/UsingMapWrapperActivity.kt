@@ -8,12 +8,14 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.what3words.androidwrapper.What3WordsV3
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
+import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.map.components.googlemapssample.databinding.ActivityUsingMapWrapperBinding
@@ -43,6 +45,27 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
             W3WApiDataSource(wrapper, this),
         ).setLanguage("en")
 
+        w3wMapsWrapper.addMarkerAtWords(
+            "filled.count.soap",
+            W3WMarkerColor.BLUE,
+            {
+                Log.i(
+                    "UsingMapFragmentActivity",
+                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
+                )
+                val cameraPosition = CameraPosition.Builder()
+                    .target(LatLng(it.coordinates.lat, it.coordinates.lng))
+                    .zoom(19f)
+                    .build()
+                p0.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+            }, {
+                Toast.makeText(
+                    this@UsingMapWrapperActivity,
+                    "${it.key}, ${it.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
         //example how to add a autosuggest results from our w3w wrapper to the map
         CoroutineScope(Dispatchers.Main).launch {
             val res =

@@ -11,7 +11,7 @@
         android:theme="@style/Theme.W3wandroidcomponentsmaps">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
+            android:value="${mapsApiKey}" />
 
         <activity
             android:name=".UsingMapWrapperActivity"
