@@ -81,17 +81,16 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
             val suggestion =
                 Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
-            val coordinates = Coordinates(51.520847, -0.195521)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             //when adding coordinates
             manager.addCoordinates(
-                coordinates,
+                51.520847, -0.195521,
                 W3WMarkerColor.YELLOW,
                 suggestionCallback,
                 errorCallback
@@ -105,7 +104,7 @@ class W3WMapManagerTests {
 
             //when removing existing coordinates
             manager.removeCoordinates(
-                coordinates
+                51.520847, -0.195521
             )
 
             //then
@@ -114,7 +113,7 @@ class W3WMapManagerTests {
 
             //when removing non-existing coordinates
             manager.removeCoordinates(
-                coordinates
+                51.520847, -0.195521
             )
 
             //then map should not update, ignore
@@ -127,17 +126,15 @@ class W3WMapManagerTests {
     fun addByCoordinatesError() {
         coroutinesTestRule.testDispatcher.runBlockingTest {
             //given
-            val coordinates = Coordinates(51.520847, -0.195521)
-
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
             } answers {
                 Either.Left(APIResponse.What3WordsError.INVALID_KEY)
             }
 
             //when
             manager.addCoordinates(
-                coordinates,
+                51.520847, -0.195521,
                 W3WMarkerColor.YELLOW,
                 suggestionCallback,
                 errorCallback
@@ -167,25 +164,25 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Coordinates(51.520847, -0.195521)
-            val coordinates2 = Coordinates(51.521251, -0.203586)
-            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val coordinates = Pair(51.520847, -0.195521)
+            val coordinates2 = Pair(51.521251, -0.203586)
+            val coordinates3 = Pair(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2, any())
+                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
             } answers {
                 Either.Right(suggestion2)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3, any())
+                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
             } answers {
                 Either.Right(suggestion3)
             }
@@ -240,25 +237,25 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Coordinates(51.520847, -0.195521)
-            val coordinates2 = Coordinates(51.521251, -0.203586)
-            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val coordinates = Pair(51.520847, -0.195521)
+            val coordinates2 = Pair(51.521251, -0.203586)
+            val coordinates3 = Pair(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2, any())
+                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
             } answers {
                 Either.Right(suggestion2)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3, any())
+                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
             } answers {
                 Either.Right(suggestion3)
             }
@@ -309,25 +306,25 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Coordinates(51.520847, -0.195521)
-            val coordinates2 = Coordinates(51.521251, -0.203586)
-            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val coordinates = Pair(51.520847, -0.195521)
+            val coordinates2 = Pair(51.521251, -0.203586)
+            val coordinates3 = Pair(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2, any())
+                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
             } answers {
                 Either.Right(suggestion2)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3, any())
+                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
             } answers {
                 Either.Right(suggestion3)
             }
@@ -347,7 +344,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().count()).isEqualTo(3)
 
             //when
-            var searchRes = manager.findByExactLocation(coordinates.lat, coordinates.lng)
+            var searchRes = manager.findByExactLocation(coordinates.first, coordinates.second)
 
             //then
             assertThat(searchRes).isNotNull()
@@ -373,25 +370,25 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Coordinates(51.520847, -0.195521)
-            val coordinates2 = Coordinates(51.521251, -0.203586)
-            val coordinates3 = Coordinates(51.675062, 0.323787)
+            val coordinates = Pair(51.520847, -0.195521)
+            val coordinates2 = Pair(51.521251, -0.203586)
+            val coordinates3 = Pair(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2, any())
+                dataSource.getSuggestionByCoordinates(coordinates2.first,coordinates2.second, any())
             } answers {
                 Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3, any())
+                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
             } answers {
                 Either.Right(suggestion3)
             }
@@ -421,17 +418,15 @@ class W3WMapManagerTests {
             val suggestion =
                 Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
 
-            val coordinates = Coordinates(51.520847, -0.195521)
-
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
             } answers {
                 Either.Right(suggestion)
             }
 
             //when
             manager.selectCoordinates(
-                coordinates,
+                51.520847, -0.195521,
                 suggestionCallback,
                 errorCallback
             )
@@ -455,17 +450,15 @@ class W3WMapManagerTests {
     fun selectByCoordinatesFails() {
         coroutinesTestRule.testDispatcher.runBlockingTest {
             //given
-            val coordinates = Coordinates(51.520847, -0.195521)
-
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates, any())
+                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
             } answers {
                 Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
             }
 
             //when
             manager.selectCoordinates(
-                coordinates,
+                51.520847, -0.195521,
                 suggestionCallback,
                 errorCallback
             )
