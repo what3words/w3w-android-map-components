@@ -4,11 +4,13 @@ import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.GridSection
+import com.what3words.javawrapper.response.Line
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 
 interface W3WDataSource {
     suspend fun getSuggestionByCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         language: String
     ): Either<APIResponse.What3WordsError, SuggestionWithCoordinates>
 
@@ -18,7 +20,7 @@ interface W3WDataSource {
 
     suspend fun getGrid(
         boundingBox: BoundingBox
-    ): Either<APIResponse.What3WordsError, GridSection>
+    ): Either<APIResponse.What3WordsError,  List<Line>>
 
     suspend fun getGeoJsonGrid(
         boundingBox: BoundingBox

@@ -7,7 +7,7 @@ If adding what3words to an existing map then we provide map wrappers: [W3WGoogle
 
 If creating a new map using our component then we provide map fragments: [W3WGoogleMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment) and [W3WMapboxMapFragment](https://github.com/what3words/w3w-android-map-components/tree/readme#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment).
 
-<img src="https://github.com/what3words/w3w-android-map-components/blob/main/assets/google-maps-sample.gif" width=30% height=30%>
+<img src="https://github.com/what3words/w3w-android-map-components/blob/readme/assets/google-maps-sample.gif" width=30% height=30%>
 
 To obtain an API key, please visit [https://what3words.com/select-plan](https://what3words.com/select-plan) and sign up for an account.
 
@@ -15,7 +15,7 @@ To obtain an API key, please visit [https://what3words.com/select-plan](https://
 
 The artifact is available through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/w3w-android-components.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.what3words%22%20AND%20a:%22w3w-android-components%22) - REPLACE WITH MAP
 
-### Android minumum SDK support
+### Android minimum SDK support
 [![Generic badge](https://img.shields.io/badge/minSdk-23-green.svg)](https://developer.android.com/about/versions/marshmallow/android-6.0/)
 
 ### Gradle
@@ -137,11 +137,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             //existing code here...
 
             //example of how to select a 3x3m w3w square using lat/lng
-            val coordinates = Coordinates(
-                latLng.latitude,
-                latLng.longitude
-            )
-            googleMapsWrapper.selectAtCoordinates(coordinates)
+            googleMapsWrapper.selectAtCoordinates(latLng.latitude, latLng.longitude)
         }
     }
 }
@@ -154,7 +150,7 @@ To use Mapbox Maps on your app, follow the quick start tutorial on the Mapbox de
 After a successful Mapbox map run, you can start using our MapboxWrapper following these steps:
 
 activity_main.xml
-```Kotlin
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -227,11 +223,7 @@ class MainActivity : AppCompatActivity() {
             //existing code here...
 
             //example of how to select a 3x3m w3w square using lat/lng
-            val coordinates = Coordinates(
-                latLng.latitude(),
-                latLng.longitude()
-            )
-            mapboxWrapper.selectAtCoordinates(coordinates)
+            mapboxWrapper.selectAtCoordinates(latLng.latitude(), latLng.longitude())
             true
         }
     }
@@ -254,10 +246,10 @@ val wrapper = What3WordsV3("YOUR_API_KEY_HERE","https://api.yourserver.com", thi
 |**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our [W3WAutosuggestEditText](https://github.com/what3words/w3w-android-components) allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
 |**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
-|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
-|**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(Coordinates(50.180803, -8.001330), { selectedMarker -> }, { error -> }```|
-|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
-|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
+|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(49.180803, -8.001330, { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Pair(49.180803, -8.001330), Pair(50.180803, -8.001330)), { markers -> }, { error -> }) ```
+|**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(50.180803, -8.001330, { selectedMarker -> }, { error -> }```|
+|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(50.180803, -8.001330)```|
+|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(50.180803, -8.001330) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Pair(49.180803, -8.001330), Pair(50.180803, -8.001330)) ```|
 |**addMarkerAtWords**, add a what3words address to the map. This method will add a marker/square to the map if the parameter is valid what3words address, e.g., filled.count.soap, if it's not valid, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
 |**selectAtWords**, set what3words address as the selected marker on the map. It can only have one selected marker at a time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
 |**removeMarkerAtWords**, remove a marker at what3words address from the map (if it exists).|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|
@@ -401,10 +393,10 @@ class MainActivity : AppCompatActivity() , W3WMapboxMapFragment.OnFragmentReadyC
 |**addMarkerAtSuggestion**, add a suggestion to the map. This method will add a marker/square to the map after getting the Suggestion from our [W3WAutosuggestEditText](https://github.com/what3words/w3w-android-components) allowing easy integration between both components autosuggest and maps.|```addMarkerAtSuggestion(suggestion, markerColor.RED, { marker -> }, { error -> })```<br>or add multiple suggestions to the map: <br>```addMarkerAtSuggestion(suggestions, markerColor.RED, { markers -> }, { error -> })```|
 |**removeMarkerAtSuggestion**, remove Suggestion from the map if exists.|```removeMarkerAtSuggestion(suggestion)```<br>or remove multiple suggestions: <br>```removeMarkerAtSuggestion(suggestions)```|
 |**selectAtSuggestion**, set Suggestion as the selected marker on the map. It can only have one selected marker at a time.|```selectAtSuggestion(suggestion, { selectedmarker -> }, { error -> })```|
-|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(Coordinates(49.180803, -8.001330), { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)), { markers -> }, { error -> }) ```
-|**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(Coordinates(50.180803, -8.001330), { selectedMarker -> }, { error -> }```|
-|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(Coordinates(50.180803, -8.001330))```|
-|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(Coordinates(50.180803, -8.001330)) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Coordinates(49.180803, -8.001330), Coordinates(50.180803, -8.001330)) ```|
+|**addMarkerAtCoordinates**, add a marker at coordinates to the map. This method will add a marker/square to the map based on the latitude and longitude provided.|```addMarkerAtCoordinates(49.180803, -8.001330, { marker -> }, { error -> })```<br>or add multiple Coordinates to the map: <br>```addMarkerAtCoordinates(listOf(Pair(49.180803, -8.001330), Pair(50.180803, -8.001330)), { markers -> }, { error -> }) ```
+|**selectAtCoordinates**, set coordinates as selected marker on the map, it can only have one selected marker at the time.|```selectAtCoordinates(50.180803, -8.001330, { selectedMarker -> }, { error -> }```|
+|**findMarkerByCoordinates**, find a marker added to the map (returns null if no marker is added on the specified coordinates).|```val marker = findMarkerByCoordinates(50.180803, -8.001330)```|
+|**removeMarkerAtCoordinates**, remove a marker at coordinates from the map (if it exists).|```removeMarkerAtCoordinates(50.180803, -8.001330) ```<br>or remove multiple markers at coordinates from the map: <br>```removeMarkerAtCoordinates(listOf(Pair(49.180803, -8.001330), Pair(50.180803, -8.001330)) ```|
 |**addMarkerAtWords**, add a what3words address to the map. This method will add a marker/square to the map if the parameter is valid what3words address, e.g., filled.count.soap, if it's not valid, onError will be called returning APIResponse.What3WordsError.BAD_WORDS.|```addMarkerAtWords("filled.count.soap"), markerColor.RED, { marker -> }, { error -> })```<br>or add multiple 3 word addresses to the map: <br>```addMarkerAtWords(listOf("filled.count.soap", "index.home.raft"), markerColor.RED, { markers -> }, { error -> })```|
 |**selectAtWords**, set what3words address as the selected marker on the map. It can only have one selected marker at a time.|```selectAtWords("filled.count.soap", { selectedMarker -> }, { error-> })```|
 |**removeMarkerAtWords**, remove a marker at what3words address from the map (if it exists).|```removeMarkerAtWords("filled.count.soap")```<br>or remove multiple markers at three word adresses from the map: <br>```removeMarkerAtWords(listOf("filled.count.soap", "index.home.raft")) ```|

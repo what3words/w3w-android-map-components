@@ -49,19 +49,19 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                     W3WMarkerColor.BLUE,
                     onSuccess = { list ->
                         //example adjusting camera to show the 3 results on the map.
-                            val points = mutableListOf<Point>()
-                            list.forEach {
-                                Log.i(
-                                    "UsingMapWrapperActivity",
-                                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
-                                )
-                                points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
-                            }
-                            val options = binding.mapView.getMapboxMap().cameraForCoordinates(
-                                points,
-                                EdgeInsets(100.0, 100.0, 100.0, 100.0)
+                        val points = mutableListOf<Point>()
+                        list.forEach {
+                            Log.i(
+                                "UsingMapWrapperActivity",
+                                "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
                             )
-                            binding.mapView.getMapboxMap().setCamera(options)
+                            points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
+                        }
+                        val options = binding.mapView.getMapboxMap().cameraForCoordinates(
+                            points,
+                            EdgeInsets(100.0, 100.0, 100.0, 100.0)
+                        )
+                        binding.mapView.getMapboxMap().setCamera(options)
                     },
                     onError = {
                         Toast.makeText(
@@ -72,12 +72,12 @@ class UsingMapWrapperActivity : AppCompatActivity() {
                     }
                 )
             } else {
-                    Toast.makeText(
-                        this@UsingMapWrapperActivity,
-                        "${res.error.key}, ${res.error.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+                Toast.makeText(
+                    this@UsingMapWrapperActivity,
+                    "${res.error.key}, ${res.error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
 
         //click even on existing w3w added markers on the map.
@@ -105,11 +105,10 @@ class UsingMapWrapperActivity : AppCompatActivity() {
             //..
 
             //example of how to select a 3x3m w3w square using lat/lng
-            val location = Coordinates(
+            this.w3wMapsWrapper.selectAtCoordinates(
                 latLng.latitude(),
                 latLng.longitude()
             )
-            this.w3wMapsWrapper.selectAtCoordinates(location)
             true
         }
     }

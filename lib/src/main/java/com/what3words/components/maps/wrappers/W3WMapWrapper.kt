@@ -4,7 +4,6 @@ import androidx.core.util.Consumer
 import com.google.android.gms.maps.GoogleMap
 import com.mapbox.maps.MapboxMap
 import com.what3words.components.maps.models.W3WMarkerColor
-import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -30,11 +29,37 @@ interface W3WMapWrapper {
      */
     fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WMapWrapper
 
+    /** Add [SuggestionWithCoordinates] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
+     *
+     * @param suggestion the [SuggestionWithCoordinates] returned by our text/voice autosuggest component.
+     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
+    fun addMarkerAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        markerColor: W3WMarkerColor = W3WMarkerColor.RED,
+        onSuccess: Consumer<SuggestionWithCoordinates>? = null,
+        onError: Consumer<APIResponse.What3WordsError>? = null
+    )
+
+    /** Set [SuggestionWithCoordinates] as selected marker on the map, it can only have one selected marker at the time.
+     *
+     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     */
+    fun selectAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        onSuccess: Consumer<SuggestionWithCoordinates>? = null,
+        onError: Consumer<APIResponse.What3WordsError>? = null
+    )
+
     /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
      *
      * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
      * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addMarkerAtSuggestion(
@@ -48,7 +73,7 @@ interface W3WMapWrapper {
      *
      * @param listSuggestions list of [Suggestion]s returned by our text/voice autosuggest component.
      * @param markerColor is the [W3WMarkerColor] for the suggestion added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus Coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addMarkerAtSuggestion(
@@ -73,7 +98,7 @@ interface W3WMapWrapper {
     /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
      *
      * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus Coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun selectAtSuggestion(
@@ -82,67 +107,73 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add [Coordinates] to the map. This method will add a marker/square to the map based on each of the [Coordinates] provided latitude and longitude.
+    /** Add marker at [lat], [lng] coordinates to the map. This method will add a marker/square to the map based on each of the Coordinates provided latitude and longitude.
      *
-     * @param coordinates [Coordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
+     * @param lat latitude coordinates to be added.
+     * @param lng longitude coordinates to be added.
+     * @param markerColor is the [W3WMarkerColor] for the [lat],[lng] added.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those Coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addMarkerAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add a list of [Coordinates] to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
+    /** Add list of Coordinates [Pair.first] latitude, [Pair.second] longitude to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
      *
-     * @param listCoordinates list of [Coordinates]s to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
+     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates to be added.
+     * @param markerColor is the [W3WMarkerColor] for the [listCoordinates] added.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addMarkerAtCoordinates(
-        listCoordinates: List<Coordinates>,
+        listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Set [Coordinates] as selected marker on the map, it can only have one selected marker at the time.
+    /** Set [lat], [lng] coordinates as selected marker on the map, it can only have one selected marker at the time.
      *
-     * @param coordinates [Coordinates] to be added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param lat latitude coordinates to be selected.
+     * @param lng longitude coordinates to be selected.
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun selectAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
     fun findMarkerByCoordinates(
-        coordinates: Coordinates
+        lat: Double,
+        lng: Double
     ): SuggestionWithCoordinates?
 
-    /** Remove [Coordinates] from the map.
+    /** Remove marker at [lat],[lng] from the map.
      *
-     * @param coordinates the [Coordinates] to be removed.
+     * @param lat latitude coordinates of the marker to be removed.
+     * @param lng longitude coordinates of the marker to be removed.
      */
-    fun removeMarkerAtCoordinates(coordinates: Coordinates)
+    fun removeMarkerAtCoordinates(lat: Double, lng: Double)
 
-    /** Remove a list of [Coordinates] from the map.
+    /** Remove markers based on [listCoordinates] which [Pair.first] is latitude, [Pair.second] is longitude of the marker in the map.
      *
-     * @param listCoordinates the list of [Coordinates] to remove.
+     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates of the markers to be removed.
      */
-    fun removeMarkerAtCoordinates(listCoordinates: List<Coordinates>)
+    fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>)
 
     /** Add a three word address to the map. This method will add a marker/square to the map if [words] are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
      *
      * @param words three word address to be added.
-     * @param markerColor the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
+     * @param markerColor the [W3WMarkerColor] for the [words] added.
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those coordinates.
      * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun addMarkerAtWords(
@@ -156,7 +187,7 @@ interface W3WMapWrapper {
      *
      * @param listWords list of three word address to be added.
      * @param markerColor the [W3WMarkerColor] for the [listWords] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
+     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those coordinates.
      * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message. If one item on the list fails to be added, this process will be fully reverted, only adds if all succeed.
      */
     fun addMarkerAtWords(
@@ -169,7 +200,7 @@ interface W3WMapWrapper {
     /** Set [words] as selected marker on the map, it can only have one selected marker at the time.
      *
      * @param words three word address to be added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
+     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     fun selectAtWords(
@@ -198,6 +229,12 @@ interface W3WMapWrapper {
      * @return list of [SuggestionWithCoordinates] with all items added to the map.
      */
     fun getAllMarkers(): List<SuggestionWithCoordinates>
+
+    /** Get all added [SuggestionWithCoordinates] from the map.
+     *
+     * @return list of [SuggestionWithCoordinates] with all items added to the map.
+     */
+    fun getSelectedMarker(): SuggestionWithCoordinates?
 
     /** Remove selected marker from the map. */
     fun unselect()

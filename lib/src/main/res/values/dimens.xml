@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <dimen name="grid_width_gone">0dp</dimen>
-    <dimen name="grid_width_close">2dp</dimen>
-    <dimen name="grid_width_middle">1.5dp</dimen>
+    <dimen name="grid_width_close">1dp</dimen>
+    <dimen name="grid_width_middle">1dp</dimen>
     <dimen name="grid_width_far">1dp</dimen>
     <dimen name="grid_selected_width_close">2.5dp</dimen>
     <dimen name="grid_selected_width_middle">2dp</dimen>

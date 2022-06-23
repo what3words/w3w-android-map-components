@@ -24,6 +24,16 @@ android {
         buildConfigField("String", "VERSION_NAME", "\"${libVersion}\"")
     }
 
+    def filesToExclude = [
+            '**/*SdkToApiExtensions*.kt',
+            '**/*W3WSdkDataSource*.kt'
+    ]
+
+    tasks.withType(SourceTask.class).configureEach {
+        it.exclude(filesToExclude)
+    }
+    android.sourceSets.main.kotlin.exclude(filesToExclude)
+
     buildTypes {
         debug {
             testCoverageEnabled = false
@@ -56,10 +66,10 @@ android {
 
 dependencies {
 
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'com.google.android.material:material:1.5.0'
-    api 'com.what3words:w3w-android-wrapper:3.1.17'
+    implementation 'androidx.core:core-ktx:1.8.0'
+    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'com.google.android.material:material:1.6.1'
+    api 'com.what3words:w3w-android-wrapper:3.1.18'
     compileOnly 'com.google.android.gms:play-services-maps:18.0.2'
     compileOnly 'com.google.maps.android:android-maps-utils:2.3.0'
     compileOnly 'com.mapbox.maps:android:10.4.0'

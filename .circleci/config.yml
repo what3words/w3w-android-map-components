@@ -4,27 +4,6 @@ orbs:
   android: circleci/android@1.0
 
 jobs:
-#  build-ui-test:
-#    executor:
-#      name: android/android-machine
-#      resource-class: large
-#    steps:
-#      - checkout
-#      - android/create-avd:
-#          avd-name: testDevice
-#          system-image: system-images;android-30;google_apis;x86
-#          install: true
-#      - android/start-emulator:
-#          avd-name: testDevice
-#          no-window: true
-#          restore-gradle-cache-prefix: v1a
-#      - android/run-tests:
-#          test-command: ./gradlew testing:jacocoTestReport
-#          max-tries: 5
-#      - store_test_results:
-#          path: testing/build/outputs/androidTest-results
-#      - android/save-gradle-cache:
-#          cache-prefix: v1a
   build-test-sonar:
     docker:
       - image: circleci/android:api-30
@@ -97,22 +76,9 @@ jobs:
           name: Publish to Maven
           command: ./gradlew assemble publish
 workflows:
-  build-test-sonar:
-    jobs:
-#      - build-ui-test:
-#          name: build-run-UI-tests
-      - build-test-sonar:
-          name: Build, run tests, upload to sonar
-         # requires: [ build-run-UI-tests ]
-          context:
-            - SonarCloud
-            - gradle-android
   build-test-sonar-publish:
     jobs:
-#      - build-ui-test:
-#          name: build-run-UI-tests
       - build-test-sonar:
-         # requires: [ build-run-UI-tests ]
           context:
             - SonarCloud
             - gradle-android
@@ -123,7 +89,7 @@ workflows:
           context:
             - SonarCloud
             - gradle-android
-#          filters:
-#            branches:
-#              only:
-#                - dev
+          filters:
+            branches:
+              only:
+                - dev

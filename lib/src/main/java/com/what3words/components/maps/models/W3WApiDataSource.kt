@@ -8,7 +8,7 @@ import com.what3words.components.maps.extensions.toSuggestionWithCoordinates
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
-import com.what3words.javawrapper.response.GridSection
+import com.what3words.javawrapper.response.Line
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -17,12 +17,13 @@ class W3WApiDataSource(private val wrapper: What3WordsV3, private val context: C
     W3WDataSource {
 
     override suspend fun getSuggestionByCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         language: String
     ): Either<APIResponse.What3WordsError, SuggestionWithCoordinates> =
         suspendCoroutine { cont ->
             val c23wa =
-                wrapper.convertTo3wa(coordinates)
+                wrapper.convertTo3wa(Coordinates(lat, lng))
                     .language(language)
                     .execute()
             if (c23wa.isSuccessful) {
@@ -46,13 +47,13 @@ class W3WApiDataSource(private val wrapper: What3WordsV3, private val context: C
             }
         }
 
-    override suspend fun getGrid(boundingBox: BoundingBox): Either<APIResponse.What3WordsError, GridSection> =
+    override suspend fun getGrid(boundingBox: BoundingBox): Either<APIResponse.What3WordsError, List<Line>> =
         suspendCoroutine { cont ->
             val grid = wrapper.gridSection(
                 boundingBox
             ).execute()
             if (grid.isSuccessful) {
-                cont.resume(Either.Right(grid))
+                cont.resume(Either.Right(grid.lines))
             } else {
                 cont.resume(Either.Left(grid.error))
             }
@@ -65,13 +66,9 @@ class W3WApiDataSource(private val wrapper: What3WordsV3, private val context: C
                 boundingBox
             ).execute()
             if (grid.isSuccessful) {
-                val t = Test(grid.features, "FeatureCollection")
-                cont.resume(Either.Right(GsonBuilder().create().toJson(t)))
+                cont.resume(Either.Right(GsonBuilder().create().toJson(grid)))
             } else {
                 cont.resume(Either.Left(grid.error))
             }
         }
 }
-
-//TO DELETE
-data class Test(val features: JsonArray, val type: String)

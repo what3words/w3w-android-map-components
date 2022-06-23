@@ -4,6 +4,7 @@ import androidx.core.util.Consumer
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
+import com.what3words.components.maps.extensions.io
 import com.what3words.components.maps.extensions.main
 import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
@@ -13,6 +14,7 @@ import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * [W3WMapManager] an abstract layer to retrieve data from [W3WDataSource] save it in memory [suggestionsCached] and be used in multiple map wrapper. i.e: [W3WGoogleMapsWrapper].
@@ -34,25 +36,31 @@ internal class W3WMapManager(
 
     /** Add [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
      *
-     * @param coordinates [Coordinates] to be added.
+     * @param lat coordinates latitude to be added.
+     * @param lat coordinates longitude to be added.
      * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
      */
     fun addCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        runBlocking(dispatchers.io()) {
-            when (val c23wa = w3wDataSource.getSuggestionByCoordinates(coordinates, language)) {
+        main(dispatchers) {
+            when (val c23wa = withContext(dispatchers.io()) {
+                w3wDataSource.getSuggestionByCoordinates(
+                    lat,
+                    lng,
+                    language
+                )
+            }) {
                 is Either.Left -> {
-                    main(dispatchers) {
-                        onError?.accept(c23wa.a)
-                    }
+                    onError?.accept(c23wa.a)
                 }
                 is Either.Right -> {
-                    val locationMapped = findByExactLocation(coordinates.lat, coordinates.lng)
+                    val locationMapped = findByExactLocation(lat, lng)
                     if (locationMapped != null) suggestionsCached.remove(locationMapped)
                     suggestionsCached.add(
                         SuggestionWithCoordinatesAndStyle(
@@ -60,38 +68,87 @@ internal class W3WMapManager(
                             markerColor
                         )
                     )
-                    main(dispatchers) {
-                        onSuccess?.accept(c23wa.b)
-                        w3WMapWrapper.updateMap()
-                    }
+                    onSuccess?.accept(c23wa.b)
+                    w3WMapWrapper.updateMap()
                 }
             }
         }
     }
 
-    /** Set [Coordinates] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates].
+    /** Add [SuggestionWithCoordinates] to [suggestionsCached].
      *
-     * @param coordinates [Coordinates] to be added.
+     * @param suggestionWithCoordinates [SuggestionWithCoordinates] to be added.
+     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
+     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
+     */
+    fun addSuggestionWithCoordinates(
+        suggestionWithCoordinates: SuggestionWithCoordinates,
+        markerColor: W3WMarkerColor,
+        onSuccess: Consumer<SuggestionWithCoordinates>?
+    ) {
+        io(dispatchers) {
+            val locationMapped = findByExactLocation(
+                suggestionWithCoordinates.coordinates.lat,
+                suggestionWithCoordinates.coordinates.lng
+            )
+            if (locationMapped != null) suggestionsCached.remove(locationMapped)
+
+            suggestionsCached.add(
+                SuggestionWithCoordinatesAndStyle(
+                    suggestionWithCoordinates,
+                    markerColor
+                )
+            )
+            main(dispatchers) {
+                onSuccess?.accept(suggestionWithCoordinates)
+                w3WMapWrapper.updateMap()
+            }
+        }
+    }
+
+    /** Set a [SuggestionWithCoordinates] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates] and calls [W3WMapWrapper.updateMap] to reflect the changes.
+     *
+     * @param suggestion [SuggestionWithCoordinates] to be selected.
+     * @param onSuccess an success callback will return the same [SuggestionWithCoordinates].
+     */
+    fun selectSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        onSuccess: Consumer<SuggestionWithCoordinates>?
+    ) {
+        main(dispatchers) {
+            selectedSuggestion = suggestion
+            onSuccess?.accept(suggestion)
+            w3WMapWrapper.updateMap()
+        }
+    }
+
+    /** Set Coordinates [lat], [lng] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates].
+     *
+     * @param lat coordinates latitude to be added.
+     * @param lng coordinates longitude to be added.
      * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
      */
     fun selectCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        runBlocking(dispatchers.io()) {
-            when (val c23wa = w3wDataSource.getSuggestionByCoordinates(coordinates, language)) {
+        main(dispatchers) {
+            when (val c23wa = withContext(dispatchers.io()) {
+                w3wDataSource.getSuggestionByCoordinates(
+                    lat,
+                    lng,
+                    language
+                )
+            }) {
                 is Either.Left -> {
-                    main(dispatchers) {
-                        onError?.accept(c23wa.a)
-                    }
+                    onError?.accept(c23wa.a)
                 }
                 is Either.Right -> {
                     selectedSuggestion = c23wa.b
-                    main(dispatchers) {
-                        onSuccess?.accept(c23wa.b)
-                        w3WMapWrapper.updateMap()
-                    }
+                    onSuccess?.accept(c23wa.b)
+                    w3WMapWrapper.updateMap()
                 }
             }
         }
@@ -104,7 +161,7 @@ internal class W3WMapManager(
      * @return [Either] where will be [Either.Left] if any error occurs or [Either.Right] with a list of [SuggestionWithCoordinates] if ALL [W3WDataSource.getSuggestionByCoordinates] are successful.
      */
     fun addCoordinates(
-        listCoordinates: List<Coordinates>,
+        listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
@@ -115,7 +172,11 @@ internal class W3WMapManager(
             listCoordinates.forEach { location ->
                 when (
                     val c23wa =
-                        w3wDataSource.getSuggestionByCoordinates(location, language)
+                        w3wDataSource.getSuggestionByCoordinates(
+                            location.first,
+                            location.second,
+                            language
+                        )
                 ) {
                     is Either.Left -> {
                         error = c23wa.a
@@ -158,13 +219,11 @@ internal class W3WMapManager(
      *
      * @param coordinates the [Coordinates] to be removed.
      */
-    fun removeCoordinates(coordinates: Coordinates) {
-        runBlocking(dispatchers.io()) {
-            squareContains(coordinates.lat, coordinates.lng)?.let { toRemove ->
+    fun removeCoordinates(lat: Double, lng: Double) {
+        main(dispatchers) {
+            squareContains(lat, lng)?.let { toRemove ->
                 suggestionsCached.remove(toRemove)
-                main(dispatchers) {
-                    w3WMapWrapper.updateMap()
-                }
+                w3WMapWrapper.updateMap()
             }
         }
     }
@@ -173,11 +232,11 @@ internal class W3WMapManager(
      *
      * @param listCoordinates the list of [Coordinates] to remove.
      */
-    fun removeCoordinates(listCoordinates: List<Coordinates>) {
+    fun removeCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         runBlocking(dispatchers.io()) {
             val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             listCoordinates.forEach {
-                squareContains(it.lat, it.lng)?.let { toRemove ->
+                squareContains(it.first, it.second)?.let { toRemove ->
                     listToRemove.add(toRemove)
                 }
             }
@@ -203,12 +262,11 @@ internal class W3WMapManager(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        runBlocking(dispatchers.io()) {
-            when (val c23wa = w3wDataSource.getSuggestionByWords(words)) {
+        main(dispatchers) {
+            when (val c23wa =
+                withContext(dispatchers.io()) { w3wDataSource.getSuggestionByWords(words) }) {
                 is Either.Left -> {
-                    main(dispatchers) {
-                        onError?.accept(c23wa.a)
-                    }
+                    onError?.accept(c23wa.a)
                 }
                 is Either.Right -> {
                     val locationMapped = suggestionsCached.firstOrNull {
@@ -221,10 +279,8 @@ internal class W3WMapManager(
                             markerColor
                         )
                     )
-                    main(dispatchers) {
-                        onSuccess?.accept(c23wa.b)
-                        w3WMapWrapper.updateMap()
-                    }
+                    onSuccess?.accept(c23wa.b)
+                    w3WMapWrapper.updateMap()
                 }
             }
         }
@@ -244,13 +300,14 @@ internal class W3WMapManager(
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        runBlocking(dispatchers.io()) {
+        main(dispatchers) {
             val toBeAdded = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             var error: APIResponse.What3WordsError? = null
             listWords.forEach { words ->
                 when (
-                    val c23wa =
+                    val c23wa = withContext(dispatchers.io()) {
                         w3wDataSource.getSuggestionByWords(words)
+                    }
                 ) {
                     is Either.Left -> {
                         error = c23wa.a
@@ -267,9 +324,7 @@ internal class W3WMapManager(
                 }
             }
             if (error != null) {
-                main(dispatchers) {
-                    onError?.accept(error!!)
-                }
+                onError?.accept(error!!)
             } else {
                 toBeAdded.forEach {
                     val existing = findByExactLocation(
@@ -281,10 +336,8 @@ internal class W3WMapManager(
                     }
                     suggestionsCached.add(it)
                 }
-                main(dispatchers) {
-                    onSuccess?.accept(toBeAdded.map { it.suggestion })
-                    w3WMapWrapper.updateMap()
-                }
+                onSuccess?.accept(toBeAdded.map { it.suggestion })
+                w3WMapWrapper.updateMap()
             }
         }
     }
@@ -300,19 +353,16 @@ internal class W3WMapManager(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        runBlocking(dispatchers.io()) {
-            when (val c23wa = w3wDataSource.getSuggestionByWords(words)) {
+        main(dispatchers) {
+            when (val c23wa =
+                withContext(dispatchers.io()) { w3wDataSource.getSuggestionByWords(words) }) {
                 is Either.Left -> {
-                    main(dispatchers) {
-                        onError?.accept(c23wa.a)
-                    }
+                    onError?.accept(c23wa.a)
                 }
                 is Either.Right -> {
                     selectedSuggestion = c23wa.b
-                    main(dispatchers) {
-                        onSuccess?.accept(c23wa.b)
-                        w3WMapWrapper.updateMap()
-                    }
+                    onSuccess?.accept(c23wa.b)
+                    w3WMapWrapper.updateMap()
                 }
             }
         }
@@ -331,12 +381,10 @@ internal class W3WMapManager(
      * @param words the three word address to be removed.
      */
     fun removeWords(words: String) {
-        runBlocking(dispatchers.io()) {
+        main(dispatchers) {
             suggestionsCached.firstOrNull { it.suggestion.words == words }?.let { toRemove ->
                 suggestionsCached.remove(toRemove)
-                main(dispatchers) {
-                    w3WMapWrapper.updateMap()
-                }
+                w3WMapWrapper.updateMap()
             }
         }
     }
@@ -346,7 +394,7 @@ internal class W3WMapManager(
      * @param listWords the list of three word addresses to remove.
      */
     fun removeWords(listWords: List<String>) {
-        runBlocking(dispatchers.io()) {
+        main(dispatchers) {
             val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             listWords.forEach { words ->
                 suggestionsCached.firstOrNull { it.suggestion.words == words }?.let { toRemove ->
@@ -355,25 +403,21 @@ internal class W3WMapManager(
             }
             if (listToRemove.isNotEmpty()) {
                 suggestionsCached.removeAll(listToRemove)
-                main(dispatchers) {
-                    w3WMapWrapper.updateMap()
-                }
+                w3WMapWrapper.updateMap()
             }
         }
     }
 
     /** Remove all from [suggestionsCached]. */
     fun clearList() {
-        runBlocking(dispatchers.io()) {
+        main(dispatchers) {
             val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             suggestionsCached.forEach { data ->
                 listToRemove.add(data)
             }
             if (listToRemove.isNotEmpty()) {
                 suggestionsCached.removeAll(listToRemove)
-                main(dispatchers) {
-                    w3WMapWrapper.updateMap()
-                }
+                w3WMapWrapper.updateMap()
             }
         }
     }
@@ -432,15 +476,15 @@ internal class W3WMapManager(
     }
 
     fun selectExistingMarker(latitude: Double, longitude: Double) {
-        selectedSuggestion = squareContains(latitude, longitude)?.suggestion
         main(dispatchers) {
+            selectedSuggestion = squareContains(latitude, longitude)?.suggestion
             w3WMapWrapper.updateMap()
         }
     }
 
     fun selectExistingMarker(suggestionWithCoordinates: SuggestionWithCoordinates) {
-        selectedSuggestion = suggestionWithCoordinates
         main(dispatchers) {
+            selectedSuggestion = suggestionWithCoordinates
             w3WMapWrapper.updateMap()
         }
     }

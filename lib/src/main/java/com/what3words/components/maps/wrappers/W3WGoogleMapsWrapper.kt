@@ -208,25 +208,54 @@ class W3WGoogleMapsWrapper(
             onError
         )
     }
+
+    override fun addMarkerAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        markerColor: W3WMarkerColor,
+        onSuccess: Consumer<SuggestionWithCoordinates>?,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        if (suggestion.coordinates != null) {
+            w3wMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
+        } else {
+            w3wMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
+        }
+    }
+
+    override fun selectAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        onSuccess: Consumer<SuggestionWithCoordinates>?,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        if (suggestion.coordinates != null) {
+            w3wMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
+        } else {
+            w3wMapManager.selectWords(suggestion.words, onSuccess, onError)
+        }
+    }
+
     //endregion
 
     //region add/remove by coordinates
 
     /** Add [Coordinates] to the map. This method will add a marker/square to the map based on each of the [Coordinates] provided latitude and longitude.
      *
-     * @param coordinates [Coordinates] to be added.
+     * @param lat latitude to be added.
+     * @param lng longitude to be added.
      * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     override fun addMarkerAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         w3wMapManager.addCoordinates(
-            coordinates,
+            lat,
+            lng,
             markerColor,
             onSuccess,
             onError
@@ -235,13 +264,13 @@ class W3WGoogleMapsWrapper(
 
     /** Add a list of [Coordinates] to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
      *
-     * @param listCoordinates list of [Coordinates]s to be added.
+     * @param listCoordinates list of [Pair.first] = latitude, [Pair.second] = longitude to be added.
      * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     override fun addMarkerAtCoordinates(
-        listCoordinates: List<Coordinates>,
+        listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
@@ -254,41 +283,45 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Set [Coordinates] as selected marker on the map, it can only have one selected marker at the time.
+    /** Set Coordinates [lat], [lng] as selected marker on the map, it can only have one selected marker at the time.
      *
-     * @param coordinates [Coordinates] to be added.
+     * @param lat latitude to be added.
+     * @param lng longitude to be added.
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
     override fun selectAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         w3wMapManager.selectCoordinates(
-            coordinates,
+            lat,
+            lng,
             onSuccess,
             onError
         )
     }
 
-    override fun findMarkerByCoordinates(coordinates: Coordinates): SuggestionWithCoordinates? {
-        return w3wMapManager.squareContains(coordinates.lat, coordinates.lng)?.suggestion
+    override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
+        return w3wMapManager.squareContains(lat, lng)?.suggestion
     }
 
-    /** Remove [Coordinates] from the map.
+    /** Remove marker at [lat],[lng] from the map.
      *
-     * @param coordinates the [Coordinates] to be removed.
+     * @param lat latitude coordinates of the marker to be removed.
+     * @param lng longitude coordinates of the marker to be removed.
      */
-    override fun removeMarkerAtCoordinates(coordinates: Coordinates) {
-        w3wMapManager.removeCoordinates(coordinates)
+    override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
+        w3wMapManager.removeCoordinates(lat, lng)
     }
 
-    /** Remove a list of [Coordinates] from the map.
+    /** Remove markers based on [listCoordinates] which [Pair.first] is latitude, [Pair.second] is longitude of the marker in the map.
      *
-     * @param listCoordinates the list of [Coordinates] to remove.
+     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates of the markers to be removed.
      */
-    override fun removeMarkerAtCoordinates(listCoordinates: List<Coordinates>) {
+    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         w3wMapManager.removeCoordinates(listCoordinates)
     }
 //endregion
@@ -384,6 +417,10 @@ class W3WGoogleMapsWrapper(
      */
     override fun getAllMarkers(): List<SuggestionWithCoordinates> {
         return w3wMapManager.getList()
+    }
+
+    override fun getSelectedMarker(): SuggestionWithCoordinates? {
+        return w3wMapManager.selectedSuggestion
     }
 
     override fun unselect() {
@@ -517,8 +554,8 @@ class W3WGoogleMapsWrapper(
                     }
                 }
                 is Either.Right -> {
-                    val verticalLines = grid.b.lines.computeVerticalLines()
-                    val horizontalLines = grid.b.lines.computeHorizontalLines()
+                    val verticalLines = grid.b.computeVerticalLines()
+                    val horizontalLines = grid.b.computeHorizontalLines()
                     drawLinesOnMap(
                         computedHorizontalLines = horizontalLines,
                         computedVerticalLines = verticalLines

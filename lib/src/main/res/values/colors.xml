@@ -2,9 +2,9 @@
 <resources>
     <color name="grid_gone">#00e5e5e5</color>
     <color name="grid_mapbox">#29072f4a</color>
-    <color name="grid_far">#88e5e5e5</color>
-    <color name="grid_middle">#BBe5e5e5</color>
-    <color name="grid_close">#FFe5e5e5</color>
+    <color name="grid_far">#88C0C0C0</color>
+    <color name="grid_middle">#BBC0C0C0</color>
+    <color name="grid_close">#FFC0C0C0</color>
     <color name="grid_selected_normal">#0A3049</color>
     <color name="grid_selected_sat">#FFF</color>
     <color name="grid_filled">#E11F26</color>

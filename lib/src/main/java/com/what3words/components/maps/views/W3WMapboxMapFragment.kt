@@ -24,6 +24,8 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.databinding.W3wMapboxMapViewBinding
 
 class W3WMapboxMapFragment() : Fragment(), W3WMap {
+    private var selectedSquareConsumer: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
+        null
     private lateinit var onReadyCallback: OnFragmentReadyCallback
     private var _binding: W3wMapboxMapViewBinding? = null
     private val binding get() = _binding!!
@@ -93,11 +95,16 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
 
         binding.mapView.getMapboxMap().addOnMapClickListener { latLng ->
             //OTHER FUNCTIONS
-            val location = Coordinates(
-                latLng.latitude(),
-                latLng.longitude()
-            )
-            this.w3wMapsWrapper.selectAtCoordinates(location)
+            this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude(), latLng.longitude(), {
+                selectedSquareConsumer?.accept(
+                    it,
+                    true,
+                    this.w3wMapsWrapper.findMarkerByCoordinates(
+                        latLng.latitude(),
+                        latLng.longitude()
+                    ) != null
+                )
+            })
             true
         }
 
@@ -116,8 +123,15 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.setLanguage(language)
     }
 
-    override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>) {
-        w3wMapsWrapper.onMarkerClicked(callback)
+    override fun onSquareSelected(ssc: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>) {
+        selectedSquareConsumer = ssc
+        w3wMapsWrapper.onMarkerClicked {
+            selectedSquareConsumer?.accept(
+                it,
+                selectedByTouch = true,
+                isMarked = true
+            )
+        }
     }
 
     override fun addMarkerAtSuggestion(
@@ -205,6 +219,43 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.selectAtSuggestion(suggestion, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
+            selectedSquareConsumer?.accept(
+                it,
+                selectedByTouch = false,
+                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                    it.coordinates.lat,
+                    it.coordinates.lng
+                ) != null
+            )
+        }, {
+            onError?.accept(it)
+        })
+    }
+
+    override fun addMarkerAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        markerColor: W3WMarkerColor,
+        zoomOption: W3WZoomOption,
+        onSuccess: Consumer<SuggestionWithCoordinates>?,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
+            handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+            onSuccess?.accept(it)
+        }, {
+            onError?.accept(it)
+        })
+    }
+
+    override fun selectAtSuggestionWithCoordinates(
+        suggestion: SuggestionWithCoordinates,
+        zoomOption: W3WZoomOption,
+        onSuccess: Consumer<SuggestionWithCoordinates>?,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
+            handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+            onSuccess?.accept(it)
         }, {
             onError?.accept(it)
         })
@@ -258,6 +309,14 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.selectAtWords(words, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
+            selectedSquareConsumer?.accept(
+                it,
+                selectedByTouch = false,
+                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                    it.coordinates.lat,
+                    it.coordinates.lng
+                ) != null
+            )
         }, {
             onError?.accept(it)
         })
@@ -272,13 +331,14 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
     }
 
     override fun addMarkerAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         markerColor: W3WMarkerColor,
         zoomOption: W3WZoomOption,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapsWrapper.addMarkerAtCoordinates(coordinates, markerColor, {
+        w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
         }, {
@@ -287,7 +347,7 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
     }
 
     override fun addMarkerAtCoordinates(
-        listCoordinates: List<Coordinates>,
+        listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor,
         zoomOption: W3WZoomOption,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
@@ -311,28 +371,37 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
     }
 
     override fun selectAtCoordinates(
-        coordinates: Coordinates,
+        lat: Double,
+        lng: Double,
         zoomOption: W3WZoomOption,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapsWrapper.selectAtCoordinates(coordinates, {
+        w3wMapsWrapper.selectAtCoordinates(lat, lng, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
+            selectedSquareConsumer?.accept(
+                it,
+                selectedByTouch = false,
+                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                    it.coordinates.lat,
+                    it.coordinates.lng
+                ) != null
+            )
         }, {
             onError?.accept(it)
         })
     }
 
-    override fun findMarkerByCoordinates(coordinates: Coordinates): SuggestionWithCoordinates? {
-        return w3wMapsWrapper.findMarkerByCoordinates(coordinates)
+    override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
+        return w3wMapsWrapper.findMarkerByCoordinates(lat, lng)
     }
 
-    override fun removeMarkerAtCoordinates(coordinates: Coordinates) {
-        w3wMapsWrapper.removeMarkerAtCoordinates(coordinates)
+    override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
+        w3wMapsWrapper.removeMarkerAtCoordinates(lat, lng)
     }
 
-    override fun removeMarkerAtCoordinates(listCoordinates: List<Coordinates>) {
+    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         w3wMapsWrapper.removeMarkerAtCoordinates(listCoordinates)
     }
 
@@ -342,6 +411,10 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
 
     override fun getAllMarkers(): List<SuggestionWithCoordinates> {
         return w3wMapsWrapper.getAllMarkers()
+    }
+
+    override fun getSelectedMarker(): SuggestionWithCoordinates? {
+        return w3wMapsWrapper.getSelectedMarker()
     }
 
     override fun unselect() {
