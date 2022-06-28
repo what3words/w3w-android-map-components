@@ -16,8 +16,8 @@ import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.wrappers.W3WMapBoxWrapper
-import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -403,6 +403,10 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
 
     override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         w3wMapsWrapper.removeMarkerAtCoordinates(listCoordinates)
+    }
+
+    override fun setGridColor(gridColor: GridColor) {
+        w3wMapsWrapper.setGridColor(gridColor)
     }
 
     override fun removeAllMarkers() {

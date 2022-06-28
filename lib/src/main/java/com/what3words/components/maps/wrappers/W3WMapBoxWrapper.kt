@@ -56,8 +56,6 @@ import kotlinx.coroutines.runBlocking
 import java.nio.ByteBuffer
 import java.util.concurrent.CountDownLatch
 import androidx.core.util.Consumer
-import com.google.android.gms.maps.GoogleMap
-import com.mapbox.maps.extension.style.layers.addLayerAbove
 import com.mapbox.maps.extension.style.layers.addLayerBelow
 import com.what3words.androidwrapper.What3WordsV3
 import com.what3words.components.maps.models.W3WApiDataSource
@@ -76,6 +74,7 @@ class W3WMapBoxWrapper(
     private val w3wDataSource: W3WDataSource,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
+    private var gridColor: GridColor = GridColor.AUTO
     private var isDirty: Boolean = false
     private var w3wMapManager: W3WMapManager = W3WMapManager(w3wDataSource, this, dispatchers)
 
@@ -112,6 +111,7 @@ class W3WMapBoxWrapper(
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
 
+
     // TODO: Rethink this logic, MapBox v10 really complicated this, and the suggestion from someone at mapbox was this: https://github.com/mapbox/mapbox-maps-android/issues/1245#issuecomment-1082884148
     init {
         var latch: CountDownLatch
@@ -146,6 +146,14 @@ class W3WMapBoxWrapper(
         }
     }
 
+    private fun shouldShowDarkGrid(): Boolean {
+        if (gridColor == GridColor.LIGHT) return false
+        if (gridColor == GridColor.DARK) return true
+        return (mapView.getStyle()?.styleURI == Style.MAPBOX_STREETS
+                || mapView.getStyle()?.styleURI == Style.TRAFFIC_DAY
+                || mapView.getStyle()?.styleURI == Style.LIGHT
+                || mapView.getStyle()?.styleURI == Style.OUTDOORS)
+    }
 
     /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
      *
@@ -163,6 +171,18 @@ class W3WMapBoxWrapper(
     override fun gridEnabled(isEnabled: Boolean): W3WMapBoxWrapper {
         shouldDrawGrid = isEnabled
         return this
+    }
+
+    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
+     *
+     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
+     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
+     * [GridColor.DARK] - Will force grid and selected square color to be dark.
+     *
+     * @param gridColor set grid color, per default will be [GridColor.AUTO].
+     */
+    override fun setGridColor(gridColor: GridColor) {
+        this.gridColor = gridColor
     }
 
     /** A callback for when an existing marker on the map is clicked.
@@ -372,7 +392,7 @@ class W3WMapBoxWrapper(
      *
      * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates of the markers to be removed.
      */
-    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double,Double>>) {
+    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         isDirty = true
         w3wMapManager.removeCoordinates(listCoordinates)
     }
@@ -628,10 +648,10 @@ class W3WMapBoxWrapper(
                 style.addLayer(
                     lineLayer(SELECTED_ZOOMED_LAYER, SELECTED_ZOOMED_SOURCE) {
                         lineColor(
-                            if (mapView.getStyle()?.styleURI == Style.SATELLITE) {
-                                context.getColor(R.color.grid_selected_sat)
-                            } else {
+                            if (shouldShowDarkGrid()) {
                                 context.getColor(R.color.grid_selected_normal)
+                            } else {
+                                context.getColor(R.color.grid_selected_sat)
                             }
                         )
                         lineWidth(getGridSelectedBorderSizeBasedOnZoomLevel())
@@ -767,10 +787,10 @@ class W3WMapBoxWrapper(
 
     /** [drawSelectedPin] will be responsible for the drawing of the selected but not added w3w pins (i.e [R.drawable.ic_marker_pin_white] for [Style.SATELLITE]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
     private fun drawSelectedPin(data: SuggestionWithCoordinates) {
-        val image = if (mapView.getStyle()?.styleURI == Style.SATELLITE) {
-            R.drawable.ic_marker_pin_white
-        } else {
+        val image = if (shouldShowDarkGrid()) {
             R.drawable.ic_marker_pin_dark_blue
+        } else {
+            R.drawable.ic_marker_pin_white
         }
         bitmapFromDrawableRes(
             context,
@@ -901,25 +921,20 @@ class W3WMapBoxWrapper(
     }
 
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
-    private fun getGridColorBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Int {
-        return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.getColor(R.color.grid_mapbox)
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.getColor(R.color.grid_mapbox)
-            zoom >= 19 && zoom < 20 -> context.getColor(R.color.grid_mapbox)
-            else -> context.getColor(R.color.grid_mapbox)
+    private fun getGridColorBasedOnZoomLevel(): Int {
+        return if (shouldShowDarkGrid()) {
+            context.getColor(R.color.grid_dark)
+        } else {
+            context.getColor(R.color.grid_light)
         }
     }
 
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimensionPixelSize(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_mapbox_far)
-                .toDouble()
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_width_mapbox_middle)
-                .toDouble()
-            else -> context.resources.getDimension(R.dimen.grid_width_close).toDouble()
+            else -> context.resources.getDimension(R.dimen.grid_width_mapbox_far).toDouble()
         }
     }
 

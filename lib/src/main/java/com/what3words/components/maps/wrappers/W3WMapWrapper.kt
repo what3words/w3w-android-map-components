@@ -8,6 +8,12 @@ import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 
+enum class GridColor {
+    AUTO,
+    DARK,
+    LIGHT
+}
+
 /** What3words abstract map wrapper interface, every new map provider wrapper added to the component should implement this interface. */
 interface W3WMapWrapper {
 
@@ -16,6 +22,16 @@ interface W3WMapWrapper {
      * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
      */
     fun setLanguage(language: String): W3WMapWrapper
+
+    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
+     *
+     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
+     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
+     * [GridColor.DARK] - Will force grid and selected square color to be dark.
+     *
+     * @param gridColor set grid color, per default will be [GridColor.AUTO].
+     */
+    fun setGridColor(gridColor: GridColor)
 
     /** Enable grid overlay over map with all 3mx3m squares on the visible map bounds.
      *
