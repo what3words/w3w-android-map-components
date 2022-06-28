@@ -81,6 +81,7 @@ class W3WGoogleMapsWrapper(
         const val SCALE_NORMALIZATION = 1f
     }
 
+    private var gridColor: GridColor = GridColor.AUTO
     private var onMarkerClickedCallback: Consumer<SuggestionWithCoordinates>? = null
     private var lastScaledBounds: LatLngBounds? = null
     private var isGridVisible: Boolean = false
@@ -104,6 +105,12 @@ class W3WGoogleMapsWrapper(
         GroundOverlayManager(mapView)
     }
 
+    private fun shouldShowDarkGrid(): Boolean {
+        if (gridColor == GridColor.LIGHT) return false
+        if (gridColor == GridColor.DARK) return true
+        return (mapView.mapType == GoogleMap.MAP_TYPE_NORMAL || mapView.mapType == GoogleMap.MAP_TYPE_TERRAIN )
+    }
+
     /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
      *
      * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
@@ -120,6 +127,18 @@ class W3WGoogleMapsWrapper(
     override fun gridEnabled(isEnabled: Boolean): W3WGoogleMapsWrapper {
         shouldDrawGrid = isEnabled
         return this
+    }
+
+    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
+     *
+     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
+     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
+     * [GridColor.DARK] - Will force grid and selected square color to be dark.
+     *
+     * @param gridColor set grid color, per default will be [GridColor.AUTO].
+     */
+    override fun setGridColor(gridColor: GridColor) {
+        this.gridColor = gridColor
     }
 
     /** A callback for when an existing marker on the map is clicked.
@@ -614,10 +633,10 @@ class W3WGoogleMapsWrapper(
             .icon(
                 getBitmapDescriptorFromVector(
                     context,
-                    if (mapView.mapType == GoogleMap.MAP_TYPE_SATELLITE) {
-                        R.drawable.ic_marker_pin_white
-                    } else {
+                    if (shouldShowDarkGrid()) {
                         R.drawable.ic_marker_pin_dark_blue
+                    } else {
+                        R.drawable.ic_marker_pin_white
                     }
                 )
             )
@@ -669,21 +688,15 @@ class W3WGoogleMapsWrapper(
     }
 
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
-    private fun getGridColorBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Int {
-        return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.getColor(R.color.grid_gone)
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.getColor(R.color.grid_far)
-            zoom >= 19 && zoom < 20 -> context.getColor(R.color.grid_middle)
-            else -> context.getColor(R.color.grid_close)
-        }
+    private fun getGridColorBasedOnZoomLevel(): Int {
+        return if (shouldShowDarkGrid()) context.getColor(R.color.grid_dark)
+        else context.getColor(R.color.grid_light)
     }
 
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
             zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_far)
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_width_close)
         }
     }
@@ -778,10 +791,10 @@ class W3WGoogleMapsWrapper(
             val optionsVisible3wa = PolylineOptions().clickable(false)
                 .width(getGridSelectedBorderSizeBasedOnZoomLevel())
                 .color(
-                    if (mapView.mapType == GoogleMap.MAP_TYPE_SATELLITE) {
-                        context.getColor(R.color.grid_selected_sat)
-                    } else {
+                    if (shouldShowDarkGrid()) {
                         context.getColor(R.color.grid_selected_normal)
+                    } else {
+                        context.getColor(R.color.grid_selected_sat)
                     }
                 )
                 .zIndex(5f)

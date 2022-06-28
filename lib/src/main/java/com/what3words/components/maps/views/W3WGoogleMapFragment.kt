@@ -18,6 +18,7 @@ import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
@@ -121,6 +122,10 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
 
     override fun setLanguage(language: String) {
         w3wMapsWrapper.setLanguage(language)
+    }
+
+    override fun setGridColor(gridColor: GridColor) {
+        w3wMapsWrapper.setGridColor(gridColor)
     }
 
     override fun onSquareSelected(ssc: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>) {

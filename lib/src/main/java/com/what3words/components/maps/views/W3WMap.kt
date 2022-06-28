@@ -3,6 +3,7 @@ package com.what3words.components.maps.views
 import androidx.core.util.Consumer
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -19,6 +20,16 @@ interface W3WMap {
      * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
      */
     fun setLanguage(language: String)
+
+    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
+     *
+     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
+     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
+     * [GridColor.DARK] - Will force grid and selected square color to be dark.
+     *
+     * @param gridColor set grid color, per default will be [GridColor.AUTO].
+     */
+    fun setGridColor(gridColor: GridColor)
 
     /** A callback for when a square is selected either by clicking on the map or programmatically using any of [selectAtWords], [selectAtCoordinates], [selectAtSuggestion].
      *

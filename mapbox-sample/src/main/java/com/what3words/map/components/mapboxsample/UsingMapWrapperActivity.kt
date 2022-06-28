@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
@@ -27,7 +28,7 @@ class UsingMapWrapperActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUsingMapWrapperBinding.inflate(layoutInflater)
-        binding.mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS)
+        binding.mapView.getMapboxMap().loadStyleUri(Style.OUTDOORS)
         setContentView(binding.root)
 
         val wrapper = What3WordsV3(BuildConfig.W3W_API_KEY, this)
@@ -37,48 +38,70 @@ class UsingMapWrapperActivity : AppCompatActivity() {
             wrapper,
         ).setLanguage("en")
 
-        //example how to add a autosuggest results from our w3w wrapper to the map
-        CoroutineScope(Dispatchers.Main).launch {
-            val res = withContext(Dispatchers.IO) {
-                wrapper.autosuggest("filled.count.s").nResults(3).execute()
-            }
-            if (res.isSuccessful) {
-                //in case of autosuggest success add the 3 suggestions to the map.
-                w3wMapsWrapper.addMarkerAtSuggestion(
-                    res.suggestions,
-                    W3WMarkerColor.BLUE,
-                    onSuccess = { list ->
-                        //example adjusting camera to show the 3 results on the map.
-                        val points = mutableListOf<Point>()
-                        list.forEach {
-                            Log.i(
-                                "UsingMapWrapperActivity",
-                                "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
-                            )
-                            points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
-                        }
-                        val options = binding.mapView.getMapboxMap().cameraForCoordinates(
-                            points,
-                            EdgeInsets(100.0, 100.0, 100.0, 100.0)
-                        )
-                        binding.mapView.getMapboxMap().setCamera(options)
-                    },
-                    onError = {
-                        Toast.makeText(
-                            this@UsingMapWrapperActivity,
-                            "${it.key}, ${it.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+        w3wMapsWrapper.addMarkerAtWords(
+            "filled.count.soap",
+            W3WMarkerColor.BLUE,
+            {
+                Log.i(
+                    "UsingMapFragmentActivity",
+                    "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
                 )
-            } else {
+                val cameraOptions = CameraOptions.Builder()
+                    .center(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
+                    .zoom(19.0)
+                    .build()
+                binding.mapView.getMapboxMap().setCamera(cameraOptions)
+            }, {
                 Toast.makeText(
                     this@UsingMapWrapperActivity,
-                    "${res.error.key}, ${res.error.message}",
+                    "${it.key}, ${it.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
-        }
+        )
+
+//        example how to add a autosuggest results from our w3w wrapper to the map
+//        CoroutineScope(Dispatchers.Main).launch {
+//            val res = withContext(Dispatchers.IO) {
+//                wrapper.autosuggest("filled.count.s").nResults(3).execute()
+//            }
+//            if (res.isSuccessful) {
+//                //in case of autosuggest success add the 3 suggestions to the map.
+//                w3wMapsWrapper.addMarkerAtSuggestion(
+//                    res.suggestions,
+//                    W3WMarkerColor.BLUE,
+//                    onSuccess = { list ->
+//                        //example adjusting camera to show the 3 results on the map.
+//                        val points = mutableListOf<Point>()
+//                        list.forEach {
+//                            Log.i(
+//                                "UsingMapWrapperActivity",
+//                                "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}\""
+//                            )
+//                            points.add(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat))
+//                        }
+//                        val options = binding.mapView.getMapboxMap().cameraForCoordinates(
+//                            points,
+//                            EdgeInsets(100.0, 100.0, 100.0, 100.0)
+//                        )
+//                        binding.mapView.getMapboxMap().setCamera(options)
+//                    },
+//                    onError = {
+//                        Toast.makeText(
+//                            this@UsingMapWrapperActivity,
+//                            "${it.key}, ${it.message}",
+//                            Toast.LENGTH_LONG
+//                        ).show()
+//                    }
+//                )
+//            } else {
+//                Toast.makeText(
+//                    this@UsingMapWrapperActivity,
+//                    "${res.error.key}, ${res.error.message}",
+//                    Toast.LENGTH_LONG
+//                ).show()
+//            }
+//        }
 
         //click even on existing w3w added markers on the map.
         w3wMapsWrapper.onMarkerClicked {
