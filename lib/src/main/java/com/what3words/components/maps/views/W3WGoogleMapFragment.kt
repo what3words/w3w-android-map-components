@@ -100,7 +100,6 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         }
         onReadyCallback.onFragmentReady(this)
         p0.setOnMapClickListener { latLng ->
-            Log.i("TEST", "setOnMapClickListener")
             //OTHER FUNCTIONS
             this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude, latLng.longitude, {
                 squareSelectedSuccess?.accept(
@@ -140,7 +139,6 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         this.squareSelectedSuccess = onSuccess
         this.squareSelectedError = onError
         this.w3wMapsWrapper.onMarkerClicked {
-            Log.i("TEST", "onMarkerClicked")
             onSuccess.accept(it, selectedByTouch = true, isMarked = true)
         }
     }
