@@ -477,20 +477,14 @@ class W3WGoogleMapsWrapper(
     //region managers/collections on click events
     private val zoomedOutMarkerListener = GoogleMap.OnMarkerClickListener { p0 ->
         w3wMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-        w3wMapManager.selectedSuggestion?.let {
-            onMarkerClickedCallback?.accept(it)
-        }
-        updateMap()
+        onMarkerClickedCallback?.accept(w3wMapManager.selectedSuggestion)
         return@OnMarkerClickListener true
     }
 
     private val zoomedInMarkerListener =
         GoogleMap.OnGroundOverlayClickListener { p0 ->
             w3wMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-            w3wMapManager.selectedSuggestion?.let {
-                onMarkerClickedCallback?.accept(it)
-            }
-            updateMap()
+            onMarkerClickedCallback?.accept(w3wMapManager.selectedSuggestion)
         }
     //endregion
 

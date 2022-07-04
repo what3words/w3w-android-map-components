@@ -3,6 +3,7 @@ package com.what3words.map.components.advancedsample
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
 import com.what3words.components.text.W3WAutoSuggestEditText
@@ -29,13 +30,38 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
 
     override fun onFragmentReady(fragment: W3WMap) {
         this.fragment = fragment
-        fragment.addMarkerAtWords("filled.count.soap")
-        fragment.onSquareSelected { square, selectedByTouch, isMarked ->
-            Log.i(
-                "MainActivity",
-                "square selected with words ${square.words}, was it touch? $selectedByTouch, is the square marked? $isMarked"
-            )
-            search.setSuggestionWithCoordinates(square)
-        }
+        fragment.setLanguage("en")
+        fragment.addMarkerAtWords(
+            "filled.count.soap",
+            onSuccess = {
+                Log.i(
+                    "MainActivity",
+                    "Marker added at ${it.words}, latitude: ${it.coordinates.lat}, longitude: ${it.coordinates.lng}"
+                )
+            }, onError = {
+                Toast.makeText(
+                    this,
+                    "${it.key}, ${it.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
+
+        fragment.onSquareSelected(
+            onSuccess = { square, selectedByTouch, isMarked ->
+                Log.i(
+                    "MainActivity",
+                    "square selected with words ${square.words}, was it touch? $selectedByTouch, is the square marked? $isMarked"
+                )
+                search.setSuggestionWithCoordinates(square)
+            },
+            onError = {
+                Toast.makeText(
+                    this,
+                    "${it.key}, ${it.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
     }
 }

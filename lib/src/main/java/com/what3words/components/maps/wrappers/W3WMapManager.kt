@@ -476,15 +476,15 @@ internal class W3WMapManager(
     }
 
     fun selectExistingMarker(latitude: Double, longitude: Double) {
+        selectedSuggestion = squareContains(latitude, longitude)?.suggestion
         main(dispatchers) {
-            selectedSuggestion = squareContains(latitude, longitude)?.suggestion
             w3WMapWrapper.updateMap()
         }
     }
 
     fun selectExistingMarker(suggestionWithCoordinates: SuggestionWithCoordinates) {
+        selectedSuggestion = suggestionWithCoordinates
         main(dispatchers) {
-            selectedSuggestion = suggestionWithCoordinates
             w3WMapWrapper.updateMap()
         }
     }

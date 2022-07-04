@@ -33,9 +33,10 @@ interface W3WMap {
 
     /** A callback for when a square is selected either by clicking on the map or programmatically using any of [selectAtWords], [selectAtCoordinates], [selectAtSuggestion].
      *
-     * @param info it will be invoked when an user clicks on the map. [SuggestionWithCoordinates] with all what3words info of the clicked square and [Boolean] will be true if the clicked square is added as a marker, false if not.
+     * @param onSuccess it will be invoked when an user clicks on the map. [SuggestionWithCoordinates] with all what3words info of the clicked square and [Boolean] will be true if the clicked square is added as a marker, false if not.
+     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
-    fun onSquareSelected(info: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>)
+    fun onSquareSelected(onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>, onError: Consumer<APIResponse.What3WordsError>? = null)
 
     /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our autosuggest wrapper.
      *

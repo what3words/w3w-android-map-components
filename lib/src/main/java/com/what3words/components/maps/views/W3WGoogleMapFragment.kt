@@ -1,6 +1,7 @@
 package com.what3words.components.maps.views
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,7 +28,8 @@ import com.what3words.map.components.R
 import com.what3words.map.components.databinding.W3wGoogleMapViewBinding
 
 class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
-    private var squareSelectedConsumer: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
+    private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
+    private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
         null
     private lateinit var onReadyCallback: OnFragmentReadyCallback
     private var _binding: W3wGoogleMapViewBinding? = null
@@ -93,14 +95,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
                 )
             }
             else -> {
-                throw Exception("MISSING SETUP YOU IDIOT")
+                throw Exception("MISSING SETUP")
             }
         }
         onReadyCallback.onFragmentReady(this)
         p0.setOnMapClickListener { latLng ->
+            Log.i("TEST", "setOnMapClickListener")
             //OTHER FUNCTIONS
             this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude, latLng.longitude, {
-                squareSelectedConsumer?.accept(
+                squareSelectedSuccess?.accept(
                     it,
                     true,
                     this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -108,6 +111,8 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
                         latLng.longitude
                     ) != null
                 )
+            }, {
+                squareSelectedError?.accept(it)
             })
         }
 
@@ -128,14 +133,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         w3wMapsWrapper.setGridColor(gridColor)
     }
 
-    override fun onSquareSelected(ssc: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>) {
-        squareSelectedConsumer = ssc
-        w3wMapsWrapper.onMarkerClicked {
-            squareSelectedConsumer?.accept(
-                it,
-                selectedByTouch = true,
-                isMarked = true
-            )
+    override fun onSquareSelected(
+        onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        this.squareSelectedSuccess = onSuccess
+        this.squareSelectedError = onError
+        this.w3wMapsWrapper.onMarkerClicked {
+            Log.i("TEST", "onMarkerClicked")
+            onSuccess.accept(it, selectedByTouch = true, isMarked = true)
         }
     }
 
@@ -230,7 +236,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
             handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
             onSuccess?.accept(it)
-            squareSelectedConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -260,7 +266,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         w3wMapsWrapper.selectAtSuggestion(suggestion, {
             handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
             onSuccess?.accept(it)
-            squareSelectedConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -321,7 +327,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         w3wMapsWrapper.selectAtWords(words, {
             handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
             onSuccess?.accept(it)
-            squareSelectedConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -392,7 +398,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         w3wMapsWrapper.selectAtCoordinates(lat, lng, {
             handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
             onSuccess?.accept(it)
-            squareSelectedConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(

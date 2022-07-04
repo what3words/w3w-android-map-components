@@ -24,7 +24,8 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.databinding.W3wMapboxMapViewBinding
 
 class W3WMapboxMapFragment() : Fragment(), W3WMap {
-    private var selectedSquareConsumer: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
+    private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
+    private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
         null
     private lateinit var onReadyCallback: OnFragmentReadyCallback
     private var _binding: W3wMapboxMapViewBinding? = null
@@ -89,14 +90,14 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
                 )
             }
             else -> {
-                throw Exception("MISSING SETUP YOU IDIOT")
+                throw Exception("MISSING SETUP")
             }
         }
 
         binding.mapView.getMapboxMap().addOnMapClickListener { latLng ->
             //OTHER FUNCTIONS
             this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude(), latLng.longitude(), {
-                selectedSquareConsumer?.accept(
+                squareSelectedSuccess?.accept(
                     it,
                     true,
                     this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -104,6 +105,8 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
                         latLng.longitude()
                     ) != null
                 )
+            }, {
+                squareSelectedError?.accept(it)
             })
             true
         }
@@ -123,15 +126,12 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.setLanguage(language)
     }
 
-    override fun onSquareSelected(ssc: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>) {
-        selectedSquareConsumer = ssc
-        w3wMapsWrapper.onMarkerClicked {
-            selectedSquareConsumer?.accept(
-                it,
-                selectedByTouch = true,
-                isMarked = true
-            )
-        }
+    override fun onSquareSelected(
+        onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>,
+        onError: Consumer<APIResponse.What3WordsError>?
+    ) {
+        this.squareSelectedSuccess = onSuccess
+        this.squareSelectedError = onError
     }
 
     override fun addMarkerAtSuggestion(
@@ -219,7 +219,7 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.selectAtSuggestion(suggestion, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
-            selectedSquareConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -309,7 +309,7 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.selectAtWords(words, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
-            selectedSquareConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
@@ -380,7 +380,7 @@ class W3WMapboxMapFragment() : Fragment(), W3WMap {
         w3wMapsWrapper.selectAtCoordinates(lat, lng, {
             handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
             onSuccess?.accept(it)
-            selectedSquareConsumer?.accept(
+            squareSelectedSuccess?.accept(
                 it,
                 selectedByTouch = false,
                 isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
