@@ -1,7 +1,6 @@
 package com.what3words.components.maps.views
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,20 +26,17 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
 import com.what3words.map.components.databinding.W3wGoogleMapViewBinding
 
-class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
-    private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
-    private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
-        null
-    private lateinit var onReadyCallback: OnFragmentReadyCallback
+class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
+
+    private lateinit var onReadyCallback: OnMapReadyCallback
     private var _binding: W3wGoogleMapViewBinding? = null
     private val binding get() = _binding!!
-    private lateinit var map: GoogleMap
     private var apiKey: String? = null
     private var sdkSource: W3WDataSource? = null
-    private lateinit var w3wMapsWrapper: W3WGoogleMapsWrapper
+    private lateinit var map: W3WMap
 
-    interface OnFragmentReadyCallback {
-        fun onFragmentReady(fragment: W3WMap)
+    interface OnMapReadyCallback {
+        fun onMapReady(map: W3WMap)
     }
 
     override fun onCreateView(
@@ -60,37 +56,30 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
         _binding = null
     }
 
-    fun apiKey(key: String, callback: OnFragmentReadyCallback) {
+    fun apiKey(key: String, callback: OnMapReadyCallback) {
         apiKey = key
         onReadyCallback = callback
     }
 
-    fun sdk(source: W3WDataSource, callback: OnFragmentReadyCallback) {
+    fun sdk(source: W3WDataSource, callback: OnMapReadyCallback) {
         sdkSource = source
         onReadyCallback = callback
     }
 
-    fun getMap(): GoogleMap {
-        return map
-    }
-
     override fun onMapReady(p0: GoogleMap) {
-        map = p0
-        map.setMinZoomPreference(2.0f)
-        map.setMaxZoomPreference(20.0f)
-        when {
+        val w3wMapsWrapper = when {
             apiKey != null -> {
                 val wrapper = What3WordsV3(apiKey!!, requireContext())
-                w3wMapsWrapper = W3WGoogleMapsWrapper(
+                W3WGoogleMapsWrapper(
                     requireContext(),
-                    map,
+                    p0,
                     W3WApiDataSource(wrapper, requireContext())
                 )
             }
             sdkSource != null -> {
-                w3wMapsWrapper = W3WGoogleMapsWrapper(
+                W3WGoogleMapsWrapper(
                     requireContext(),
-                    map,
+                    p0,
                     sdkSource!!
                 )
             }
@@ -98,342 +87,360 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback, W3WMap {
                 throw Exception("MISSING SETUP")
             }
         }
-        onReadyCallback.onFragmentReady(this)
-        p0.setOnMapClickListener { latLng ->
-            //OTHER FUNCTIONS
-            this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude, latLng.longitude, {
-                squareSelectedSuccess?.accept(
-                    it,
-                    true,
-                    this.w3wMapsWrapper.findMarkerByCoordinates(
-                        latLng.latitude,
-                        latLng.longitude
-                    ) != null
-                )
+        map = Map(w3wMapsWrapper, p0)
+        onReadyCallback.onMapReady(map)
+    }
+
+    class Map(private val w3wMapsWrapper: W3WGoogleMapsWrapper, private val map: GoogleMap) :
+        W3WMap {
+        private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
+        private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
+            null
+
+        init {
+            map.setMinZoomPreference(2.0f)
+            map.setMaxZoomPreference(20.0f)
+
+            map.setOnMapClickListener { latLng ->
+                //OTHER FUNCTIONS
+                this.w3wMapsWrapper.selectAtCoordinates(latLng.latitude, latLng.longitude, {
+                    squareSelectedSuccess?.accept(
+                        it,
+                        true,
+                        this.w3wMapsWrapper.findMarkerByCoordinates(
+                            latLng.latitude,
+                            latLng.longitude
+                        ) != null
+                    )
+                }, {
+                    squareSelectedError?.accept(it)
+                })
+            }
+
+            map.setOnCameraIdleListener {
+                this.w3wMapsWrapper.updateMap()
+            }
+
+            map.setOnCameraMoveListener {
+                this.w3wMapsWrapper.updateMove()
+            }
+        }
+
+        fun googleMap(): GoogleMap {
+            return map
+        }
+
+        override fun setLanguage(language: String) {
+            w3wMapsWrapper.setLanguage(language)
+        }
+
+        override fun setGridColor(gridColor: GridColor) {
+            w3wMapsWrapper.setGridColor(gridColor)
+        }
+
+        override fun onSquareSelected(
+            onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            this.squareSelectedSuccess = onSuccess
+            this.squareSelectedError = onError
+            this.w3wMapsWrapper.onMarkerClicked {
+                onSuccess.accept(it, selectedByTouch = true, isMarked = true)
+            }
+        }
+
+        override fun addMarkerAtSuggestion(
+            suggestion: Suggestion,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtSuggestion(suggestion, markerColor, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
             }, {
-                squareSelectedError?.accept(it)
+                onError?.accept(it)
             })
         }
 
-        p0.setOnCameraIdleListener {
-            this.w3wMapsWrapper.updateMap()
-        }
-
-        p0.setOnCameraMoveListener {
-            this.w3wMapsWrapper.updateMove()
-        }
-    }
-
-    override fun setLanguage(language: String) {
-        w3wMapsWrapper.setLanguage(language)
-    }
-
-    override fun setGridColor(gridColor: GridColor) {
-        w3wMapsWrapper.setGridColor(gridColor)
-    }
-
-    override fun onSquareSelected(
-        onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        this.squareSelectedSuccess = onSuccess
-        this.squareSelectedError = onError
-        this.w3wMapsWrapper.onMarkerClicked {
-            onSuccess.accept(it, selectedByTouch = true, isMarked = true)
-        }
-    }
-
-    override fun addMarkerAtSuggestion(
-        suggestion: Suggestion,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtSuggestion(suggestion, markerColor, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
-
-    private fun handleZoomOption(latLng: LatLng, zoomOption: W3WZoomOption) {
-        when (zoomOption) {
-            W3WZoomOption.NONE -> {}
-            W3WZoomOption.CENTER -> {
-                val cameraPosition = CameraPosition.Builder()
-                    .target(latLng)
-                    .build()
-                map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-            }
-            W3WZoomOption.CENTER_AND_ZOOM -> {
-                val cameraPosition = CameraPosition.Builder()
-                    .target(latLng)
-                    .zoom(19f)
-                    .build()
-                map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+        private fun handleZoomOption(latLng: LatLng, zoomOption: W3WZoomOption) {
+            when (zoomOption) {
+                W3WZoomOption.NONE -> {}
+                W3WZoomOption.CENTER -> {
+                    val cameraPosition = CameraPosition.Builder()
+                        .target(latLng)
+                        .build()
+                    map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                }
+                W3WZoomOption.CENTER_AND_ZOOM -> {
+                    val cameraPosition = CameraPosition.Builder()
+                        .target(latLng)
+                        .zoom(19f)
+                        .build()
+                    map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                }
             }
         }
-    }
 
-    private fun handleZoomOption(latLng: LatLngBounds, zoomOption: W3WZoomOption) {
-        when (zoomOption) {
-            W3WZoomOption.NONE -> {}
-            W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
-                map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLng, 10))
+        private fun handleZoomOption(latLng: LatLngBounds, zoomOption: W3WZoomOption) {
+            when (zoomOption) {
+                W3WZoomOption.NONE -> {}
+                W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(latLng, 10))
+                }
             }
         }
-    }
 
-    override fun addMarkerAtSuggestion(
-        listSuggestions: List<Suggestion>,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtSuggestion(listSuggestions, markerColor, {
-            val latLngBoundsBuilder = LatLngBounds.builder()
-            it.forEach { marker ->
-                latLngBoundsBuilder.include(
-                    LatLng(
-                        marker.coordinates.lat,
-                        marker.coordinates.lng
+        override fun addMarkerAtSuggestion(
+            listSuggestions: List<Suggestion>,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtSuggestion(listSuggestions, markerColor, {
+                val latLngBoundsBuilder = LatLngBounds.builder()
+                it.forEach { marker ->
+                    latLngBoundsBuilder.include(
+                        LatLng(
+                            marker.coordinates.lat,
+                            marker.coordinates.lng
+                        )
                     )
+                }
+                handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
+
+        override fun addMarkerAtSuggestionWithCoordinates(
+            suggestion: SuggestionWithCoordinates,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
+
+        override fun selectAtSuggestionWithCoordinates(
+            suggestion: SuggestionWithCoordinates,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+                squareSelectedSuccess?.accept(
+                    it,
+                    selectedByTouch = false,
+                    isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                        it.coordinates.lat,
+                        it.coordinates.lng
+                    ) != null
                 )
-            }
-            handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun addMarkerAtSuggestionWithCoordinates(
-        suggestion: SuggestionWithCoordinates,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
+        override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
+            w3wMapsWrapper.removeMarkerAtSuggestion(suggestion)
+        }
 
-    override fun selectAtSuggestionWithCoordinates(
-        suggestion: SuggestionWithCoordinates,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-            squareSelectedSuccess?.accept(
-                it,
-                selectedByTouch = false,
-                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
-                    it.coordinates.lat,
-                    it.coordinates.lng
-                ) != null
-            )
-        }, {
-            onError?.accept(it)
-        })
-    }
+        override fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>) {
+            w3wMapsWrapper.removeMarkerAtSuggestion(listSuggestions)
+        }
 
-    override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
-        w3wMapsWrapper.removeMarkerAtSuggestion(suggestion)
-    }
+        override fun selectAtSuggestion(
+            suggestion: Suggestion,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.selectAtSuggestion(suggestion, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+                squareSelectedSuccess?.accept(
+                    it,
+                    selectedByTouch = false,
+                    isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                        it.coordinates.lat,
+                        it.coordinates.lng
+                    ) != null
+                )
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>) {
-        w3wMapsWrapper.removeMarkerAtSuggestion(listSuggestions)
-    }
+        override fun addMarkerAtWords(
+            words: String,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtWords(words, markerColor, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun selectAtSuggestion(
-        suggestion: Suggestion,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.selectAtSuggestion(suggestion, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-            squareSelectedSuccess?.accept(
-                it,
-                selectedByTouch = false,
-                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
-                    it.coordinates.lat,
-                    it.coordinates.lng
-                ) != null
-            )
-        }, {
-            onError?.accept(it)
-        })
-    }
-
-    override fun addMarkerAtWords(
-        words: String,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtWords(words, markerColor, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
-
-    override fun addMarkerAtWords(
-        listWords: List<String>,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtWords(listWords, markerColor, {
-            val latLngBoundsBuilder = LatLngBounds.builder()
-            it.forEach { marker ->
-                latLngBoundsBuilder.include(
-                    LatLng(
-                        marker.coordinates.lat,
-                        marker.coordinates.lng
+        override fun addMarkerAtWords(
+            listWords: List<String>,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtWords(listWords, markerColor, {
+                val latLngBoundsBuilder = LatLngBounds.builder()
+                it.forEach { marker ->
+                    latLngBoundsBuilder.include(
+                        LatLng(
+                            marker.coordinates.lat,
+                            marker.coordinates.lng
+                        )
                     )
+                }
+                handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
+
+        override fun selectAtWords(
+            words: String,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.selectAtWords(words, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+                squareSelectedSuccess?.accept(
+                    it,
+                    selectedByTouch = false,
+                    isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                        it.coordinates.lat,
+                        it.coordinates.lng
+                    ) != null
                 )
-            }
-            handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun selectAtWords(
-        words: String,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.selectAtWords(words, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-            squareSelectedSuccess?.accept(
-                it,
-                selectedByTouch = false,
-                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
-                    it.coordinates.lat,
-                    it.coordinates.lng
-                ) != null
-            )
-        }, {
-            onError?.accept(it)
-        })
-    }
+        override fun removeMarkerAtWords(listWords: List<String>) {
+            w3wMapsWrapper.removeMarkerAtWords(listWords)
+        }
 
-    override fun removeMarkerAtWords(listWords: List<String>) {
-        w3wMapsWrapper.removeMarkerAtWords(listWords)
-    }
+        override fun removeMarkerAtWords(words: String) {
+            w3wMapsWrapper.removeMarkerAtWords(words)
+        }
 
-    override fun removeMarkerAtWords(words: String) {
-        w3wMapsWrapper.removeMarkerAtWords(words)
-    }
+        override fun addMarkerAtCoordinates(
+            lat: Double,
+            lng: Double,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun addMarkerAtCoordinates(
-        lat: Double,
-        lng: Double,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
-
-    override fun addMarkerAtCoordinates(
-        listCoordinates: List<Pair<Double, Double>>,
-        markerColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.addMarkerAtCoordinates(listCoordinates, markerColor, {
-            val latLngBoundsBuilder = LatLngBounds.builder()
-            it.forEach { marker ->
-                latLngBoundsBuilder.include(
-                    LatLng(
-                        marker.coordinates.lat,
-                        marker.coordinates.lng
+        override fun addMarkerAtCoordinates(
+            listCoordinates: List<Pair<Double, Double>>,
+            markerColor: W3WMarkerColor,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.addMarkerAtCoordinates(listCoordinates, markerColor, {
+                val latLngBoundsBuilder = LatLngBounds.builder()
+                it.forEach { marker ->
+                    latLngBoundsBuilder.include(
+                        LatLng(
+                            marker.coordinates.lat,
+                            marker.coordinates.lng
+                        )
                     )
+                }
+                handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
+                onSuccess?.accept(it)
+            }, {
+                onError?.accept(it)
+            })
+        }
+
+        override fun selectAtCoordinates(
+            lat: Double,
+            lng: Double,
+            zoomOption: W3WZoomOption,
+            onSuccess: Consumer<SuggestionWithCoordinates>?,
+            onError: Consumer<APIResponse.What3WordsError>?
+        ) {
+            w3wMapsWrapper.selectAtCoordinates(lat, lng, {
+                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                onSuccess?.accept(it)
+                squareSelectedSuccess?.accept(
+                    it,
+                    selectedByTouch = false,
+                    isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                        it.coordinates.lat,
+                        it.coordinates.lng
+                    ) != null
                 )
-            }
-            handleZoomOption(latLngBoundsBuilder.build(), zoomOption)
-            onSuccess?.accept(it)
-        }, {
-            onError?.accept(it)
-        })
-    }
+            }, {
+                onError?.accept(it)
+            })
+        }
 
-    override fun selectAtCoordinates(
-        lat: Double,
-        lng: Double,
-        zoomOption: W3WZoomOption,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
-    ) {
-        w3wMapsWrapper.selectAtCoordinates(lat, lng, {
-            handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
-            onSuccess?.accept(it)
-            squareSelectedSuccess?.accept(
-                it,
-                selectedByTouch = false,
-                isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
-                    it.coordinates.lat,
-                    it.coordinates.lng
-                ) != null
-            )
-        }, {
-            onError?.accept(it)
-        })
-    }
+        override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
+            return w3wMapsWrapper.findMarkerByCoordinates(lat, lng)
+        }
 
-    override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
-        return w3wMapsWrapper.findMarkerByCoordinates(lat, lng)
-    }
+        override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
+            w3wMapsWrapper.removeMarkerAtCoordinates(lat, lng)
+        }
 
-    override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
-        w3wMapsWrapper.removeMarkerAtCoordinates(lat, lng)
-    }
+        override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
+            w3wMapsWrapper.removeMarkerAtCoordinates(listCoordinates)
+        }
 
-    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
-        w3wMapsWrapper.removeMarkerAtCoordinates(listCoordinates)
-    }
+        override fun removeAllMarkers() {
+            w3wMapsWrapper.removeAllMarkers()
+        }
 
-    override fun removeAllMarkers() {
-        w3wMapsWrapper.removeAllMarkers()
-    }
+        override fun getAllMarkers(): List<SuggestionWithCoordinates> {
+            return w3wMapsWrapper.getAllMarkers()
+        }
 
-    override fun getAllMarkers(): List<SuggestionWithCoordinates> {
-        return w3wMapsWrapper.getAllMarkers()
-    }
+        override fun getSelectedMarker(): SuggestionWithCoordinates? {
+            return w3wMapsWrapper.getSelectedMarker()
+        }
 
-    override fun getSelectedMarker(): SuggestionWithCoordinates? {
-        return w3wMapsWrapper.getSelectedMarker()
-    }
-
-    override fun unselect() {
-        w3wMapsWrapper.unselect()
+        override fun unselect() {
+            w3wMapsWrapper.unselect()
+        }
     }
 }
