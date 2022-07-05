@@ -1,14 +1,12 @@
 package com.what3words.map.components.advancedsample
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.maps.GoogleMap
-import com.mapbox.maps.Style
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
-import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.components.text.W3WAutoSuggestEditText
 
 class GoogleMapsActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
