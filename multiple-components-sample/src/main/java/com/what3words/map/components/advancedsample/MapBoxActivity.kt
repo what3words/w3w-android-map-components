@@ -4,34 +4,35 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import com.what3words.components.maps.views.W3WGoogleMapFragment
+import com.mapbox.maps.Style
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.components.text.W3WAutoSuggestEditText
 
-class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCallback {
-    private lateinit var fragment: W3WMap
+class MapBoxActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallback {
+    private lateinit var map: W3WMap
     lateinit var search: W3WAutoSuggestEditText
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_mapbox)
         search = findViewById(R.id.search)
-        val map = supportFragmentManager.findFragmentById(R.id.map) as W3WGoogleMapFragment
+        val fragment = supportFragmentManager.findFragmentById(R.id.map) as W3WMapboxMapFragment
         search.apiKey(BuildConfig.W3W_API_KEY)
             .returnCoordinates(true)
             .onSuggestionSelected {
-                if (it != null) fragment.selectAtSuggestionWithCoordinates(
+                if (it != null) map.selectAtSuggestionWithCoordinates(
                     it
                 ) else {
-                    fragment.unselect()
+                    map.unselect()
                 }
             }
-        map.apiKey(BuildConfig.W3W_API_KEY, this)
+        fragment.apiKey(BuildConfig.W3W_API_KEY, this)
     }
 
-    override fun onFragmentReady(fragment: W3WMap) {
-        this.fragment = fragment
-        fragment.setLanguage("en")
-        fragment.addMarkerAtWords(
+    override fun onMapReady(map: W3WMap) {
+        this.map = map
+        map.setLanguage("FR")
+        map.addMarkerAtWords(
             "filled.count.soap",
             onSuccess = {
                 Log.i(
@@ -47,7 +48,7 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
             }
         )
 
-        fragment.onSquareSelected(
+        map.onSquareSelected(
             onSuccess = { square, selectedByTouch, isMarked ->
                 Log.i(
                     "MainActivity",
@@ -63,5 +64,9 @@ class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnFragmentReadyCa
                 ).show()
             }
         )
+
+        (map as? W3WMapboxMapFragment.Map)?.mapBoxMap()?.let { mapBoxMap ->
+            mapBoxMap.loadStyleUri(Style.MAPBOX_STREETS)
+        }
     }
 }

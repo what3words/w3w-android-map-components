@@ -12,8 +12,9 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
+
         <activity
-            android:name=".MainActivity"
+            android:name=".MapBoxActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

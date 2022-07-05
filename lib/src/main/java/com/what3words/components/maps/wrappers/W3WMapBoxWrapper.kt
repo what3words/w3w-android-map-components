@@ -283,6 +283,7 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
+        isDirty = true
         if (suggestion.coordinates != null) {
             w3wMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
         } else {
@@ -295,6 +296,7 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
+        isDirty = true
         if (suggestion.coordinates != null) {
             w3wMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
         } else {
