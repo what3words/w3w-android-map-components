@@ -14,7 +14,7 @@
             android:value="${mapsApiKey}" />
 
         <activity
-            android:name=".MapBoxActivity"
+            android:name=".GoogleMapsActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

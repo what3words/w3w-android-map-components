@@ -1,9 +1,9 @@
 package com.what3words.map.components.advancedsample
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.maps.Style
 import com.what3words.components.maps.views.W3WMap
 import com.what3words.components.maps.views.W3WMapboxMapFragment
@@ -31,15 +31,16 @@ class MapBoxActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallb
 
     override fun onMapReady(map: W3WMap) {
         this.map = map
-        map.setLanguage("FR")
+        map.setLanguage("en")
         map.addMarkerAtWords(
-            "filled.count.soap",
+            words ="filled.count.soap",
             onSuccess = {
                 Log.i(
                     "MainActivity",
                     "Marker added at ${it.words}, latitude: ${it.coordinates.lat}, longitude: ${it.coordinates.lng}"
                 )
-            }, onError = {
+            },
+            onError = {
                 Toast.makeText(
                     this,
                     "${it.key}, ${it.message}",

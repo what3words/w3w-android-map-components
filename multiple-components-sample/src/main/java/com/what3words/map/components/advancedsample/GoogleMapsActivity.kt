@@ -31,7 +31,7 @@ class GoogleMapsActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyC
 
     override fun onMapReady(map: W3WMap) {
         this.map = map
-        map.setLanguage("FR")
+        map.setLanguage("en")
         map.addMarkerAtWords(
             "filled.count.soap",
             onSuccess = {
