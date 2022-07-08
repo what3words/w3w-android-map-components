@@ -62,7 +62,7 @@ interface W3WMap {
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
-    fun addMarkerAtSuggestionWithCoordinates(
+    fun addMarkerAtSquare(
         suggestion: SuggestionWithCoordinates,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
@@ -72,13 +72,13 @@ interface W3WMap {
 
     /** Set [SuggestionWithCoordinates] as selected marker on the map, it can only have one selected marker at the time.
      *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
+     * @param square the [SuggestionWithCoordinates] returned by our text/voice autosuggest component.
      * @param zoomOption the zoom option for these markers, by default will center and zoom to show all added, if not desired please use [W3WZoomOption.NONE]
      * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
-    fun selectAtSuggestionWithCoordinates(
-        suggestion: SuggestionWithCoordinates,
+    fun selectAtSquare(
+        square: SuggestionWithCoordinates,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null

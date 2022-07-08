@@ -216,7 +216,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             })
         }
 
-        override fun addMarkerAtSuggestionWithCoordinates(
+        override fun addMarkerAtSquare(
             suggestion: SuggestionWithCoordinates,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
@@ -231,13 +231,13 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             })
         }
 
-        override fun selectAtSuggestionWithCoordinates(
-            suggestion: SuggestionWithCoordinates,
+        override fun selectAtSquare(
+            square: SuggestionWithCoordinates,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
-            w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
+            w3wMapsWrapper.selectAtSuggestionWithCoordinates(square, {
                 handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(

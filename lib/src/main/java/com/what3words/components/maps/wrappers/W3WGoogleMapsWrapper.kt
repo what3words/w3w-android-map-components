@@ -108,7 +108,7 @@ class W3WGoogleMapsWrapper(
     private fun shouldShowDarkGrid(): Boolean {
         if (gridColor == GridColor.LIGHT) return false
         if (gridColor == GridColor.DARK) return true
-        return (mapView.mapType == GoogleMap.MAP_TYPE_NORMAL || mapView.mapType == GoogleMap.MAP_TYPE_TERRAIN )
+        return (mapView.mapType == GoogleMap.MAP_TYPE_NORMAL || mapView.mapType == GoogleMap.MAP_TYPE_TERRAIN)
     }
 
     /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
@@ -529,6 +529,7 @@ class W3WGoogleMapsWrapper(
         shouldCancelPreviousJob: Boolean = true,
         scale: Float = DEFAULT_BOUNDS_SCALE
     ) {
+        deleteMarkers()
         if (mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
             clearMarkers()
             drawMarkersOnMap()
@@ -834,25 +835,50 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
-                            polylineManager.getCollection(suggestion.suggestion.words).remove(it)
+                            it.remove()
                         }
                     }
                     groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
                         main(dispatchers) {
-                            groundOverlayManager.getCollection(suggestion.suggestion.words)
-                                .remove(it)
+                            it.remove()
                         }
                     }
                 }
             }
             polylineManager.getCollection(SELECTED).polylines.forEach {
-                polylineManager.getCollection(SELECTED).remove(it)
+                it.remove()
             }
             polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).polylines.forEach {
-                polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).remove(it)
+                it.remove()
             }
             polylineManager.getCollection(VERTICAL_LINES_COLLECTION).polylines.forEach {
-                polylineManager.getCollection(VERTICAL_LINES_COLLECTION).remove(it)
+                it.remove()
+            }
+        } catch (e: Exception) {
+        }
+    }
+
+    private fun deleteMarkers() {
+        try {
+            runBlocking {
+                w3wMapManager.suggestionsRemoved.forEach { suggestion ->
+                    markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
+                        main(dispatchers) {
+                            it.remove()
+                        }
+                    }
+                    polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
+                        main(dispatchers) {
+                            it.remove()
+                        }
+                    }
+                    groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
+                        main(dispatchers) {
+                            it.remove()
+                        }
+                    }
+                }
+                w3wMapManager.suggestionsRemoved.clear()
             }
         } catch (e: Exception) {
         }
@@ -865,13 +891,13 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
-                            markerManager.getCollection(suggestion.suggestion.words).remove(it)
+                            it.remove()
                         }
                     }
                 }
                 markerManager.getCollection(SELECTED)?.markers?.forEach {
                     main(dispatchers) {
-                        markerManager.getCollection(SELECTED).remove(it)
+                        it.remove()
                     }
                 }
             }

@@ -66,10 +66,10 @@ class W3WMapboxMapFragment() : Fragment() {
     }
 
     private fun setup() {
-        val w3wMapsWrapper =when {
+        val w3wMapsWrapper = when {
             apiKey != null && _binding != null -> {
                 val wrapper = What3WordsV3(apiKey!!, requireContext())
-                 W3WMapBoxWrapper(
+                W3WMapBoxWrapper(
                     requireContext(),
                     _binding!!.mapView.getMapboxMap(),
                     W3WApiDataSource(wrapper, requireContext())
@@ -113,6 +113,14 @@ class W3WMapboxMapFragment() : Fragment() {
                 true
             }
 
+            w3wMapsWrapper.onMarkerClicked {
+                squareSelectedSuccess?.accept(
+                    it,
+                    true,
+                    true
+                )
+            }
+
             map.addOnMapIdleListener {
                 w3wMapsWrapper.updateMap()
             }
@@ -146,7 +154,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestion(suggestion, markerColor, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -221,7 +232,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.selectAtSuggestion(suggestion, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -236,7 +250,7 @@ class W3WMapboxMapFragment() : Fragment() {
             })
         }
 
-        override fun addMarkerAtSuggestionWithCoordinates(
+        override fun addMarkerAtSquare(
             suggestion: SuggestionWithCoordinates,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
@@ -244,21 +258,27 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
             })
         }
 
-        override fun selectAtSuggestionWithCoordinates(
-            suggestion: SuggestionWithCoordinates,
+        override fun selectAtSquare(
+            square: SuggestionWithCoordinates,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
-            w3wMapsWrapper.selectAtSuggestionWithCoordinates(suggestion, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+            w3wMapsWrapper.selectAtSuggestionWithCoordinates(square, {
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -273,7 +293,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.addMarkerAtWords(words, markerColor, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -311,7 +334,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.selectAtWords(words, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -343,7 +369,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -382,7 +411,10 @@ class W3WMapboxMapFragment() : Fragment() {
             onError: Consumer<APIResponse.What3WordsError>?
         ) {
             w3wMapsWrapper.selectAtCoordinates(lat, lng, {
-                handleZoomOption(Point.fromLngLat(it.coordinates.lng, it.coordinates.lat), zoomOption)
+                handleZoomOption(
+                    Point.fromLngLat(it.coordinates.lng, it.coordinates.lat),
+                    zoomOption
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,

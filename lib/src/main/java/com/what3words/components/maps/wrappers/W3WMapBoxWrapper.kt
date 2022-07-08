@@ -511,6 +511,7 @@ class W3WMapBoxWrapper(
      * This will allow to refresh the grid bounds on camera idle.
      */
     override fun updateMap() {
+        deleteMarkers()
         if (isDirty) {
             redrawMapLayers()
         }
@@ -566,16 +567,17 @@ class W3WMapBoxWrapper(
         shouldCancelPreviousJob: Boolean = true,
         scale: Float = W3WGoogleMapsWrapper.DEFAULT_BOUNDS_SCALE
     ) {
-        isDirty = false
         if (mapView.cameraState.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
             clearMarkers()
             drawMarkersOnMap()
+            isDirty = false
             return
         }
         if (mapView.cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
             isGridVisible = false
             clearGridAndZoomedInMarkers()
             drawMarkersOnMap()
+            isDirty = false
             return
         }
         if (!shouldDrawGrid) return
@@ -587,10 +589,12 @@ class W3WMapBoxWrapper(
         searchJob = CoroutineScope(dispatchers.io()).launch {
             when (val grid = w3wDataSource.getGeoJsonGrid(lastScaledBounds!!)) {
                 is Either.Left -> {
+                    isDirty = false
                 }
                 is Either.Right -> {
                     drawLinesOnMap(grid.b)
                     drawZoomedMarkers()
+                    isDirty = false
                 }
             }
         }
@@ -768,6 +772,29 @@ class W3WMapBoxWrapper(
             }
         }
     }
+
+    private fun deleteMarkers() {
+        try {
+            runBlocking {
+                w3wMapManager.suggestionsRemoved.forEach { suggestion ->
+                    mapView.getStyle { style ->
+                        val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.words)
+                        if (style.styleLayerExists(id)) {
+                            style.removeStyleLayer(id)
+                            style.removeStyleSource(id)
+                        }
+                        if (style.styleLayerExists(suggestion.suggestion.words)) {
+                            style.removeStyleLayer(suggestion.suggestion.words)
+                            style.removeStyleSource(suggestion.suggestion.words)
+                        }
+                    }
+                }
+                w3wMapManager.suggestionsRemoved.clear()
+            }
+        } catch (e: Exception) {
+        }
+    }
+
 
     /** [drawMarkersOnMap] holds the logic to decide which kind of pin should be added to [MapboxMap.style] based on selection and added points.*/
     private fun drawMarkersOnMap() {

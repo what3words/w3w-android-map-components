@@ -20,7 +20,7 @@ class MapBoxActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallb
         search.apiKey(BuildConfig.W3W_API_KEY)
             .returnCoordinates(true)
             .onSuggestionSelected {
-                if (it != null) map.selectAtSuggestionWithCoordinates(
+                if (it != null) map.selectAtSquare(
                     it
                 ) else {
                     map.unselect()

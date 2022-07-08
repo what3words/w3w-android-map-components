@@ -32,6 +32,10 @@ internal class W3WMapManager(
         mutableListOf()
     }
 
+    internal val suggestionsRemoved: MutableList<SuggestionWithCoordinatesAndStyle> by lazy {
+        mutableListOf()
+    }
+
     internal var language: String = "en"
 
     /** Add [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
@@ -223,6 +227,7 @@ internal class W3WMapManager(
         main(dispatchers) {
             squareContains(lat, lng)?.let { toRemove ->
                 suggestionsCached.remove(toRemove)
+                suggestionsRemoved.add((toRemove))
                 w3WMapWrapper.updateMap()
             }
         }
@@ -234,14 +239,13 @@ internal class W3WMapManager(
      */
     fun removeCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         runBlocking(dispatchers.io()) {
-            val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             listCoordinates.forEach {
                 squareContains(it.first, it.second)?.let { toRemove ->
-                    listToRemove.add(toRemove)
+                    suggestionsRemoved.add(toRemove)
                 }
             }
-            if (listToRemove.isNotEmpty()) {
-                suggestionsCached.removeAll(listToRemove)
+            if (suggestionsRemoved.isNotEmpty()) {
+                suggestionsCached.removeAll(suggestionsRemoved)
                 main(dispatchers) {
                     w3WMapWrapper.updateMap()
                 }
@@ -384,6 +388,7 @@ internal class W3WMapManager(
         main(dispatchers) {
             suggestionsCached.firstOrNull { it.suggestion.words == words }?.let { toRemove ->
                 suggestionsCached.remove(toRemove)
+                suggestionsRemoved.add(toRemove)
                 w3WMapWrapper.updateMap()
             }
         }
@@ -395,14 +400,13 @@ internal class W3WMapManager(
      */
     fun removeWords(listWords: List<String>) {
         main(dispatchers) {
-            val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             listWords.forEach { words ->
                 suggestionsCached.firstOrNull { it.suggestion.words == words }?.let { toRemove ->
-                    listToRemove.add(toRemove)
+                    suggestionsRemoved.add(toRemove)
                 }
             }
-            if (listToRemove.isNotEmpty()) {
-                suggestionsCached.removeAll(listToRemove)
+            if (suggestionsRemoved.isNotEmpty()) {
+                suggestionsCached.removeAll(suggestionsRemoved)
                 w3WMapWrapper.updateMap()
             }
         }
@@ -411,12 +415,11 @@ internal class W3WMapManager(
     /** Remove all from [suggestionsCached]. */
     fun clearList() {
         main(dispatchers) {
-            val listToRemove = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             suggestionsCached.forEach { data ->
-                listToRemove.add(data)
+                suggestionsRemoved.add(data)
             }
-            if (listToRemove.isNotEmpty()) {
-                suggestionsCached.removeAll(listToRemove)
+            if (suggestionsRemoved.isNotEmpty()) {
+                suggestionsCached.removeAll(suggestionsRemoved)
                 w3WMapWrapper.updateMap()
             }
         }
