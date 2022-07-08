@@ -202,6 +202,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().count()).isEqualTo(3)
 
             //when removing existing words
+            manager.suggestionsRemoved.clear()
             manager.removeCoordinates(
                 listCoordinates
             )
@@ -211,6 +212,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList()).isEmpty()
 
             //when removing non-existing words
+            manager.suggestionsRemoved.clear()
             manager.removeCoordinates(
                 listCoordinates
             )
@@ -275,6 +277,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().count()).isEqualTo(3)
 
             //when clearList
+            manager.suggestionsRemoved.clear()
             manager.clearList()
 
             //then
@@ -282,6 +285,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList()).isEmpty()
 
             //when try to clear empty list
+            manager.suggestionsRemoved.clear()
             manager.clearList()
 
             //then map should not update, ignore
@@ -502,6 +506,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().first().words == suggestion.words).isNotNull()
 
             //when removing existing words
+            manager.suggestionsRemoved.clear()
             manager.removeWords(
                 words
             )
@@ -511,6 +516,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList()).isEmpty()
 
             //when removing non-existing words
+            manager.suggestionsRemoved.clear()
             manager.removeWords(
                 words
             )
@@ -575,6 +581,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().count()).isEqualTo(3)
 
             //when removing existing words
+            manager.suggestionsRemoved.clear()
             manager.removeWords(
                 listWords
             )
@@ -584,6 +591,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList()).isEmpty()
 
             //when removing non-existing words
+            manager.suggestionsRemoved.clear()
             manager.removeWords(
                 listWords
             )

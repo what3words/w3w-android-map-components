@@ -253,6 +253,10 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             })
         }
 
+        override fun removeMarkerAtSquare(square: SuggestionWithCoordinates) {
+            w3wMapsWrapper.removeMarkerAtWords(square.words)
+        }
+
         override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
             w3wMapsWrapper.removeMarkerAtSuggestion(suggestion)
         }

@@ -84,6 +84,12 @@ interface W3WMap {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
+    /** Remove a marker from square [SuggestionWithCoordinates]
+     *
+     * @param square [SuggestionWithCoordinates] to remove marker from.
+     */
+    fun removeMarkerAtSquare(square: SuggestionWithCoordinates)
+
 
     /** Add a list of [Suggestion] to the map. This method will add multiple markers/squares to the map after getting the suggestions from our W3WAutosuggestEditText.
      *

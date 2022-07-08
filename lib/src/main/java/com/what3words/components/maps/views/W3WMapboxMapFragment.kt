@@ -285,6 +285,10 @@ class W3WMapboxMapFragment() : Fragment() {
             })
         }
 
+        override fun removeMarkerAtSquare(square: SuggestionWithCoordinates) {
+            w3wMapsWrapper.removeMarkerAtWords(square.words)
+        }
+
         override fun addMarkerAtWords(
             words: String,
             markerColor: W3WMarkerColor,
