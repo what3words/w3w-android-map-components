@@ -54,7 +54,7 @@ lateinit var search: W3WAutoSuggestEditText
                     "MainActivity",
                     "square selected with words ${square.words}, was it touch? $selectedByTouch, is the square marked? $isMarked"
                 )
-                search.setSuggestionWithCoordinates(square)
+                //search.setSuggestionWithCoordinates(square)
             },
             onError = {
                 Toast.makeText(
