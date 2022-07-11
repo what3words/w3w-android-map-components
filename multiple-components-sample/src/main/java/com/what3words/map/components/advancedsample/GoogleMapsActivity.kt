@@ -11,7 +11,7 @@ import com.what3words.components.text.W3WAutoSuggestEditText
 
 class GoogleMapsActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
     private lateinit var map: W3WMap
-    lateinit var search: W3WAutoSuggestEditText
+lateinit var search: W3WAutoSuggestEditText
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_googlemaps)
