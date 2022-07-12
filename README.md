@@ -24,8 +24,7 @@ account.
 ## Installation
 
 The artifact is available
-through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/w3w-android-components.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.what3words%22%20AND%20a:%22w3w-android-components%22)
-- REPLACE WITH MAP
+through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/w3w-android-map-components.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.what3words%22%20AND%20a:%22w3w-android-map-components%22)
 
 ### Android minimum SDK support
 
