@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.W3wandroidcomponentsmaps">
         <activity
-            android:name=".com.what3words.maps.mapbox.compose.sample.UsingMapFragmentActivity"
+            android:name=".UsingMapFragmentActivity"
             android:exported="true">
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
