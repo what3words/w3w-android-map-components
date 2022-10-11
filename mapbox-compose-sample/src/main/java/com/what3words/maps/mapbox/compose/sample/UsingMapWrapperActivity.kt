@@ -34,7 +34,7 @@ class UsingMapWrapperActivity : ComponentActivity() {
                 ) {
                     AndroidView(factory = {
                         val view = MapView(it)
-                        doWithMapView(view)
+                        enableWhat3wordsFeatures(view)
                         view
                     })
                 }
@@ -42,7 +42,7 @@ class UsingMapWrapperActivity : ComponentActivity() {
         }
     }
 
-    private fun doWithMapView(mapView: MapView) {
+    private fun enableWhat3wordsFeatures(mapView: MapView) {
         val wrapper = What3WordsV3(BuildConfig.W3W_API_KEY, this)
         this.w3wMapsWrapper = W3WMapBoxWrapper(
             this,

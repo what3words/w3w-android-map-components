@@ -12,6 +12,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
+
         <activity
             android:name=".UsingMapWrapperActivity"
             android:exported="true"
@@ -23,7 +24,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity  android:exported="false" android:name=".com.what3words.maps.mapbox.compose.sample.UsingMapFragmentActivity" />
+        <activity
+            android:name=".UsingMapFragmentActivity"
+            android:exported="false" />
+        <activity
+            android:name=".UsingGoogleMapComposeLibraryActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
