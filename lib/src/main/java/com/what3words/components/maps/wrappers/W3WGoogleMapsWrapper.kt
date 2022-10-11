@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.GoogleMap
@@ -835,24 +836,24 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            polylineManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                     groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            groundOverlayManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                 }
             }
             polylineManager.getCollection(SELECTED).polylines.forEach {
-                it.remove()
+                polylineManager.getCollection(SELECTED).remove(it)
             }
             polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).polylines.forEach {
-                it.remove()
+                polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).remove(it)
             }
             polylineManager.getCollection(VERTICAL_LINES_COLLECTION).polylines.forEach {
-                it.remove()
+                polylineManager.getCollection(VERTICAL_LINES_COLLECTION).remove(it)
             }
         } catch (e: Exception) {
         }
@@ -864,17 +865,17 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsRemoved.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            markerManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            polylineManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                     groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            groundOverlayManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                 }
@@ -891,13 +892,13 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
-                            it.remove()
+                            markerManager.getCollection(suggestion.suggestion.words)?.remove(it)
                         }
                     }
                 }
                 markerManager.getCollection(SELECTED)?.markers?.forEach {
                     main(dispatchers) {
-                        it.remove()
+                        markerManager.getCollection(SELECTED)?.remove(it)
                     }
                 }
             }

@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".UsingMapFragmentActivity"
+            android:name=".com.what3words.maps.mapbox.compose.sample.UsingMapFragmentActivity"
             android:exported="true">
 
         </activity>
