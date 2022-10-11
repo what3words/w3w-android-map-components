@@ -836,24 +836,24 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
-                            polylineManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                     groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
                         main(dispatchers) {
-                            groundOverlayManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                 }
             }
             polylineManager.getCollection(SELECTED).polylines.forEach {
-                polylineManager.getCollection(SELECTED).remove(it)
+                it.remove()
             }
             polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).polylines.forEach {
-                polylineManager.getCollection(HORIZONTAL_LINES_COLLECTION).remove(it)
+                it.remove()
             }
             polylineManager.getCollection(VERTICAL_LINES_COLLECTION).polylines.forEach {
-                polylineManager.getCollection(VERTICAL_LINES_COLLECTION).remove(it)
+                it.remove()
             }
         } catch (e: Exception) {
         }
@@ -865,17 +865,17 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsRemoved.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
-                            markerManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
-                            polylineManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                     groundOverlayManager.getCollection(suggestion.suggestion.words)?.groundOverlays?.forEach {
                         main(dispatchers) {
-                            groundOverlayManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                 }
@@ -892,13 +892,13 @@ class W3WGoogleMapsWrapper(
                 w3wMapManager.suggestionsCached.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
-                            markerManager.getCollection(suggestion.suggestion.words)?.remove(it)
+                            it.remove()
                         }
                     }
                 }
                 markerManager.getCollection(SELECTED)?.markers?.forEach {
                     main(dispatchers) {
-                        markerManager.getCollection(SELECTED)?.remove(it)
+                        it.remove()
                     }
                 }
             }
