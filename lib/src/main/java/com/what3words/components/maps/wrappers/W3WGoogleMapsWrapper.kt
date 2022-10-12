@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.GoogleMap
