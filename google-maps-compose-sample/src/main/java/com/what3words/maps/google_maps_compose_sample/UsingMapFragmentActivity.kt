@@ -33,7 +33,7 @@ class UsingMapFragmentActivity : FragmentActivity(), W3WGoogleMapFragment.OnMapR
                     color = MaterialTheme.colors.background
                 ) {
                     AndroidViewBinding(
-                        { inflater, parent, attachToParent ->
+                        factory = { inflater, parent, attachToParent ->
                             val view = ActivityUsingMapFragmentBinding.inflate(
                                 inflater,
                                 parent,
