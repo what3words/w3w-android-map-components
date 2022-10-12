@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.maps.GoogleMap
+import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
 import com.what3words.components.text.W3WAutoSuggestEditText
@@ -20,9 +21,12 @@ class GoogleMapsActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyC
         search.apiKey(BuildConfig.W3W_API_KEY)
             .returnCoordinates(true)
             .onSuggestionSelected {
-                if (it != null) map.selectAtSquare(
-                    it
-                ) else {
+                if (it != null) {
+                    map.addMarkerAtSquare(
+                        it, markerColor = W3WMarkerColor.YELLOW
+                    )
+                    map.selectAtSquare(it)
+                } else {
                     map.unselect()
                 }
             }
