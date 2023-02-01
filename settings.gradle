@@ -12,6 +12,15 @@ dependencyResolutionManagement {
         jcenter()
         mavenCentral()
         maven {
+            url "https://s01.oss.sonatype.org/content/repositories/comwhat3words-1000"
+        }
+        maven {
+            url "https://s01.oss.sonatype.org/content/repositories/comwhat3words-1001"
+        }
+        maven {
+            url "https://s01.oss.sonatype.org/content/repositories/comwhat3words-1003"
+        }
+        maven {
             url 'https://api.mapbox.com/downloads/v2/releases/maven'
             authentication {
                 basic(BasicAuthentication)

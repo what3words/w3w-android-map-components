@@ -13,9 +13,8 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
-import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.wrappers.GridColor
@@ -32,7 +31,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
     private var _binding: W3wGoogleMapViewBinding? = null
     private val binding get() = _binding!!
     private var apiKey: String? = null
-    private var sdkSource: W3WDataSource? = null
+    private var wrapper: What3WordsAndroidWrapper? = null
     private lateinit var map: W3WMap
 
     interface OnMapReadyCallback {
@@ -61,8 +60,8 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
         onReadyCallback = callback
     }
 
-    fun sdk(source: W3WDataSource, callback: OnMapReadyCallback) {
-        sdkSource = source
+    fun sdk(source: What3WordsAndroidWrapper, callback: OnMapReadyCallback) {
+        wrapper = source
         onReadyCallback = callback
     }
 
@@ -73,14 +72,14 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
                 W3WGoogleMapsWrapper(
                     requireContext(),
                     p0,
-                    W3WApiDataSource(wrapper, requireContext())
+                    wrapper
                 )
             }
-            sdkSource != null -> {
+            wrapper != null -> {
                 W3WGoogleMapsWrapper(
                     requireContext(),
                     p0,
-                    sdkSource!!
+                    wrapper!!
                 )
             }
             else -> {

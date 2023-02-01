@@ -11,9 +11,8 @@ import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
-import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.wrappers.GridColor
@@ -28,7 +27,7 @@ class W3WMapboxMapFragment() : Fragment() {
     private var _binding: W3wMapboxMapViewBinding? = null
     private val binding get() = _binding!!
     private var apiKey: String? = null
-    private var sdkSource: W3WDataSource? = null
+    private var wrapper: What3WordsAndroidWrapper? = null
     private lateinit var map: W3WMap
 
     interface OnMapReadyCallback {
@@ -57,8 +56,8 @@ class W3WMapboxMapFragment() : Fragment() {
         }
     }
 
-    fun sdk(source: W3WDataSource, callback: OnMapReadyCallback) {
-        sdkSource = source
+    fun sdk(source: What3WordsAndroidWrapper, callback: OnMapReadyCallback) {
+        wrapper = source
         onReadyCallback = callback
         binding.mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS) {
             setup()
@@ -72,14 +71,14 @@ class W3WMapboxMapFragment() : Fragment() {
                 W3WMapBoxWrapper(
                     requireContext(),
                     _binding!!.mapView.getMapboxMap(),
-                    W3WApiDataSource(wrapper, requireContext())
+                    wrapper
                 )
             }
-            sdkSource != null && _binding != null -> {
+            wrapper != null && _binding != null -> {
                 W3WMapBoxWrapper(
                     requireContext(),
                     _binding!!.mapView.getMapboxMap(),
-                    sdkSource!!
+                    wrapper!!
                 )
             }
             else -> {
