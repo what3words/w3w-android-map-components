@@ -89,7 +89,7 @@ workflows:
             - build-test-sonar
           context:
             - SonarCloud
-            - gradle-android
+            - maven-sign
             - mobile
 #          filters:
 #            branches:
