@@ -91,7 +91,7 @@ workflows:
             - SonarCloud
             - maven-sign
             - mobile
-#          filters:
-#            branches:
-#              only:
-#                - dev
+          filters:
+            branches:
+              only:
+                - dev
