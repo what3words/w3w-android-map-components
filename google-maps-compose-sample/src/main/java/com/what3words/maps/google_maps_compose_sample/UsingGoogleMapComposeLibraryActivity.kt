@@ -19,7 +19,6 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.maps.google_maps_compose_sample.ui.theme.W3wandroidcomponentsmapsTheme
@@ -67,7 +66,7 @@ class UsingGoogleMapComposeLibraryActivity : ComponentActivity() {
         this.w3wMapsWrapper = W3WGoogleMapsWrapper(
             this,
             map,
-            W3WApiDataSource(wrapper, this),
+            wrapper,
         ).setLanguage("en")
 
 //        example grid working with night style json for google maps generate here: https://mapstyle.withgoogle.com/
