@@ -64,7 +64,7 @@ dependencies {
     implementation 'com.google.maps.android:android-maps-utils:2.3.0'
     implementation 'com.google.android.gms:play-services-maps:18.1.0'
 
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
 
     implementation 'com.what3words:w3w-android-components:3.1.2'
