@@ -33,7 +33,7 @@ through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/
 ### Gradle
 
 ```
-implementation 'com.what3words:w3w-android-map-components:1.0.1'
+implementation 'com.what3words:w3w-android-map-components:1.0.2'
 ```
 
 ## Documentation summary

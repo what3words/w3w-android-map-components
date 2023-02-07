@@ -7,6 +7,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.util.Consumer
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.Image
@@ -15,6 +16,7 @@ import com.mapbox.maps.RenderedQueryGeometry
 import com.mapbox.maps.RenderedQueryOptions
 import com.mapbox.maps.Style
 import com.mapbox.maps.extension.style.layers.addLayer
+import com.mapbox.maps.extension.style.layers.addLayerBelow
 import com.mapbox.maps.extension.style.layers.generated.LineLayer
 import com.mapbox.maps.extension.style.layers.generated.RasterLayer
 import com.mapbox.maps.extension.style.layers.generated.SymbolLayer
@@ -32,13 +34,12 @@ import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.toCameraOptions
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.main
-import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
-import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
@@ -49,47 +50,30 @@ import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
+import java.nio.ByteBuffer
+import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.nio.ByteBuffer
-import java.util.concurrent.CountDownLatch
-import androidx.core.util.Consumer
-import com.mapbox.maps.extension.style.layers.addLayerBelow
-import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
 
 /**
  * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
  **
  * @param context app context.
- * @param w3wDataSource source of what3words data can be API or SDK.
+ * @param wrapper source of what3words data can be API or SDK.
  * @param mapView the [MapboxMap] view that [W3WMapBoxWrapper] should apply changes to.
  * @param dispatchers for custom dispatcher provider using [DefaultDispatcherProvider] by default.
  */
 class W3WMapBoxWrapper(
     private val context: Context,
     private val mapView: MapboxMap,
-    private val w3wDataSource: W3WDataSource,
+    private val wrapper: What3WordsAndroidWrapper,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
     private var gridColor: GridColor = GridColor.AUTO
     private var isDirty: Boolean = false
-    private var w3wMapManager: W3WMapManager = W3WMapManager(w3wDataSource, this, dispatchers)
-
-    /**
-     * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
-     **
-     * @param context app context.
-     * @param mapView the [MapboxMap] view that [W3WMapBoxWrapper] should apply changes to.
-     * @param wrapper what3words android API wrapper to be used as source of data (i.e: c2c, c3wa, grid-section, autosuggest...).
-     */
-    constructor(
-        context: Context,
-        mapView: MapboxMap,
-        wrapper: What3WordsV3
-    ) : this(context, mapView, W3WApiDataSource(wrapper, context))
+    private var w3wMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
 
     companion object {
         const val GRID_LAYER = "GRID_LAYER"
@@ -587,15 +571,13 @@ class W3WMapBoxWrapper(
             scaleBounds(scale)
         if (shouldCancelPreviousJob) searchJob?.cancel()
         searchJob = CoroutineScope(dispatchers.io()).launch {
-            when (val grid = w3wDataSource.getGeoJsonGrid(lastScaledBounds!!)) {
-                is Either.Left -> {
-                    isDirty = false
-                }
-                is Either.Right -> {
-                    drawLinesOnMap(grid.b)
-                    drawZoomedMarkers()
-                    isDirty = false
-                }
+            val grid = wrapper.gridSectionGeoJson(lastScaledBounds!!).execute()
+            isDirty = if (grid.isSuccessful) {
+                drawLinesOnMap(grid.toGeoJsonString())
+                drawZoomedMarkers()
+                false
+            } else {
+                false
             }
         }
     }

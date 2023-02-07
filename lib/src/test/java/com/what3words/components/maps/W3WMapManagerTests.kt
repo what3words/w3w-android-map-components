@@ -1,30 +1,30 @@
 package com.what3words.components.maps
 
-import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.google.android.gms.maps.GoogleMap
+import androidx.core.util.Consumer
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
-import com.what3words.components.maps.models.Either
-import com.what3words.components.maps.models.W3WDataSource
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.wrappers.W3WMapManager
 import com.what3words.components.maps.wrappers.W3WMapWrapper
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
+import com.what3words.javawrapper.response.APIResponse.What3WordsError
+import com.what3words.javawrapper.response.ConvertTo3WA
+import com.what3words.javawrapper.response.ConvertToCoordinates
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
+import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import androidx.core.util.Consumer
-import io.mockk.justRun
-import io.mockk.verify
 import org.junit.rules.TestRule
+import retrofit2.Response
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -36,7 +36,7 @@ class W3WMapManagerTests {
     private lateinit var manager: W3WMapManager
 
     @MockK
-    private lateinit var dataSource: W3WDataSource
+    private lateinit var dataSource: What3WordsAndroidWrapper
 
     @MockK
     private var wrapper = mockk<W3WMapWrapper>()
@@ -48,7 +48,7 @@ class W3WMapManagerTests {
     private var suggestionsCallback: Consumer<List<SuggestionWithCoordinates>> = mockk()
 
     @MockK
-    private var errorCallback: Consumer<APIResponse.What3WordsError> = mockk()
+    private var errorCallback: Consumer<What3WordsError> = mockk()
 
     @get:Rule
     internal var coroutinesTestRule = CoroutineTestRule()
@@ -75,36 +75,39 @@ class W3WMapManagerTests {
 
     @Test
     fun addAndRemoveByCoordinatesSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
             val suggestion =
                 Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
-
+            val coordinates = Coordinates(51.520847, -0.195521)
             coEvery {
-                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+               val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when adding coordinates
             manager.addCoordinates(
-                51.520847, -0.195521,
+                coordinates.lat, coordinates.lng,
                 W3WMarkerColor.YELLOW,
                 suggestionCallback,
                 errorCallback
             )
 
             //then
-            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { suggestionCallback.accept(match { it.words == suggestion.words }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.getList().first().words == suggestion.words).isNotNull()
 
             //when removing existing coordinates
             manager.removeCoordinates(
-                51.520847, -0.195521
+                coordinates.lat, coordinates.lng
             )
 
             //then
@@ -113,7 +116,7 @@ class W3WMapManagerTests {
 
             //when removing non-existing coordinates
             manager.removeCoordinates(
-                51.520847, -0.195521
+                coordinates.lat, coordinates.lng
             )
 
             //then map should not update, ignore
@@ -124,17 +127,22 @@ class W3WMapManagerTests {
 
     @Test
     fun addByCoordinatesError() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
+            val coordinates = Coordinates(51.520847, -0.195521)
             coEvery {
-                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.INVALID_KEY)
+                val response = APIResponse<ConvertTo3WA>(null)
+                response.error = What3WordsError.INVALID_KEY
+                ConvertTo3WA().apply {
+                    setResponse(response)
+                }
             }
 
             //when
             manager.addCoordinates(
-                51.520847, -0.195521,
+                coordinates.lat, coordinates.lng,
                 W3WMarkerColor.YELLOW,
                 suggestionCallback,
                 errorCallback
@@ -143,14 +151,14 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.INVALID_KEY) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.INVALID_KEY) }
             assertThat(manager.getList().isEmpty()).isTrue()
         }
     }
 
     @Test
     fun addAndRemoveMultipleCoordinatesSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -164,39 +172,48 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Pair(51.520847, -0.195521)
-            val coordinates2 = Pair(51.521251, -0.203586)
-            val coordinates3 = Pair(51.675062, 0.323787)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+                val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
+                dataSource.convertTo3wa(coordinates2).execute()
             } answers {
-                Either.Right(suggestion2)
+                val c3wa = ConvertTo3WA(suggestion2.country, suggestion2.square, suggestion2.nearestPlace, suggestion2.coordinates, suggestion2.words, suggestion2.language, suggestion2.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
+                dataSource.convertTo3wa(coordinates3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c3wa = ConvertTo3WA(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when
             manager.addCoordinates(
-                listCoordinates,
+                listCoordinates.map { Pair(it.lat, it.lng) },
                 W3WMarkerColor.YELLOW,
                 suggestionsCallback,
                 errorCallback
             )
 
             //then
-            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { suggestionsCallback.accept(match { it.size == 3 }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.getList().count()).isEqualTo(3)
@@ -204,7 +221,7 @@ class W3WMapManagerTests {
             //when removing existing words
             manager.suggestionsRemoved.clear()
             manager.removeCoordinates(
-                listCoordinates
+                listCoordinates.map { Pair(it.lat, it.lng) }
             )
 
             //then
@@ -214,7 +231,7 @@ class W3WMapManagerTests {
             //when removing non-existing words
             manager.suggestionsRemoved.clear()
             manager.removeCoordinates(
-                listCoordinates
+                listCoordinates.map { Pair(it.lat, it.lng) }
             )
 
             //then map should not update, ignore
@@ -225,7 +242,7 @@ class W3WMapManagerTests {
 
     @Test
     fun addMultipleCoordinatesAndClearList() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -239,39 +256,48 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Pair(51.520847, -0.195521)
-            val coordinates2 = Pair(51.521251, -0.203586)
-            val coordinates3 = Pair(51.675062, 0.323787)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+                val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
+                dataSource.convertTo3wa(coordinates2).execute()
             } answers {
-                Either.Right(suggestion2)
+                val c3wa = ConvertTo3WA(suggestion2.country, suggestion2.square, suggestion2.nearestPlace, suggestion2.coordinates, suggestion2.words, suggestion2.language, suggestion2.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
+                dataSource.convertTo3wa(coordinates3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c3wa = ConvertTo3WA(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when
             manager.addCoordinates(
-                listCoordinates,
+                listCoordinates.map { Pair(it.lat,it.lng) },
                 W3WMarkerColor.YELLOW,
                 suggestionsCallback,
                 errorCallback
             )
 
             //then
-            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { suggestionsCallback.accept(match { it.size == 3 }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.getList().count()).isEqualTo(3)
@@ -296,7 +322,7 @@ class W3WMapManagerTests {
 
     @Test
     fun addMultipleCoordinatesAndFindOneByLatLng() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -310,32 +336,41 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Pair(51.520847, -0.195521)
-            val coordinates2 = Pair(51.521251, -0.203586)
-            val coordinates3 = Pair(51.675062, 0.323787)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+                val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2.first, coordinates2.second, any())
+                dataSource.convertTo3wa(coordinates2).execute()
             } answers {
-                Either.Right(suggestion2)
+                val c3wa = ConvertTo3WA(suggestion2.country, suggestion2.square, suggestion2.nearestPlace, suggestion2.coordinates, suggestion2.words, suggestion2.language, suggestion2.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
+                dataSource.convertTo3wa(coordinates3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c3wa = ConvertTo3WA(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when
             manager.addCoordinates(
-                listCoordinates,
+                listCoordinates.map { Pair(it.lat, it.lng) },
                 W3WMarkerColor.YELLOW,
                 suggestionsCallback,
                 errorCallback
@@ -348,7 +383,7 @@ class W3WMapManagerTests {
             assertThat(manager.getList().count()).isEqualTo(3)
 
             //when
-            var searchRes = manager.findByExactLocation(coordinates.first, coordinates.second)
+            var searchRes = manager.findByExactLocation(coordinates.lat, coordinates.lng)
 
             //then
             assertThat(searchRes).isNotNull()
@@ -364,7 +399,7 @@ class W3WMapManagerTests {
 
     @Test
     fun addMultipleCoordinatesFailsOneCancelAll() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -374,32 +409,42 @@ class W3WMapManagerTests {
                 ClassLoader.getSystemResource("limit.broom.fade.json").readText()
             val suggestion3 =
                 Gson().fromJson(suggestion3Json, SuggestionWithCoordinates::class.java)
-            val coordinates = Pair(51.520847, -0.195521)
-            val coordinates2 = Pair(51.521251, -0.203586)
-            val coordinates3 = Pair(51.675062, 0.323787)
+            val coordinates = Coordinates(51.520847, -0.195521)
+            val coordinates2 = Coordinates(51.521251, -0.203586)
+            val coordinates3 = Coordinates(51.675062, 0.323787)
             val listCoordinates = listOf(coordinates, coordinates2, coordinates3)
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates.first, coordinates.second, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+                val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates2.first,coordinates2.second, any())
+                dataSource.convertTo3wa(coordinates2).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+                val response = APIResponse<ConvertTo3WA>(null)
+                response.error = What3WordsError.BAD_COORDINATES
+                ConvertTo3WA().apply {
+                    setResponse(response)
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByCoordinates(coordinates3.first, coordinates3.second, any())
+                dataSource.convertTo3wa(coordinates3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c3wa = ConvertTo3WA(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when
             manager.addCoordinates(
-                listCoordinates,
+                listCoordinates.map { Pair(it.lat, it.lng) },
                 W3WMarkerColor.YELLOW,
                 suggestionsCallback,
                 errorCallback
@@ -408,35 +453,38 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionsCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.BAD_COORDINATES) }
             assertThat(manager.getList()).isEmpty()
         }
     }
 
     @Test
     fun selectAndUnselectByCoordinatesSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
             val suggestion =
                 Gson().fromJson(suggestionJson, SuggestionWithCoordinates::class.java)
-
+            val coordinates = Coordinates(51.520847, -0.195521)
             coEvery {
-                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Right(suggestion)
+                val c3wa = ConvertTo3WA(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c3wa.apply {
+                    this.setResponse(APIResponse(Response.success(c3wa)))
+                }
             }
 
             //when
             manager.selectCoordinates(
-                51.520847, -0.195521,
+                coordinates.lat, coordinates.lng,
                 suggestionCallback,
                 errorCallback
             )
 
             //then
-            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { suggestionCallback.accept(match { it.words == suggestion.words }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.selectedSuggestion?.words == suggestion.words).isNotNull()
@@ -452,17 +500,22 @@ class W3WMapManagerTests {
 
     @Test
     fun selectByCoordinatesFails() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
+            val coordinates = Coordinates(51.520847, -0.195521)
             coEvery {
-                dataSource.getSuggestionByCoordinates(51.520847, -0.195521, any())
+                dataSource.convertTo3wa(coordinates).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+                val response = APIResponse<ConvertTo3WA>(null)
+                response.error = What3WordsError.BAD_COORDINATES
+                ConvertTo3WA().apply {
+                    setResponse(response)
+                }
             }
 
             //when
             manager.selectCoordinates(
-                51.520847, -0.195521,
+                coordinates.lat, coordinates.lng,
                 suggestionCallback,
                 errorCallback
             )
@@ -470,14 +523,14 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.BAD_COORDINATES) }
             assertThat(manager.selectedSuggestion).isNull()
         }
     }
 
     @Test
     fun addAndRemoveByWordsSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -486,9 +539,12 @@ class W3WMapManagerTests {
             val words = "filled.count.soap"
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Right(suggestion)
+                val c2c = ConvertToCoordinates(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             //when
@@ -500,7 +556,7 @@ class W3WMapManagerTests {
             )
 
             //then
-            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { suggestionCallback.accept(match { it.words == suggestion.words }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.getList().first().words == suggestion.words).isNotNull()
@@ -529,7 +585,7 @@ class W3WMapManagerTests {
 
     @Test
     fun addAndRemoveMultipleWordsSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -549,21 +605,30 @@ class W3WMapManagerTests {
             val listWords = listOf(words, words2, words3)
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Right(suggestion)
+                val c2c = ConvertToCoordinates(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByWords(words2)
+                dataSource.convertToCoordinates(words2).execute()
             } answers {
-                Either.Right(suggestion2)
+                val c2c = ConvertToCoordinates(suggestion2.country, suggestion2.square, suggestion2.nearestPlace, suggestion2.coordinates, suggestion2.words, suggestion2.language, suggestion2.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByWords(words3)
+                dataSource.convertToCoordinates(words3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c2c = ConvertToCoordinates(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             //when
@@ -575,7 +640,7 @@ class W3WMapManagerTests {
             )
 
             //then
-            verify(exactly = 1) { suggestionsCallback.accept(any()) }
+            verify(exactly = 1) { suggestionsCallback.accept(match { it.size == 3 }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.getList().count()).isEqualTo(3)
@@ -604,7 +669,7 @@ class W3WMapManagerTests {
 
     @Test
     fun addMultipleWordsFailsOneCancelAll() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -620,21 +685,31 @@ class W3WMapManagerTests {
             val listWords = listOf(words, words2, words3)
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Right(suggestion)
+                val c2c = ConvertToCoordinates(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByWords(words2)
+                dataSource.convertToCoordinates(words2).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.BAD_WORDS)
+                val response = APIResponse<ConvertToCoordinates>(null)
+                response.error = What3WordsError.BAD_COORDINATES
+                ConvertToCoordinates().apply {
+                    setResponse(response)
+                }
             }
 
             coEvery {
-                dataSource.getSuggestionByWords(words3)
+                dataSource.convertToCoordinates(words3).execute()
             } answers {
-                Either.Right(suggestion3)
+                val c2c = ConvertToCoordinates(suggestion3.country, suggestion3.square, suggestion3.nearestPlace, suggestion3.coordinates, suggestion3.words, suggestion3.language, suggestion3.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             //when
@@ -648,21 +723,25 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionsCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_WORDS) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.BAD_WORDS) }
             assertThat(manager.getList()).isEmpty()
         }
     }
 
     @Test
     fun addByWordsError() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val words = "filled.count.soap"
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.INVALID_KEY)
+                val response = APIResponse<ConvertToCoordinates>(null)
+                response.error = What3WordsError.INVALID_KEY
+                ConvertToCoordinates().apply {
+                    setResponse(response)
+                }
             }
 
             //when
@@ -676,14 +755,14 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.INVALID_KEY) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.INVALID_KEY) }
             assertThat(manager.getList().isEmpty()).isTrue()
         }
     }
 
     @Test
     fun selectAndUnselectByWordsSuccess() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val suggestionJson =
                 ClassLoader.getSystemResource("filled.count.soap.json").readText()
@@ -692,9 +771,12 @@ class W3WMapManagerTests {
             val words = "filled.count.soap"
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Right(suggestion)
+                val c2c = ConvertToCoordinates(suggestion.country, suggestion.square, suggestion.nearestPlace, suggestion.coordinates, suggestion.words, suggestion.language, suggestion.map)
+                c2c.apply {
+                    this.setResponse(APIResponse(Response.success(c2c)))
+                }
             }
 
             //when
@@ -705,7 +787,7 @@ class W3WMapManagerTests {
             )
 
             //then
-            verify(exactly = 1) { suggestionCallback.accept(suggestion) }
+            verify(exactly = 1) { suggestionCallback.accept(match { it.words == suggestion.words }) }
             verify(exactly = 1) { wrapper.updateMap() }
             verify(exactly = 0) { errorCallback.accept(any()) }
             assertThat(manager.selectedSuggestion?.words == suggestion.words).isNotNull()
@@ -721,14 +803,18 @@ class W3WMapManagerTests {
 
     @Test
     fun selectByWordsFails() {
-        coroutinesTestRule.testDispatcher.runBlockingTest {
+        coroutinesTestRule.testDispatcher.dispatch(coroutinesTestRule.testDispatcherProvider.default()) {
             //given
             val words = "filled.count.soap"
 
             coEvery {
-                dataSource.getSuggestionByWords(words)
+                dataSource.convertToCoordinates(words).execute()
             } answers {
-                Either.Left(APIResponse.What3WordsError.BAD_COORDINATES)
+                val response = APIResponse<ConvertToCoordinates>(null)
+                response.error = What3WordsError.BAD_COORDINATES
+                ConvertToCoordinates().apply {
+                    setResponse(response)
+                }
             }
 
             //when
@@ -741,7 +827,7 @@ class W3WMapManagerTests {
             //then
             verify(exactly = 0) { suggestionCallback.accept(any()) }
             verify(exactly = 0) { wrapper.updateMap() }
-            verify(exactly = 1) { errorCallback.accept(APIResponse.What3WordsError.BAD_COORDINATES) }
+            verify(exactly = 1) { errorCallback.accept(What3WordsError.BAD_COORDINATES) }
             assertThat(manager.selectedSuggestion).isNull()
         }
     }

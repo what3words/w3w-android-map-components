@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.GoogleMap
@@ -24,7 +23,6 @@ import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.main
 import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
-import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
@@ -41,8 +39,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.core.util.Consumer
-import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import kotlin.math.roundToInt
 
 /**
@@ -50,28 +47,15 @@ import kotlin.math.roundToInt
  **
  * @param context app context.
  * @param mapView the [GoogleMap] view that [W3WGoogleMapsWrapper] should apply changes to.
- * @param w3wDataSource source of what3words data can be API or SDK.
+ * @param wrapper source of what3words data can be API or SDK.
  * @param dispatchers for custom dispatcher provider using [DefaultDispatcherProvider] by default.
  */
 class W3WGoogleMapsWrapper(
     private val context: Context,
     private val mapView: GoogleMap,
-    private val w3wDataSource: W3WDataSource,
+    private val wrapper: What3WordsAndroidWrapper,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
-
-    /**
-     * [W3WGoogleMapsWrapper] a wrapper to add what3words support to [GoogleMap].
-     **
-     * @param context app context.
-     * @param mapView the [GoogleMap] view that [W3WGoogleMapsWrapper] should apply changes to.
-     * @param wrapper what3words android API wrapper to be used as source of data (i.e: c2c, c3wa, grid-section, autosuggest...).
-     */
-    constructor(
-        context: Context,
-        mapView: GoogleMap,
-        wrapper: What3WordsV3
-    ) : this(context, mapView, W3WApiDataSource(wrapper, context))
 
     companion object {
         const val VERTICAL_LINES_COLLECTION = "VERTICAL_LINES_COLLECTION"
@@ -88,7 +72,7 @@ class W3WGoogleMapsWrapper(
     private var isGridVisible: Boolean = false
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
-    private var w3wMapManager: W3WMapManager = W3WMapManager(w3wDataSource, this, dispatchers)
+    private var w3wMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
 
     private val polylineManager: PolylineManager by lazy {
         val pol = PolylineManager(mapView)
@@ -522,9 +506,9 @@ class W3WGoogleMapsWrapper(
      * when:
      * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible -> should draw all zoomed out markers .
      * - mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && isGridVisible -> should clear the grid and all zoomed in markers and draw zoomed out markers.
-     * - else -> should clear all zoomed out markers and add get the grid from [w3wDataSource], draw the grid and all zoomed in markers.
+     * - else -> should clear all zoomed out markers and add get the grid from [wrapper], draw the grid and all zoomed in markers.
      *
-     * @param shouldCancelPreviousJob if it should cancel previous [w3wDataSource] call to get the grid, to improve performance and API requests.
+     * @param shouldCancelPreviousJob if it should cancel previous [wrapper] call to get the grid, to improve performance and API requests.
      */
     private fun onMapMoved(
         shouldCancelPreviousJob: Boolean = true,
@@ -560,22 +544,20 @@ class W3WGoogleMapsWrapper(
                 )
             )
 
-            when (val grid = w3wDataSource.getGrid(box)) {
-                is Either.Left -> {
-                    if (grid.a == APIResponse.What3WordsError.BAD_BOUNDING_BOX_TOO_BIG) {
-                        main(dispatchers) {
-                            onMapMoved(true, scale - SCALE_NORMALIZATION)
-                        }
+            val grid = wrapper.gridSection(box).execute()
+            if (grid.isSuccessful) {
+                val verticalLines = grid.lines.computeVerticalLines()
+                val horizontalLines = grid.lines.computeHorizontalLines()
+                drawLinesOnMap(
+                    computedHorizontalLines = horizontalLines,
+                    computedVerticalLines = verticalLines
+                )
+                drawZoomedMarkers()
+            } else {
+                if (grid.error == APIResponse.What3WordsError.BAD_BOUNDING_BOX_TOO_BIG) {
+                    main(dispatchers) {
+                        onMapMoved(true, scale - SCALE_NORMALIZATION)
                     }
-                }
-                is Either.Right -> {
-                    val verticalLines = grid.b.computeVerticalLines()
-                    val horizontalLines = grid.b.computeHorizontalLines()
-                    drawLinesOnMap(
-                        computedHorizontalLines = horizontalLines,
-                        computedVerticalLines = verticalLines
-                    )
-                    drawZoomedMarkers()
                 }
             }
         }

@@ -10,11 +10,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MapStyleOptions
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
-import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.map.components.googlemapssample.databinding.ActivityUsingMapWrapperBinding
 
@@ -37,7 +34,7 @@ class UsingMapWrapperActivity : AppCompatActivity(), OnMapReadyCallback {
         this.w3wMapsWrapper = W3WGoogleMapsWrapper(
             this,
             map,
-            W3WApiDataSource(wrapper, this),
+            wrapper,
         ).setLanguage("en")
 
 //        example grid working with night style json for google maps generate here: https://mapstyle.withgoogle.com/

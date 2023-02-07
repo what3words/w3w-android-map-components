@@ -1,14 +1,15 @@
 package com.what3words.components.maps.wrappers
 
 import androidx.core.util.Consumer
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.io
 import com.what3words.components.maps.extensions.main
+import com.what3words.components.maps.extensions.toSuggestionWithCoordinates
 import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
-import com.what3words.components.maps.models.W3WDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
@@ -19,11 +20,11 @@ import kotlinx.coroutines.withContext
 /**
  * [W3WMapManager] an abstract layer to retrieve data from [W3WDataSource] save it in memory [suggestionsCached] and be used in multiple map wrapper. i.e: [W3WGoogleMapsWrapper].
  **
- * @param w3wDataSource source of what3words data can be API or SDK.
+ * @param wrapper source of what3words data can be API or SDK.
  * @param dispatchers for custom dispatcher handler using [DefaultDispatcherProvider] by default.
  */
 internal class W3WMapManager(
-    private val w3wDataSource: W3WDataSource,
+    private val wrapper: What3WordsAndroidWrapper,
     private val w3WMapWrapper: W3WMapWrapper,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) {
@@ -53,28 +54,28 @@ internal class W3WMapManager(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         main(dispatchers) {
-            when (val c23wa = withContext(dispatchers.io()) {
-                w3wDataSource.getSuggestionByCoordinates(
-                    lat,
-                    lng,
-                    language
-                )
-            }) {
-                is Either.Left -> {
-                    onError?.accept(c23wa.a)
-                }
-                is Either.Right -> {
-                    val locationMapped = findByExactLocation(lat, lng)
-                    if (locationMapped != null) suggestionsCached.remove(locationMapped)
-                    suggestionsCached.add(
-                        SuggestionWithCoordinatesAndStyle(
-                            c23wa.b,
-                            markerColor
-                        )
+            val c23wa = withContext(dispatchers.io()) {
+                wrapper.convertTo3wa(
+                    Coordinates(
+                        lat,
+                        lng
                     )
-                    onSuccess?.accept(c23wa.b)
-                    w3WMapWrapper.updateMap()
-                }
+                ).execute()
+            }
+            if (c23wa.isSuccessful) {
+                val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                val locationMapped = findByExactLocation(lat, lng)
+                if (locationMapped != null) suggestionsCached.remove(locationMapped)
+                suggestionsCached.add(
+                    SuggestionWithCoordinatesAndStyle(
+                        withCoordinates,
+                        markerColor
+                    )
+                )
+                onSuccess?.accept(withCoordinates)
+                w3WMapWrapper.updateMap()
+            } else {
+                onError?.accept(c23wa.error)
             }
         }
     }
@@ -139,21 +140,21 @@ internal class W3WMapManager(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         main(dispatchers) {
-            when (val c23wa = withContext(dispatchers.io()) {
-                w3wDataSource.getSuggestionByCoordinates(
-                    lat,
-                    lng,
-                    language
-                )
-            }) {
-                is Either.Left -> {
-                    onError?.accept(c23wa.a)
-                }
-                is Either.Right -> {
-                    selectedSuggestion = c23wa.b
-                    onSuccess?.accept(c23wa.b)
-                    w3WMapWrapper.updateMap()
-                }
+            val c23wa = withContext(dispatchers.io()) {
+                wrapper.convertTo3wa(
+                    Coordinates(
+                        lat,
+                        lng
+                    )
+                ).execute()
+            }
+            if (c23wa.isSuccessful) {
+                val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                selectedSuggestion = withCoordinates
+                onSuccess?.accept(withCoordinates)
+                w3WMapWrapper.updateMap()
+            } else {
+                onError?.accept(c23wa.error)
             }
         }
     }
@@ -174,26 +175,25 @@ internal class W3WMapManager(
             val toBeAdded = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             var error: APIResponse.What3WordsError? = null
             listCoordinates.forEach { location ->
-                when (
-                    val c23wa =
-                        w3wDataSource.getSuggestionByCoordinates(
+
+                val c23wa =
+                    wrapper.convertTo3wa(
+                        Coordinates(
                             location.first,
-                            location.second,
-                            language
+                            location.second
                         )
-                ) {
-                    is Either.Left -> {
-                        error = c23wa.a
-                        return@forEach
-                    }
-                    is Either.Right -> {
-                        toBeAdded.add(
-                            SuggestionWithCoordinatesAndStyle(
-                                c23wa.b,
-                                markerColor
-                            )
+                    ).execute()
+                if (c23wa.isSuccessful) {
+                    val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                    toBeAdded.add(
+                        SuggestionWithCoordinatesAndStyle(
+                            withCoordinates,
+                            markerColor
                         )
-                    }
+                    )
+                } else {
+                    error = c23wa.error
+                    return@forEach
                 }
             }
             if (error != null) {
@@ -267,25 +267,24 @@ internal class W3WMapManager(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         main(dispatchers) {
-            when (val c23wa =
-                withContext(dispatchers.io()) { w3wDataSource.getSuggestionByWords(words) }) {
-                is Either.Left -> {
-                    onError?.accept(c23wa.a)
+            val c23wa =
+                withContext(dispatchers.io()) { wrapper.convertToCoordinates(words).execute() }
+            if (c23wa.isSuccessful) {
+                val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                val locationMapped = suggestionsCached.firstOrNull {
+                    it.suggestion.words == words
                 }
-                is Either.Right -> {
-                    val locationMapped = suggestionsCached.firstOrNull {
-                        it.suggestion.words == words
-                    }
-                    if (locationMapped != null) suggestionsCached.remove(locationMapped)
-                    suggestionsCached.add(
-                        SuggestionWithCoordinatesAndStyle(
-                            c23wa.b,
-                            markerColor
-                        )
+                if (locationMapped != null) suggestionsCached.remove(locationMapped)
+                suggestionsCached.add(
+                    SuggestionWithCoordinatesAndStyle(
+                        withCoordinates,
+                        markerColor
                     )
-                    onSuccess?.accept(c23wa.b)
-                    w3WMapWrapper.updateMap()
-                }
+                )
+                onSuccess?.accept(withCoordinates)
+                w3WMapWrapper.updateMap()
+            } else {
+                onError?.accept(c23wa.error)
             }
         }
     }
@@ -308,23 +307,20 @@ internal class W3WMapManager(
             val toBeAdded = mutableListOf<SuggestionWithCoordinatesAndStyle>()
             var error: APIResponse.What3WordsError? = null
             listWords.forEach { words ->
-                when (
-                    val c23wa = withContext(dispatchers.io()) {
-                        w3wDataSource.getSuggestionByWords(words)
-                    }
-                ) {
-                    is Either.Left -> {
-                        error = c23wa.a
-                        return@forEach
-                    }
-                    is Either.Right -> {
-                        toBeAdded.add(
-                            SuggestionWithCoordinatesAndStyle(
-                                c23wa.b,
-                                markerColor
-                            )
+                val c23wa = withContext(dispatchers.io()) {
+                    wrapper.convertToCoordinates(words).execute()
+                }
+                if (c23wa.isSuccessful) {
+                    val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                    toBeAdded.add(
+                        SuggestionWithCoordinatesAndStyle(
+                            withCoordinates,
+                            markerColor
                         )
-                    }
+                    )
+                } else {
+                    error = c23wa.error
+                    return@forEach
                 }
             }
             if (error != null) {
@@ -358,16 +354,15 @@ internal class W3WMapManager(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         main(dispatchers) {
-            when (val c23wa =
-                withContext(dispatchers.io()) { w3wDataSource.getSuggestionByWords(words) }) {
-                is Either.Left -> {
-                    onError?.accept(c23wa.a)
-                }
-                is Either.Right -> {
-                    selectedSuggestion = c23wa.b
-                    onSuccess?.accept(c23wa.b)
-                    w3WMapWrapper.updateMap()
-                }
+            val c23wa =
+                withContext(dispatchers.io()) { wrapper.convertToCoordinates(words).execute() }
+            if (c23wa.isSuccessful) {
+                val withCoordinates = c23wa.toSuggestionWithCoordinates()
+                selectedSuggestion = withCoordinates
+                onSuccess?.accept(withCoordinates)
+                w3WMapWrapper.updateMap()
+            } else {
+                onError?.accept(c23wa.error)
             }
         }
     }
