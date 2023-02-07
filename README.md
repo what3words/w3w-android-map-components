@@ -45,6 +45,7 @@ implementation 'com.what3words:w3w-android-map-components:1.0.2'
 - [Enable what3words features in an new Google Maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
 - [Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment](#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment)
 - [General map fragment functions](#general-map-fragment-functions)
+- [Use library with Jetpack Compose](#use-library-with-jetpack-compose)
 
 ## Initial setup
 
@@ -465,3 +466,8 @@ class MainActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallbac
 |**removeAllMarkers**, remove all markers added to the map. |```removeAllMarkers()```|
 |**getAllMarkers**, Gets all added markers from the map. | ```val markers = getAllMarkers()```|
 |**unselect**, remove the selected marker from the map.|```unselect()```|
+
+## Use library with Jetpack Compose:
+
+Both GoogleMaps and Mapbox Wrapper and Fragment work with Jetpack compose using AndroidView and AndroidViewBinding, please check the modules google-maps-compose-sample and mapbox-compose-sample in this repo as an example of usage of our w3w-android-map-components library in a Jetpack Compose app.
+
