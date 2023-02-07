@@ -11,7 +11,6 @@ import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.what3words.androidwrapper.What3WordsV3
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
-import com.what3words.components.maps.models.W3WApiDataSource
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.wrappers.W3WMapBoxWrapper
 import com.what3words.javawrapper.request.Coordinates
