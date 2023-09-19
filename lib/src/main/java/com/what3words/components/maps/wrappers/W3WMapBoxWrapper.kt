@@ -44,6 +44,7 @@ import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
+import com.what3words.components.maps.views.W3WMap
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
@@ -56,6 +57,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
@@ -73,7 +75,10 @@ class W3WMapBoxWrapper(
 ) : W3WMapWrapper {
     private var gridColor: GridColor = GridColor.AUTO
     private var isDirty: Boolean = false
-    private var w3wMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
+    private var w3WMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
+    private var isDarkMode: Boolean = false
+    private var zoomSwitchLevel: Float = DEFAULT_ZOOM_SWITCH_LEVEL
+
 
     companion object {
         const val GRID_LAYER = "GRID_LAYER"
@@ -82,7 +87,8 @@ class W3WMapBoxWrapper(
         const val SELECTED_LAYER = "SELECTED_LAYER"
         const val SELECTED_ZOOMED_SOURCE = "SELECTED_ZOOMED_SOURCE"
         const val SELECTED_ZOOMED_LAYER = "SELECTED_ZOOMED_LAYER"
-        const val ZOOM_SWITCH_LEVEL = 18f
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 8f
         const val CIRCLE_ID_PREFIX = "CIRCLE_%s"
         const val PIN_ID_PREFIX = "PIN_%s"
@@ -91,7 +97,7 @@ class W3WMapBoxWrapper(
 
     private var onMarkerClickedCallback: Consumer<SuggestionWithCoordinates>? = null
     private var lastScaledBounds: BoundingBox? = null
-    private var isGridVisible: Boolean = false
+    internal var isGridVisible: Boolean = false
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
 
@@ -107,16 +113,16 @@ class W3WMapBoxWrapper(
                 mapView.queryRenderedFeatures(
                     RenderedQueryGeometry(mapView.pixelForCoordinate(point)),
                     RenderedQueryOptions(
-                        w3wMapManager.suggestionsCached.map { it.suggestion.words },
+                        w3WMapManager.suggestionsCached.map { it.suggestion.words },
                         null
                     )
                 ) {
                     if (it.isValue && it.value!!.isNotEmpty()) {
                         it.value!![0].source.let { source ->
-                            w3wMapManager.suggestionsCached.firstOrNull { it.suggestion.words == source }
+                            w3WMapManager.suggestionsCached.firstOrNull { it.suggestion.words == source }
                                 ?.let {
                                     isDirty = true
-                                    w3wMapManager.selectExistingMarker(it.suggestion)
+                                    w3WMapManager.selectExistingMarker(it.suggestion)
                                     onMarkerClickedCallback?.accept(it.suggestion)
                                     callbackResult = true
                                 }
@@ -139,40 +145,28 @@ class W3WMapBoxWrapper(
                 || mapView.getStyle()?.styleURI == Style.OUTDOORS)
     }
 
-    /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
-     *
-     * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
-     */
     override fun setLanguage(language: String): W3WMapBoxWrapper {
-        w3wMapManager.language = language
+        w3WMapManager.language = language
         return this
     }
 
-    /** Enable grid overlay over map with all 3mx3m squares on the visible map bounds.
-     *
-     * @param isEnabled enable or disable grid, enabled by default.
-     */
+    override fun setZoomSwitchLevel(zoom: Float) {
+        zoomSwitchLevel = zoom
+    }
+
+    override fun getZoomSwitchLevel(): Float {
+        return zoomSwitchLevel
+    }
+
     override fun gridEnabled(isEnabled: Boolean): W3WMapBoxWrapper {
         shouldDrawGrid = isEnabled
         return this
     }
 
-    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
-     *
-     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
-     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
-     * [GridColor.DARK] - Will force grid and selected square color to be dark.
-     *
-     * @param gridColor set grid color, per default will be [GridColor.AUTO].
-     */
     override fun setGridColor(gridColor: GridColor) {
         this.gridColor = gridColor
     }
 
-    /** A callback for when an existing marker on the map is clicked.
-     *
-     * @param callback it will be invoked when an existing marker on the map is clicked by the user.
-     */
     override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WMapBoxWrapper {
         onMarkerClickedCallback = callback
         return this
@@ -180,13 +174,6 @@ class W3WMapBoxWrapper(
 
     //region add/remove by suggestion
 
-    /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
-     *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtSuggestion(
         suggestion: Suggestion,
         markerColor: W3WMarkerColor,
@@ -194,7 +181,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             suggestion.words,
             markerColor,
             onSuccess,
@@ -202,13 +189,6 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Add a list of [Suggestion] to the map. This method will add multiple markers/squares to the map after getting the suggestions from our W3WAutosuggestEditText.
-     *
-     * @param listSuggestions list of [Suggestion]s returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the suggestion added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtSuggestion(
         listSuggestions: List<Suggestion>,
         markerColor: W3WMarkerColor,
@@ -216,7 +196,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             listSuggestions.map { it.words },
             markerColor,
             onSuccess,
@@ -224,37 +204,23 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Remove [Suggestion] from the map.
-     *
-     * @param suggestion the [Suggestion] to be removed.
-     */
     override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
         isDirty = true
-        w3wMapManager.removeWords(suggestion.words)
+        w3WMapManager.removeWords(suggestion.words)
     }
 
-    /** Remove [Suggestion]s from the map.
-     *
-     * @param listSuggestions the list of [Suggestion]s to remove.
-     */
     override fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>) {
         isDirty = true
-        w3wMapManager.removeWords(listSuggestions.map { it.words })
+        w3WMapManager.removeWords(listSuggestions.map { it.words })
     }
 
-    /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtSuggestion(
         suggestion: Suggestion,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.selectWords(
+        w3WMapManager.selectWords(
             suggestion.words,
             onSuccess,
             onError
@@ -269,9 +235,9 @@ class W3WMapBoxWrapper(
     ) {
         isDirty = true
         if (suggestion.coordinates != null) {
-            w3wMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
+            w3WMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
         } else {
-            w3wMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
+            w3WMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
         }
     }
 
@@ -282,23 +248,15 @@ class W3WMapBoxWrapper(
     ) {
         isDirty = true
         if (suggestion.coordinates != null) {
-            w3wMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
+            w3WMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
         } else {
-            w3wMapManager.selectWords(suggestion.words, onSuccess, onError)
+            w3WMapManager.selectWords(suggestion.words, onSuccess, onError)
         }
     }
     //endregion
 
     //region add/remove by coordinates
 
-    /** Add marker at [lat], [lng] coordinates to the map. This method will add a marker/square to the map based on the provided latitude and longitude.
-     *
-     * @param lat latitude coordinates to be added.
-     * @param lng longitude coordinates to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [lat], [lng] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtCoordinates(
         lat: Double,
         lng: Double,
@@ -307,7 +265,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addCoordinates(
+        w3WMapManager.addCoordinates(
             lat,
             lng,
             markerColor,
@@ -316,13 +274,6 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Add list of Coordinates [Pair.first] latitude, [Pair.second] longitude to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each coordinates on the list.
-     *
-     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [listCoordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtCoordinates(
         listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor,
@@ -330,7 +281,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addCoordinates(
+        w3WMapManager.addCoordinates(
             listCoordinates,
             markerColor,
             onSuccess,
@@ -338,13 +289,6 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Set [lat], [lng] coordinates as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param lat latitude coordinates to be selected.
-     * @param lng longitude coordinates to be selected.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtCoordinates(
         lat: Double,
         lng: Double,
@@ -352,7 +296,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.selectCoordinates(
+        w3WMapManager.selectCoordinates(
             lat,
             lng,
             onSuccess,
@@ -361,37 +305,21 @@ class W3WMapBoxWrapper(
     }
 
     override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
-        return w3wMapManager.squareContains(lat, lng)?.suggestion
+        return w3WMapManager.squareContains(lat, lng)?.suggestion
     }
 
-    /** Remove marker at [lat],[lng] from the map.
-     *
-     * @param lat latitude coordinates of the marker to be removed.
-     * @param lng longitude coordinates of the marker to be removed.
-     */
     override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
         isDirty = true
-        w3wMapManager.removeCoordinates(lat, lng)
+        w3WMapManager.removeCoordinates(lat, lng)
     }
 
-    /** Remove markers based on [listCoordinates] which [Pair.first] is latitude, [Pair.second] is longitude of the marker in the map.
-     *
-     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates of the markers to be removed.
-     */
     override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         isDirty = true
-        w3wMapManager.removeCoordinates(listCoordinates)
+        w3WMapManager.removeCoordinates(listCoordinates)
     }
 //endregion
 
     //region add/remove by words
-    /** Add a three word address to the map. This method will add a marker/square to the map if [words] are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
-     *
-     * @param words three word address to be added.
-     * @param markerColor the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor,
@@ -399,7 +327,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             words,
             markerColor,
             onSuccess,
@@ -407,13 +335,6 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Add a list of three word addresses to the map. This method will add a marker/square to the map if all [listWords] are a valid three word addresses, e.g., filled.count.soap. If any valid three word address is not valid, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
-     *
-     * @param listWords list of three word address to be added.
-     * @param markerColor the [W3WMarkerColor] for the [listWords] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message. If one item on the list fails to be added, this process will be fully reverted, only adds if all succeed.
-     */
     override fun addMarkerAtWords(
         listWords: List<String>,
         markerColor: W3WMarkerColor,
@@ -421,7 +342,7 @@ class W3WMapBoxWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             listWords,
             markerColor,
             onSuccess,
@@ -429,65 +350,46 @@ class W3WMapBoxWrapper(
         )
     }
 
-    /** Set [words] as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param words three word address to be added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtWords(
         words: String,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         isDirty = true
-        w3wMapManager.selectWords(
+        w3WMapManager.selectWords(
             words,
             onSuccess,
             onError
         )
     }
 
-    /** Remove three word address from the map.
-     *
-     * @param words the three word address to be removed.
-     */
     override fun removeMarkerAtWords(words: String) {
         isDirty = true
-        w3wMapManager.removeWords(words)
+        w3WMapManager.removeWords(words)
     }
 
-    /** Remove a list of three word addresses from the map.
-     *
-     * @param listWords the list of three word addresses to remove.
-     */
     override fun removeMarkerAtWords(listWords: List<String>) {
         isDirty = true
-        w3wMapManager.removeWords(listWords)
+        w3WMapManager.removeWords(listWords)
     }
 
-    /** Remove all markers from the map. */
     override fun removeAllMarkers() {
         isDirty = true
-        w3wMapManager.clearList()
+        w3WMapManager.clearList()
     }
 
-    /** Get all added [SuggestionWithCoordinates] from the map.
-     *
-     * @return list of [SuggestionWithCoordinates] with all items added to the map.
-     */
     override fun getAllMarkers(): List<SuggestionWithCoordinates> {
-        return w3wMapManager.getList()
+        return w3WMapManager.getList()
     }
 
     override fun getSelectedMarker(): SuggestionWithCoordinates? {
-        return w3wMapManager.selectedSuggestion
+        return w3WMapManager.selectedSuggestion
     }
 
     override fun unselect() {
         runBlocking(dispatchers.io()) {
             isDirty = true
-            w3wMapManager.unselect()
+            w3WMapManager.unselect()
         }
     }
 
@@ -507,15 +409,44 @@ class W3WMapBoxWrapper(
     override fun updateMove() {
         lastScaledBounds =
             scaleBounds(DEFAULT_BOUNDS_SCALE)
-        if (mapView.cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+        if (mapView.cameraState.zoom < zoomSwitchLevel && isGridVisible) {
             redrawMapLayers(true)
             isGridVisible = false
             return
         }
-        if (mapView.cameraState.zoom >= ZOOM_SWITCH_LEVEL && !isGridVisible) {
+        if (mapView.cameraState.zoom >= zoomSwitchLevel && !isGridVisible) {
             redrawMapLayers(true)
             return
         }
+    }
+
+    override fun getMapType(): W3WMap.MapType {
+        return when (mapView.getStyle()?.styleURI) {
+            Style.SATELLITE_STREETS -> W3WMap.MapType.HYBRID
+            else -> W3WMap.MapType.NORMAL
+        }
+    }
+
+    override fun setMapType(mapType: W3WMap.MapType) {
+        when (mapType) {
+            W3WMap.MapType.NORMAL -> mapView.loadStyleUri(if (isDarkMode) Style.DARK else Style.MAPBOX_STREETS)
+            W3WMap.MapType.HYBRID -> mapView.loadStyleUri(Style.SATELLITE)
+            W3WMap.MapType.TERRAIN -> mapView.loadStyleUri(Style.OUTDOORS)
+            W3WMap.MapType.SATELLITE -> mapView.loadStyleUri(Style.SATELLITE)
+        }
+    }
+
+    override fun isDarkMode(): Boolean {
+        return isDarkMode
+    }
+
+    override fun setDarkMode(darkMode: Boolean, customJsonStyle: String?) {
+        mapView.loadStyleUri(
+            when (getMapType() == W3WMap.MapType.NORMAL) {
+                true -> if (darkMode) Style.DARK else Style.MAPBOX_STREETS
+                false -> Style.SATELLITE_STREETS
+            }
+        )
     }
 
     /** Scale bounds to [scale] times to get the grid larger than the visible [MapboxMap.coordinateBoundsForCamera] with [MapboxMap.cameraState]. This will increase performance and keep the grid visible for longer when moving camera.
@@ -551,13 +482,13 @@ class W3WMapBoxWrapper(
         shouldCancelPreviousJob: Boolean = true,
         scale: Float = W3WGoogleMapsWrapper.DEFAULT_BOUNDS_SCALE
     ) {
-        if (mapView.cameraState.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
+        if (mapView.cameraState.zoom < zoomSwitchLevel && !isGridVisible) {
             clearMarkers()
             drawMarkersOnMap()
             isDirty = false
             return
         }
-        if (mapView.cameraState.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+        if (mapView.cameraState.zoom < zoomSwitchLevel && isGridVisible) {
             isGridVisible = false
             clearGridAndZoomedInMarkers()
             drawMarkersOnMap()
@@ -570,8 +501,10 @@ class W3WMapBoxWrapper(
         lastScaledBounds =
             scaleBounds(scale)
         if (shouldCancelPreviousJob) searchJob?.cancel()
-        searchJob = CoroutineScope(dispatchers.io()).launch {
-            val grid = wrapper.gridSectionGeoJson(lastScaledBounds!!).execute()
+        searchJob = CoroutineScope(dispatchers.main()).launch {
+            val grid = withContext(dispatchers.io()) {
+                wrapper.gridSectionGeoJson(lastScaledBounds!!).execute()
+            }
             isDirty = if (grid.isSuccessful) {
                 drawLinesOnMap(grid.toGeoJsonString())
                 drawZoomedMarkers()
@@ -583,11 +516,11 @@ class W3WMapBoxWrapper(
     }
 
     private fun drawZoomedMarkers() {
-        w3wMapManager.suggestionsCached.forEach {
+        w3WMapManager.suggestionsCached.forEach {
             drawFilledZoomedMarker(it)
         }
-        if (w3wMapManager.selectedSuggestion != null) {
-            drawOutlineZoomedMarker(w3wMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedSuggestion != null) {
+            drawOutlineZoomedMarker(w3WMapManager.selectedSuggestion!!)
         }
     }
 
@@ -745,7 +678,7 @@ class W3WMapBoxWrapper(
                 style.removeStyleLayer(SELECTED_ZOOMED_LAYER)
                 style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
             }
-            w3wMapManager.suggestionsCached.forEach {
+            w3WMapManager.suggestionsCached.forEach {
                 val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.words)
                 if (style.styleLayerExists(id)) {
                     style.removeStyleLayer(id)
@@ -758,7 +691,7 @@ class W3WMapBoxWrapper(
     private fun deleteMarkers() {
         try {
             runBlocking {
-                w3wMapManager.suggestionsRemoved.forEach { suggestion ->
+                w3WMapManager.suggestionsRemoved.forEach { suggestion ->
                     mapView.getStyle { style ->
                         val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.words)
                         if (style.styleLayerExists(id)) {
@@ -771,7 +704,7 @@ class W3WMapBoxWrapper(
                         }
                     }
                 }
-                w3wMapManager.suggestionsRemoved.clear()
+                w3WMapManager.suggestionsRemoved.clear()
             }
         } catch (e: Exception) {
         }
@@ -780,8 +713,8 @@ class W3WMapBoxWrapper(
 
     /** [drawMarkersOnMap] holds the logic to decide which kind of pin should be added to [MapboxMap.style] based on selection and added points.*/
     private fun drawMarkersOnMap() {
-        w3wMapManager.suggestionsCached.forEach {
-            if (w3wMapManager.selectedSuggestion?.square?.contains(
+        w3WMapManager.suggestionsCached.forEach {
+            if (w3WMapManager.selectedSuggestion?.square?.contains(
                     it.suggestion.coordinates.lat,
                     it.suggestion.coordinates.lng
                 ) == true
@@ -791,8 +724,8 @@ class W3WMapBoxWrapper(
                 drawCircle(it)
             }
         }
-        if (w3wMapManager.selectedSuggestion != null && w3wMapManager.suggestionsCached.all { it.suggestion.words != w3wMapManager.selectedSuggestion!!.words }) {
-            drawSelectedPin(w3wMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedSuggestion != null && w3WMapManager.suggestionsCached.all { it.suggestion.words != w3WMapManager.selectedSuggestion!!.words }) {
+            drawSelectedPin(w3WMapManager.selectedSuggestion!!)
         }
     }
 
@@ -943,8 +876,9 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimensionPixelSize(R.dimen.grid_width_mapbox_gone)
+            zoom < zoomSwitchLevel -> context.resources.getDimensionPixelSize(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
+
             else -> context.resources.getDimension(R.dimen.grid_width_mapbox_far).toDouble()
         }
     }
@@ -952,12 +886,15 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
+
+            zoom >= zoomSwitchLevel && zoom < zoomSwitchLevel + 2f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
                 .toDouble()
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
+
+            zoom >= zoomSwitchLevel + 2f && zoom < MAX_ZOOM_LEVEL - 2f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
                 .toDouble()
+
             else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_close)
                 .toDouble()
         }
@@ -970,7 +907,7 @@ class W3WMapBoxWrapper(
                 style.removeStyleLayer(SELECTED_LAYER)
                 style.removeStyleSource(SELECTED_SOURCE)
             }
-            w3wMapManager.suggestionsCached.forEach {
+            w3WMapManager.suggestionsCached.forEach {
                 if (style.styleLayerExists(it.suggestion.words)) {
                     style.removeStyleLayer(it.suggestion.words)
                     style.removeStyleSource(it.suggestion.words)

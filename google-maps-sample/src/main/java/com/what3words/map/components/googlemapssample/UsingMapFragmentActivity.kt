@@ -9,9 +9,10 @@ import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.map.components.googlemapssample.databinding.ActivityUsingMapFragmentBinding
 
-class UsingMapFragmentActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
+class UsingMapFragmentActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
     private lateinit var binding: ActivityUsingMapFragmentBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {

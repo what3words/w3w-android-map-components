@@ -8,10 +8,11 @@ import com.mapbox.maps.Style
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.map.components.mapboxsample.databinding.ActivityUsingMapFragmentBinding
 
-class UsingMapFragmentActivity : AppCompatActivity() , W3WMapboxMapFragment.OnMapReadyCallback {
+class UsingMapFragmentActivity : AppCompatActivity() , W3WMapFragment.OnMapReadyCallback {
     private lateinit var binding: ActivityUsingMapFragmentBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {

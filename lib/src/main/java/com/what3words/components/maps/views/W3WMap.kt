@@ -1,9 +1,9 @@
 package com.what3words.components.maps.views
 
 import androidx.core.util.Consumer
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
-import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -15,6 +15,13 @@ fun interface SelectedSquareConsumer<T, U, V> {
 
 /** [W3WMap] A basic set of functions common to all W3W map objects */
 interface W3WMap {
+    enum class MapType {
+        NORMAL,
+        HYBRID,
+        TERRAIN,
+        SATELLITE
+    }
+
     /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
      *
      * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
@@ -50,6 +57,7 @@ interface W3WMap {
         suggestion: Suggestion,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -66,6 +74,7 @@ interface W3WMap {
         suggestion: SuggestionWithCoordinates,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -80,6 +89,7 @@ interface W3WMap {
     fun selectAtSquare(
         square: SuggestionWithCoordinates,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -129,6 +139,7 @@ interface W3WMap {
     fun selectAtSuggestion(
         suggestion: Suggestion,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -145,6 +156,7 @@ interface W3WMap {
         words: String,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -175,6 +187,7 @@ interface W3WMap {
     fun selectAtWords(
         words: String,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -205,6 +218,7 @@ interface W3WMap {
         lng: Double,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -237,6 +251,7 @@ interface W3WMap {
         lat: Double,
         lng: Double,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
@@ -272,4 +287,73 @@ interface W3WMap {
 
     /** Remove selected marker from the map. */
     fun unselect()
+
+    fun moveToPosition(latitude: Double, longitude: Double, zoom: Double)
+    fun animateToPosition(
+        latitude: Double,
+        longitude: Double,
+        zoom: Double,
+        onFinished: () -> Unit
+    )
+    fun setMapGesturesEnabled(enabled: Boolean)
+    fun orientCamera()
+    fun setMyLocationEnabled(enabled: Boolean)
+    fun setMyLocationButton(enabled: Boolean)
+
+    /** Get current [W3WMap.MapType] from the map, these are the available options due to multiple map provide compatibility:
+     * [W3WMap.MapType.NORMAL], [W3WMap.MapType.TERRAIN], [W3WMap.MapType.HYBRID] and [W3WMap.MapType.SATELLITE].
+     *
+     * @returns the [W3WMap.MapType] currently applied to the map.
+     */
+    fun getMapType() : MapType
+
+    /** Set [W3WMap.MapType] of the map, these are the available options due to multiple map provide compatibility:
+     * [W3WMap.MapType.NORMAL], [W3WMap.MapType.TERRAIN], [W3WMap.MapType.HYBRID] and [W3WMap.MapType.SATELLITE].
+     *
+     * @param mapType the [W3WMap.MapType] to be applied to the map.
+     */
+    fun setMapType(mapType: MapType)
+
+    /** Check if the map is currently presenting in Dark/Night or Light/Day mode.
+     *
+     * @returns true if map is currently using dark mode, false if using day mode.
+     */
+    fun isDarkMode() : Boolean
+
+    /** Set the map to Dark/Night or Light/Day mode, to maintain compatibility with different map providers, we either handle setting
+     * as a MapType internally (i.e. Mapbox) or we apply a default JSON style or the one provided with [customJsonStyle] (i.e. GoogleMaps).
+     *
+     * @param darkMode true if should be using dark mode, false should be using day mode.
+     */
+    fun setDarkMode(darkMode: Boolean, customJsonStyle: String? = null)
+
+    /** Checks if Grid is currently rendered on top of the map.
+     *
+     * @return true if grid is rendered on the map, false if not.
+     */
+    fun isMapAtGridLevel(): Boolean
+
+    /** Set zoom switch level. If the map zoom level is lower than [zoom], it will not show the grid; if the map zoom is higher or equal to [zoom], it will show the grid.
+     *
+     * @param zoom the zoom level to turn the grid visibility on and off.
+     */
+    fun setZoomSwitchLevel(zoom: Float)
+
+    /** Get zoom switch level.
+     *
+     * @return the zoom level that defines the grid visibility.
+     */
+    fun getZoomSwitchLevel() : Float
+
+    /** Get Map current target, the center position (lat/lng) of the camera.
+     *
+     * @return the current target of them map camera where [Pair.first] is latitude and [Pair.second] is longitude.
+     */
+    val target: Pair<Double, Double>
+
+    /** Get Map current zoom level.
+     *
+     * @return the current zoom level of them map camera.
+     */
+    val zoom: Float
 }

@@ -8,7 +8,6 @@ import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.io
 import com.what3words.components.maps.extensions.main
 import com.what3words.components.maps.extensions.toSuggestionWithCoordinates
-import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.javawrapper.request.Coordinates
@@ -18,9 +17,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
- * [W3WMapManager] an abstract layer to retrieve data from [W3WDataSource] save it in memory [suggestionsCached] and be used in multiple map wrapper. i.e: [W3WGoogleMapsWrapper].
+ * [W3WMapManager] an abstract layer to retrieve data from [What3WordsAndroidWrapper] save it in memory [suggestionsCached] and be used in multiple map wrapper. i.e: [W3WGoogleMapsWrapper].
  **
  * @param wrapper source of what3words data can be API or SDK.
+ * @param w3WMapWrapper the [W3WMapWrapper] that this manager will add/remove/select squares from.
  * @param dispatchers for custom dispatcher handler using [DefaultDispatcherProvider] by default.
  */
 internal class W3WMapManager(
@@ -39,12 +39,13 @@ internal class W3WMapManager(
 
     internal var language: String = "en"
 
-    /** Add [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
+    /** Add marker at [SuggestionWithCoordinates.square] that contains coordinates [lat] latitude and [lng] longitude and add it to [suggestionsCached].
      *
-     * @param lat coordinates latitude to be added.
-     * @param lat coordinates longitude to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
+     * @param lat latitude coordinates within [SuggestionWithCoordinates.square] to be added to the map.
+     * @param lng longitude coordinates within [SuggestionWithCoordinates.square] to be added to the map.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the [suggestionsCached] list.
+     * @param onError is called if there was an [APIResponse.What3WordsError] with [What3WordsAndroidWrapper.convertTo3wa].
      */
     fun addCoordinates(
         lat: Double,
@@ -80,11 +81,11 @@ internal class W3WMapManager(
         }
     }
 
-    /** Add [SuggestionWithCoordinates] to [suggestionsCached].
+    /** Add marker at [SuggestionWithCoordinates.square] and add it to [suggestionsCached].
      *
      * @param suggestionWithCoordinates [SuggestionWithCoordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the [suggestionsCached] list.
      */
     fun addSuggestionWithCoordinates(
         suggestionWithCoordinates: SuggestionWithCoordinates,
@@ -111,10 +112,10 @@ internal class W3WMapManager(
         }
     }
 
-    /** Set a [SuggestionWithCoordinates] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates] and calls [W3WMapWrapper.updateMap] to reflect the changes.
+    /** Set a [SuggestionWithCoordinates.square] as a selected square. Only one selected square is allowed at a time. This method will save [suggestion] in [selectedSuggestion] and call [W3WMapWrapper.updateMap] to reflect the changes.
      *
      * @param suggestion [SuggestionWithCoordinates] to be selected.
-     * @param onSuccess an success callback will return the same [SuggestionWithCoordinates].
+     * @param onSuccess a success callback will return the same [SuggestionWithCoordinates].
      */
     fun selectSuggestionWithCoordinates(
         suggestion: SuggestionWithCoordinates,
@@ -127,11 +128,12 @@ internal class W3WMapManager(
         }
     }
 
-    /** Set Coordinates [lat], [lng] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates].
+    /** Select [SuggestionWithCoordinates.square] that contains coordinates [lat] latitude and [lng] longitude. Only one selected square is allowed at a time. This method will call [What3WordsAndroidWrapper.convertTo3wa] and, if successful, will save [SuggestionWithCoordinates] in [selectedSuggestion].
      *
-     * @param lat coordinates latitude to be added.
-     * @param lng coordinates longitude to be added.
-     * @return [Either] where will be [Either.Left] if an error occurs or [Either.Right] with [SuggestionWithCoordinates] if [W3WDataSource.getSuggestionByCoordinates] it's successful.
+     * @param lat coordinates latitude to be selected.
+     * @param lng coordinates longitude to be selected.
+     * @param onSuccess is called if [SuggestionWithCoordinates.square] was selected successfully.
+     * @param onError is called if there was an [APIResponse.What3WordsError] with [What3WordsAndroidWrapper.convertTo3wa].
      */
     fun selectCoordinates(
         lat: Double,
@@ -159,11 +161,12 @@ internal class W3WMapManager(
         }
     }
 
-    /** Add a list of [Coordinates] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByCoordinates] for each [Coordinates] and if ALL succeed will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep in memory all [SuggestionWithCoordinates] and all the styles applied to it.
+    /** Add markers at multiple [SuggestionWithCoordinates.square]'s that contain coordinates inside [listCoordinates] where [Pair.first] is latitude and [Pair.second] is longitude, and add them to [suggestionsCached].
      *
-     * @param listCoordinates list of [Coordinates] to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added,.
-     * @return [Either] where will be [Either.Left] if any error occurs or [Either.Right] with a list of [SuggestionWithCoordinates] if ALL [W3WDataSource.getSuggestionByCoordinates] are successful.
+     * @param listCoordinates list of coordinates where [Pair.first] is latitude and [Pair.second] is longitude within the [SuggestionWithCoordinates.square] to add.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if ALL markers at [SuggestionWithCoordinates.square] are added successfully to the [suggestionsCached] list.
+     * @param onError is called if there was an [APIResponse.What3WordsError] in any of the [What3WordsAndroidWrapper.convertTo3wa] calls.
      */
     fun addCoordinates(
         listCoordinates: List<Pair<Double, Double>>,
@@ -219,9 +222,10 @@ internal class W3WMapManager(
         }
     }
 
-    /** Remove [Coordinates] from [suggestionsCached].
+    /** Remove marker at [SuggestionWithCoordinates.square] from [suggestionsCached] that contains coordinates [lat] latitude and [lng] longitude.
      *
-     * @param coordinates the [Coordinates] to be removed.
+     * @param lat the latitude of the [SuggestionWithCoordinates.square] to be removed.
+     * @param lng the longitude of the [SuggestionWithCoordinates.square] to be removed.
      */
     fun removeCoordinates(lat: Double, lng: Double) {
         main(dispatchers) {
@@ -233,9 +237,9 @@ internal class W3WMapManager(
         }
     }
 
-    /** Remove a list of [Coordinates] from [suggestionsCached].
+    /** Remove markers at multiple [SuggestionWithCoordinates.square]'s from [suggestionsCached] that contain coordinates inside [listCoordinates] where [Pair.first] is latitude, and [Pair.second] is longitude.
      *
-     * @param listCoordinates the list of [Coordinates] to remove.
+     * @param listCoordinates list of coordinates where [Pair.first] is latitude and [Pair.second] is longitude within the [SuggestionWithCoordinates.square] to remove.
      */
     fun removeCoordinates(listCoordinates: List<Pair<Double, Double>>) {
         runBlocking(dispatchers.io()) {
@@ -253,12 +257,12 @@ internal class W3WMapManager(
         }
     }
 
-    /** Add three word address [words] to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByWords] and if success will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep [SuggestionWithCoordinates] and all the styles applied to it.
+    /** Add marker at [SuggestionWithCoordinates.square] that [SuggestionWithCoordinates.words] are equal to [words] and add it to [suggestionsCached].
      *
-     * @param words to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [words] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param words the what3words address of [SuggestionWithCoordinates.square] to be added to the map.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the [suggestionsCached] list.
+     * @param onError is called if there was an [APIResponse.What3WordsError] with [What3WordsAndroidWrapper.convertToCoordinates].
      */
     fun addWords(
         words: String,
@@ -289,13 +293,12 @@ internal class W3WMapManager(
         }
     }
 
-    /** Add a list of three word addresses to [suggestionsCached]. This method will call [W3WDataSource.getSuggestionByWords] for each words in [listWords] and if ALL succeed will save [SuggestionWithCoordinatesAndStyle] in [suggestionsCached] to keep in memory all [SuggestionWithCoordinates] and all the styles applied to it.
-     * finally calls [W3WMapWrapper.updateMap] to reflect the changes.
+    /** Add markers at multiple [SuggestionWithCoordinates.square] that [SuggestionWithCoordinates.words] are equal to each what3words address inside [listWords] and add them to [suggestionsCached].
      *
-     * @param listWords list of words to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [listWords] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [listWords].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param listWords the list of what3words addresses of multiple [SuggestionWithCoordinates.square]'s to be added to the map.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the [suggestionsCached] list.
+     * @param onError is called if there was an [APIResponse.What3WordsError] with [What3WordsAndroidWrapper.convertToCoordinates].
      */
     fun addWords(
         listWords: List<String>,
@@ -342,11 +345,13 @@ internal class W3WMapManager(
         }
     }
 
-    /** Set a three word address [words] as selected, only one selected allowed at the time. This method will call [W3WDataSource.getSuggestionByCoordinates] and if success will save [SuggestionWithCoordinates] in [selectCoordinates] and calls [W3WMapWrapper.updateMap] to reflect the changes.
+    /** Select [SuggestionWithCoordinates.square] that [SuggestionWithCoordinates.words] are equal to [words].
+     * Only one selected square is allowed at a time.
+     * This method will call [What3WordsAndroidWrapper.convertToCoordinates] and, if successful, will save [SuggestionWithCoordinates] in [selectedSuggestion].
      *
-     * @param words three word address to be selected.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param words what3words address to select.
+     * @param onSuccess is called if [SuggestionWithCoordinates.square] was selected successfully.
+     * @param onError is called if there was an [APIResponse.What3WordsError] with [What3WordsAndroidWrapper.convertToCoordinates].
      */
     fun selectWords(
         words: String,
@@ -375,9 +380,9 @@ internal class W3WMapManager(
         }
     }
 
-    /** Remove three word address from [suggestionsCached].
+    /** Remove [SuggestionWithCoordinates.square] from [suggestionsCached] where [SuggestionWithCoordinates.words] are equal to [words].
      *
-     * @param words the three word address to be removed.
+     * @param words the what3words address to remove.
      */
     fun removeWords(words: String) {
         main(dispatchers) {
@@ -389,9 +394,9 @@ internal class W3WMapManager(
         }
     }
 
-    /** Remove a list of three word addresses from the map.
+    /** Remove multiple [SuggestionWithCoordinates.square]'s from [suggestionsCached] where [SuggestionWithCoordinates.words] are equal to each what3words address inside [listWords]
      *
-     * @param listWords the list of three word addresses to remove.
+     * @param listWords the list of what3words addresses of multiple [SuggestionWithCoordinates.square]'s to remove from the map.
      */
     fun removeWords(listWords: List<String>) {
         main(dispatchers) {
@@ -407,7 +412,7 @@ internal class W3WMapManager(
         }
     }
 
-    /** Remove all from [suggestionsCached]. */
+    /** Remove all markers from the map. It will clear [suggestionsCached]. */
     fun clearList() {
         main(dispatchers) {
             suggestionsCached.forEach { data ->
@@ -420,11 +425,11 @@ internal class W3WMapManager(
         }
     }
 
-    /** Finds a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] exactly by [latitude] and [longitude].
+    /** Finds a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] strictly by [latitude] and [longitude].
      *
      * @param latitude the latitude search query.
      * @param longitude the longitude search query.
-     * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] will return it if not will return null.
+     * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached], will return it. If not, it will return null.
      */
     internal fun findByExactLocation(
         latitude: Double,
@@ -433,11 +438,11 @@ internal class W3WMapManager(
         return suggestionsCached.firstOrNull { it.suggestion.coordinates.lat == latitude && it.suggestion.coordinates.lng == longitude }
     }
 
-    /** Finds a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] by checking if [latitude] and [longitude] is inside of any [SuggestionWithCoordinates.square].
+    /** Finds a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] by checking if [latitude] and [longitude] are inside of any [SuggestionWithCoordinates.square].
      *
-     * @param latitude the latitude to search for.
-     * @param longitude the longitude to search for.
-     * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] will return it if not will return null.
+     * @param latitude is the latitude to search for.
+     * @param longitude is the longitude to search for.
+     * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached], will return it. If not, it will return null.
      */
     internal fun squareContains(
         latitude: Double,
@@ -446,24 +451,8 @@ internal class W3WMapManager(
         return suggestionsCached.firstOrNull { it.suggestion.square.contains(latitude, longitude) }
     }
 
-    /** Finds a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] by checking if [latitude] and [longitude] is inside of any [SuggestionWithCoordinates.square].
-     *
-     * @param latitude the latitude to search for.
-     * @param longitude the longitude to search for.
-     * @return if the search query matches a [SuggestionWithCoordinatesAndStyle] inside [suggestionsCached] will return it if not will return null.
-     */
-    internal fun selectedSquareContains(
-        latitude: Double,
-        longitude: Double
-    ): SuggestionWithCoordinates? {
-        return if (selectedSuggestion?.square?.contains(
-                latitude,
-                longitude
-            ) == true
-        ) selectedSuggestion else null
-    }
 
-    /** Gets all [SuggestionWithCoordinates] inside [suggestionsCached].
+    /** Gets all markers from the map.
      *
      * @return all [SuggestionWithCoordinates] inside [suggestionsCached].
      */
@@ -473,6 +462,9 @@ internal class W3WMapManager(
         }
     }
 
+    /**
+     * Select an existing [SuggestionWithCoordinates.square] in [suggestionsCached] where the [SuggestionWithCoordinates.square] contains [latitude] and [longitude].
+     */
     fun selectExistingMarker(latitude: Double, longitude: Double) {
         selectedSuggestion = squareContains(latitude, longitude)?.suggestion
         main(dispatchers) {
@@ -480,6 +472,9 @@ internal class W3WMapManager(
         }
     }
 
+    /**
+     * Select an existing [SuggestionWithCoordinates.square] in [suggestionsCached].
+     */
     fun selectExistingMarker(suggestionWithCoordinates: SuggestionWithCoordinates) {
         selectedSuggestion = suggestionWithCoordinates
         main(dispatchers) {

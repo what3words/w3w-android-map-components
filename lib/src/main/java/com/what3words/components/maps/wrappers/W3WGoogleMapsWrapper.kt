@@ -21,7 +21,6 @@ import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.main
-import com.what3words.components.maps.models.Either
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
@@ -30,7 +29,6 @@ import com.what3words.components.maps.models.toPin
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
-import com.what3words.javawrapper.response.Line
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
@@ -39,7 +37,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.core.util.Consumer
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
+import com.what3words.components.maps.models.DarkModeStyle
+import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.extensions.computeHorizontalLines
+import com.what3words.components.maps.extensions.computeVerticalLines
 import kotlin.math.roundToInt
 
 /**
@@ -56,12 +59,15 @@ class W3WGoogleMapsWrapper(
     private val wrapper: What3WordsAndroidWrapper,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
+    private var zoomSwitchLevel: Float = DEFAULT_ZOOM_SWITCH_LEVEL
+    private var isDarkMode: Boolean = false
 
     companion object {
         const val VERTICAL_LINES_COLLECTION = "VERTICAL_LINES_COLLECTION"
         const val HORIZONTAL_LINES_COLLECTION = "HORIZONTAL_LINES_COLLECTION"
         const val SELECTED = "SELECTED"
-        const val ZOOM_SWITCH_LEVEL = 18f
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 6f
         const val SCALE_NORMALIZATION = 1f
     }
@@ -69,10 +75,10 @@ class W3WGoogleMapsWrapper(
     private var gridColor: GridColor = GridColor.AUTO
     private var onMarkerClickedCallback: Consumer<SuggestionWithCoordinates>? = null
     private var lastScaledBounds: LatLngBounds? = null
-    private var isGridVisible: Boolean = false
+    internal var isGridVisible: Boolean = false
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
-    private var w3wMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
+    private var w3WMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
 
     private val polylineManager: PolylineManager by lazy {
         val pol = PolylineManager(mapView)
@@ -93,43 +99,32 @@ class W3WGoogleMapsWrapper(
     private fun shouldShowDarkGrid(): Boolean {
         if (gridColor == GridColor.LIGHT) return false
         if (gridColor == GridColor.DARK) return true
+        if (isDarkMode) return false
         return (mapView.mapType == GoogleMap.MAP_TYPE_NORMAL || mapView.mapType == GoogleMap.MAP_TYPE_TERRAIN)
     }
 
-    /** Set the language of [SuggestionWithCoordinates.words] that onSuccess callbacks should return.
-     *
-     * @param language a supported 3 word address language as an ISO 639-1 2 letter code. Defaults to en (English).
-     */
     override fun setLanguage(language: String): W3WGoogleMapsWrapper {
-        w3wMapManager.language = language
+        w3WMapManager.language = language
         return this
     }
 
-    /** Enable grid overlay over map with all 3mx3m squares on the visible map bounds.
-     *
-     * @param isEnabled enable or disable grid, enabled by default.
-     */
+    override fun setZoomSwitchLevel(zoom: Float) {
+        zoomSwitchLevel = zoom
+    }
+
+    override fun getZoomSwitchLevel(): Float {
+        return zoomSwitchLevel
+    }
+
     override fun gridEnabled(isEnabled: Boolean): W3WGoogleMapsWrapper {
         shouldDrawGrid = isEnabled
         return this
     }
 
-    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
-     *
-     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
-     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
-     * [GridColor.DARK] - Will force grid and selected square color to be dark.
-     *
-     * @param gridColor set grid color, per default will be [GridColor.AUTO].
-     */
     override fun setGridColor(gridColor: GridColor) {
         this.gridColor = gridColor
     }
 
-    /** A callback for when an existing marker on the map is clicked.
-     *
-     * @param callback it will be invoked when an existing marker on the map is clicked by the user.
-     */
     override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WGoogleMapsWrapper {
         onMarkerClickedCallback = callback
         return this
@@ -137,20 +132,13 @@ class W3WGoogleMapsWrapper(
 
     //region add/remove by suggestion
 
-    /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
-     *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtSuggestion(
         suggestion: Suggestion,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             suggestion.words,
             markerColor,
             onSuccess,
@@ -158,20 +146,13 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Add a list of [Suggestion] to the map. This method will add multiple markers/squares to the map after getting the suggestions from our W3WAutosuggestEditText.
-     *
-     * @param listSuggestions list of [Suggestion]s returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the suggestion added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtSuggestion(
         listSuggestions: List<Suggestion>,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             listSuggestions.map { it.words },
             markerColor,
             onSuccess,
@@ -179,34 +160,20 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Remove [Suggestion] from the map.
-     *
-     * @param suggestion the [Suggestion] to be removed.
-     */
     override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
-        w3wMapManager.removeWords(suggestion.words)
+        w3WMapManager.removeWords(suggestion.words)
     }
 
-    /** Remove [Suggestion]s from the map.
-     *
-     * @param listSuggestions the list of [Suggestion]s to remove.
-     */
     override fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>) {
-        w3wMapManager.removeWords(listSuggestions.map { it.words })
+        w3WMapManager.removeWords(listSuggestions.map { it.words })
     }
 
-    /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtSuggestion(
         suggestion: Suggestion,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.selectWords(
+        w3WMapManager.selectWords(
             suggestion.words,
             onSuccess,
             onError
@@ -220,9 +187,9 @@ class W3WGoogleMapsWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         if (suggestion.coordinates != null) {
-            w3wMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
+            w3WMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
         } else {
-            w3wMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
+            w3WMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
         }
     }
 
@@ -232,9 +199,9 @@ class W3WGoogleMapsWrapper(
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
         if (suggestion.coordinates != null) {
-            w3wMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
+            w3WMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
         } else {
-            w3wMapManager.selectWords(suggestion.words, onSuccess, onError)
+            w3WMapManager.selectWords(suggestion.words, onSuccess, onError)
         }
     }
 
@@ -242,14 +209,6 @@ class W3WGoogleMapsWrapper(
 
     //region add/remove by coordinates
 
-    /** Add [Coordinates] to the map. This method will add a marker/square to the map based on each of the [Coordinates] provided latitude and longitude.
-     *
-     * @param lat latitude to be added.
-     * @param lng longitude to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtCoordinates(
         lat: Double,
         lng: Double,
@@ -257,7 +216,7 @@ class W3WGoogleMapsWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addCoordinates(
+        w3WMapManager.addCoordinates(
             lat,
             lng,
             markerColor,
@@ -266,20 +225,13 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Add a list of [Coordinates] to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
-     *
-     * @param listCoordinates list of [Pair.first] = latitude, [Pair.second] = longitude to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtCoordinates(
         listCoordinates: List<Pair<Double, Double>>,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addCoordinates(
+        w3WMapManager.addCoordinates(
             listCoordinates,
             markerColor,
             onSuccess,
@@ -287,20 +239,13 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Set Coordinates [lat], [lng] as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param lat latitude to be added.
-     * @param lng longitude to be added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtCoordinates(
         lat: Double,
         lng: Double,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.selectCoordinates(
+        w3WMapManager.selectCoordinates(
             lat,
             lng,
             onSuccess,
@@ -309,42 +254,26 @@ class W3WGoogleMapsWrapper(
     }
 
     override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
-        return w3wMapManager.squareContains(lat, lng)?.suggestion
+        return w3WMapManager.squareContains(lat, lng)?.suggestion
     }
 
-    /** Remove marker at [lat],[lng] from the map.
-     *
-     * @param lat latitude coordinates of the marker to be removed.
-     * @param lng longitude coordinates of the marker to be removed.
-     */
     override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
-        w3wMapManager.removeCoordinates(lat, lng)
+        w3WMapManager.removeCoordinates(lat, lng)
     }
 
-    /** Remove markers based on [listCoordinates] which [Pair.first] is latitude, [Pair.second] is longitude of the marker in the map.
-     *
-     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates of the markers to be removed.
-     */
     override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
-        w3wMapManager.removeCoordinates(listCoordinates)
+        w3WMapManager.removeCoordinates(listCoordinates)
     }
 //endregion
 
     //region add/remove by words
-    /** Add a three word address to the map. This method will add a marker/square to the map if [words] are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
-     *
-     * @param words three word address to be added.
-     * @param markerColor the [W3WMarkerColor] for the [Coordinates] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [words].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             words,
             markerColor,
             onSuccess,
@@ -352,20 +281,13 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Add a list of three word addresses to the map. This method will add a marker/square to the map if all [listWords] are a valid three word addresses, e.g., filled.count.soap. If any valid three word address is not valid, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
-     *
-     * @param listWords list of three word address to be added.
-     * @param markerColor the [W3WMarkerColor] for the [listWords] added.
-     * @param onSuccess an success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those [listWords].
-     * @param onError an error callback, will return a [APIResponse.What3WordsError] that will have the error type and message. If one item on the list fails to be added, this process will be fully reverted, only adds if all succeed.
-     */
     override fun addMarkerAtWords(
         listWords: List<String>,
         markerColor: W3WMarkerColor,
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.addWords(
+        w3WMapManager.addWords(
             listWords,
             markerColor,
             onSuccess,
@@ -373,63 +295,44 @@ class W3WGoogleMapsWrapper(
         )
     }
 
-    /** Set [words] as selected marker on the map, it can only have one selected marker at the time.
-     *
-     * @param words three word address to be added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus [Coordinates].
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
-     */
     override fun selectAtWords(
         words: String,
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        w3wMapManager.selectWords(
+        w3WMapManager.selectWords(
             words,
             onSuccess,
             onError
         )
     }
 
-    /** Remove three word address from the map.
-     *
-     * @param words the three word address to be removed.
-     */
     override fun removeMarkerAtWords(words: String) {
-        w3wMapManager.removeWords(words)
+        w3WMapManager.removeWords(words)
     }
 
-    /** Remove a list of three word addresses from the map.
-     *
-     * @param listWords the list of three word addresses to remove.
-     */
     override fun removeMarkerAtWords(listWords: List<String>) {
-        w3wMapManager.removeWords(listWords)
+        w3WMapManager.removeWords(listWords)
     }
 
     //endregion
 
     //region general public methods
-    /** Remove all markers from the map. */
     override fun removeAllMarkers() {
-        w3wMapManager.clearList()
+        w3WMapManager.clearList()
     }
 
-    /** Get all added [SuggestionWithCoordinates] from the map.
-     *
-     * @return list of [SuggestionWithCoordinates] with all items added to the map.
-     */
     override fun getAllMarkers(): List<SuggestionWithCoordinates> {
-        return w3wMapManager.getList()
+        return w3WMapManager.getList()
     }
 
     override fun getSelectedMarker(): SuggestionWithCoordinates? {
-        return w3wMapManager.selectedSuggestion
+        return w3WMapManager.selectedSuggestion
     }
 
     override fun unselect() {
         runBlocking(dispatchers.io()) {
-            w3wMapManager.unselect()
+            w3WMapManager.unselect()
         }
     }
 
@@ -446,30 +349,69 @@ class W3WGoogleMapsWrapper(
     override fun updateMove() {
         lastScaledBounds =
             scaleBounds(mapView.projection.visibleRegion.latLngBounds)
-        if (mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+        if (mapView.cameraPosition.zoom < zoomSwitchLevel && isGridVisible) {
             onMapMoved(true)
             isGridVisible = false
             return
         }
-        if (mapView.cameraPosition.zoom >= ZOOM_SWITCH_LEVEL && !isGridVisible) {
+        if (mapView.cameraPosition.zoom >= zoomSwitchLevel && !isGridVisible) {
             onMapMoved(true)
             return
         }
+    }
+
+    override fun setMapType(mapType: W3WMap.MapType) {
+        val newMapType = when (mapType) {
+            W3WMap.MapType.NORMAL -> GoogleMap.MAP_TYPE_NORMAL
+            W3WMap.MapType.HYBRID -> GoogleMap.MAP_TYPE_HYBRID
+            W3WMap.MapType.TERRAIN -> GoogleMap.MAP_TYPE_TERRAIN
+            W3WMap.MapType.SATELLITE -> GoogleMap.MAP_TYPE_SATELLITE
+        }
+        if (newMapType != mapView.mapType) {
+            mapView.mapType = newMapType
+            updateMap()
+        }
+    }
+
+    override fun getMapType(): W3WMap.MapType {
+        return when (mapView.mapType) {
+            GoogleMap.MAP_TYPE_HYBRID -> W3WMap.MapType.HYBRID
+            GoogleMap.MAP_TYPE_TERRAIN -> W3WMap.MapType.TERRAIN
+            GoogleMap.MAP_TYPE_SATELLITE -> W3WMap.MapType.SATELLITE
+            else -> W3WMap.MapType.NORMAL
+        }
+    }
+
+    override fun setDarkMode(darkMode: Boolean, customJsonStyle: String?) {
+        if (darkMode != isDarkMode) {
+            isDarkMode = darkMode
+            mapView.setMapStyle(
+                if (darkMode) MapStyleOptions(
+                    customJsonStyle ?: DarkModeStyle.darkMode
+                )
+                else null
+            )
+            updateMap()
+        }
+    }
+
+    override fun isDarkMode(): Boolean {
+        return isDarkMode
     }
 
     //endregion
 
     //region managers/collections on click events
     private val zoomedOutMarkerListener = GoogleMap.OnMarkerClickListener { p0 ->
-        w3wMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-        onMarkerClickedCallback?.accept(w3wMapManager.selectedSuggestion)
+        w3WMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
+        onMarkerClickedCallback?.accept(w3WMapManager.selectedSuggestion)
         return@OnMarkerClickListener true
     }
 
     private val zoomedInMarkerListener =
         GoogleMap.OnGroundOverlayClickListener { p0 ->
-            w3wMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-            onMarkerClickedCallback?.accept(w3wMapManager.selectedSuggestion)
+            w3WMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
+            onMarkerClickedCallback?.accept(w3WMapManager.selectedSuggestion)
         }
     //endregion
 
@@ -515,12 +457,12 @@ class W3WGoogleMapsWrapper(
         scale: Float = DEFAULT_BOUNDS_SCALE
     ) {
         deleteMarkers()
-        if (mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && !isGridVisible) {
+        if (mapView.cameraPosition.zoom < zoomSwitchLevel && !isGridVisible) {
             clearMarkers()
             drawMarkersOnMap()
             return
         }
-        if (mapView.cameraPosition.zoom < ZOOM_SWITCH_LEVEL && isGridVisible) {
+        if (mapView.cameraPosition.zoom < zoomSwitchLevel && isGridVisible) {
             isGridVisible = false
             clearGridAndZoomedInMarkers()
             drawMarkersOnMap()
@@ -564,14 +506,14 @@ class W3WGoogleMapsWrapper(
     }
 
     private fun drawMarkersOnMap() {
-        w3wMapManager.suggestionsCached.filter {
+        w3WMapManager.suggestionsCached.filter {
             if (lastScaledBounds != null) {
                 lastScaledBounds!!.contains(
                     LatLng(it.suggestion.coordinates.lat, it.suggestion.coordinates.lng)
                 )
             } else true
         }.forEach {
-            if (w3wMapManager.selectedSuggestion?.square?.contains(
+            if (w3WMapManager.selectedSuggestion?.square?.contains(
                     it.suggestion.coordinates.lat,
                     it.suggestion.coordinates.lng
                 ) == true
@@ -581,8 +523,8 @@ class W3WGoogleMapsWrapper(
                 drawCircle(it)
             }
         }
-        if (w3wMapManager.selectedSuggestion != null && w3wMapManager.suggestionsCached.all { it.suggestion.words != w3wMapManager.selectedSuggestion!!.words }) {
-            drawSelectedPin(w3wMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedSuggestion != null && w3WMapManager.suggestionsCached.all { it.suggestion.words != w3WMapManager.selectedSuggestion!!.words }) {
+            drawSelectedPin(w3WMapManager.selectedSuggestion!!)
         }
     }
 
@@ -674,7 +616,7 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
             else -> context.resources.getDimension(R.dimen.grid_width_close)
         }
     }
@@ -682,9 +624,9 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < ZOOM_SWITCH_LEVEL -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= ZOOM_SWITCH_LEVEL && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom >= zoomSwitchLevel && zoom < zoomSwitchLevel + 2f -> context.resources.getDimension(R.dimen.grid_selected_width_far)
+            zoom >= zoomSwitchLevel + 2f && zoom < MAX_ZOOM_LEVEL - 2f -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_selected_width_close)
         }
     }
@@ -720,7 +662,7 @@ class W3WGoogleMapsWrapper(
     }
 
     private fun drawZoomedMarkers() {
-        w3wMapManager.suggestionsCached.filter {
+        w3WMapManager.suggestionsCached.filter {
             if (lastScaledBounds != null) {
                 lastScaledBounds!!.contains(
                     LatLng(it.suggestion.coordinates.lat, it.suggestion.coordinates.lng)
@@ -729,8 +671,8 @@ class W3WGoogleMapsWrapper(
         }.forEach {
             drawFilledZoomedMarker(it.suggestion, it.markerColor.toGridFill())
         }
-        if (w3wMapManager.selectedSuggestion != null) {
-            drawOutlineZoomedMarker(w3wMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedSuggestion != null) {
+            drawOutlineZoomedMarker(w3WMapManager.selectedSuggestion!!)
         }
     }
 
@@ -815,7 +757,7 @@ class W3WGoogleMapsWrapper(
     private fun clearGridAndZoomedInMarkers() {
         try {
             runBlocking {
-                w3wMapManager.suggestionsCached.forEach { suggestion ->
+                w3WMapManager.suggestionsCached.forEach { suggestion ->
                     polylineManager.getCollection(suggestion.suggestion.words)?.polylines?.forEach {
                         main(dispatchers) {
                             it.remove()
@@ -844,7 +786,7 @@ class W3WGoogleMapsWrapper(
     private fun deleteMarkers() {
         try {
             runBlocking {
-                w3wMapManager.suggestionsRemoved.forEach { suggestion ->
+                w3WMapManager.suggestionsRemoved.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
                             it.remove()
@@ -861,7 +803,7 @@ class W3WGoogleMapsWrapper(
                         }
                     }
                 }
-                w3wMapManager.suggestionsRemoved.clear()
+                w3WMapManager.suggestionsRemoved.clear()
             }
         } catch (e: Exception) {
         }
@@ -871,7 +813,7 @@ class W3WGoogleMapsWrapper(
     private fun clearMarkers() {
         try {
             runBlocking {
-                w3wMapManager.suggestionsCached.forEach { suggestion ->
+                w3WMapManager.suggestionsCached.forEach { suggestion ->
                     markerManager.getCollection(suggestion.suggestion.words)?.markers?.forEach {
                         main(dispatchers) {
                             it.remove()
@@ -889,80 +831,4 @@ class W3WGoogleMapsWrapper(
     }
 
     //endregion
-}
-
-/** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
- * List of [Line]'s will come from [W3WDataSource] with the following logic:
- * 1     3      5
- * |  /  |  /  |
- * 2     4     6 ..
- *
- * @return will return list of [com.what3words.javawrapper.response.Coordinates] with the following logic:
- * 1     4-----5
- * |     |     |
- * 2-----3     6 ..
- */
-internal fun List<Line>.computeVerticalLines(): List<com.what3words.javawrapper.response.Coordinates> {
-    val computedVerticalLines =
-        mutableListOf<com.what3words.javawrapper.response.Coordinates>()
-
-    // all vertical lines
-    val verticalLines = mutableListOf<Line>()
-    verticalLines.addAll(this.filter { it.start.lng == it.end.lng })
-
-    var t = 0
-    while (verticalLines.isNotEmpty()) {
-        verticalLines.maxByOrNull { it.start.lat }?.let { topLeftGrid ->
-            if (t % 2 == 0) {
-                computedVerticalLines.add(topLeftGrid.start)
-                computedVerticalLines.add(topLeftGrid.end)
-            } else {
-                computedVerticalLines.add(topLeftGrid.end)
-                computedVerticalLines.add(topLeftGrid.start)
-            }
-            verticalLines.remove(topLeftGrid)
-        }
-        t += 1
-    }
-    return computedVerticalLines
-}
-
-/** [computeHorizontalLines] will compute horizontal lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
- * List of [Line]'s will come from [W3WDataSource] with the following logic:
- * A-----B
- *    /
- * C-----D
- *    /
- * E-----F
- *
- * @return will return list of [com.what3words.javawrapper.response.Coordinates] with the following logic:
- * A-----B
- *       |
- * D-----C
- * |
- * E-----F
- */
-internal fun List<Line>.computeHorizontalLines(): List<com.what3words.javawrapper.response.Coordinates> {
-    val computedHorizontalLines =
-        mutableListOf<com.what3words.javawrapper.response.Coordinates>()
-
-    // all horizontal lines
-    val horizontalLines = mutableListOf<Line>()
-    horizontalLines.addAll(this.filter { it.start.lat == it.end.lat })
-
-    var t = 0
-    while (horizontalLines.isNotEmpty()) {
-        horizontalLines.minByOrNull { it.start.lng }?.let { topLeftGrid ->
-            if (t % 2 == 0) {
-                computedHorizontalLines.add(topLeftGrid.start)
-                computedHorizontalLines.add(topLeftGrid.end)
-            } else {
-                computedHorizontalLines.add(topLeftGrid.end)
-                computedHorizontalLines.add(topLeftGrid.start)
-            }
-            horizontalLines.remove(topLeftGrid)
-            t += 1
-        }
-    }
-    return computedHorizontalLines
 }
