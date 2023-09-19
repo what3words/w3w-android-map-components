@@ -624,9 +624,9 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= zoomSwitchLevel && zoom < zoomSwitchLevel + 2f -> context.resources.getDimension(R.dimen.grid_selected_width_far)
-            zoom >= zoomSwitchLevel + 2f && zoom < MAX_ZOOM_LEVEL - 2f -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
+            zoom < 18 -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom >= 18 && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
+            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_selected_width_close)
         }
     }
