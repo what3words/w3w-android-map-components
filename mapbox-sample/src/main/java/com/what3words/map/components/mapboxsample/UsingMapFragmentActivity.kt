@@ -12,7 +12,7 @@ import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.map.components.mapboxsample.databinding.ActivityUsingMapFragmentBinding
 
-class UsingMapFragmentActivity : AppCompatActivity() , W3WMapFragment.OnMapReadyCallback {
+class UsingMapFragmentActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
     private lateinit var binding: ActivityUsingMapFragmentBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,12 +35,13 @@ class UsingMapFragmentActivity : AppCompatActivity() , W3WMapFragment.OnMapReady
             "filled.count.soap",
             W3WMarkerColor.BLUE,
             W3WZoomOption.CENTER_AND_ZOOM,
-            {
+            onSuccess = {
                 Log.i(
                     "UsingMapFragmentActivity",
                     "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
                 )
-            }, {
+            },
+            onError = {
                 Toast.makeText(
                     this@UsingMapFragmentActivity,
                     "${it.key}, ${it.message}",

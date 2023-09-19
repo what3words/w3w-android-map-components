@@ -61,12 +61,13 @@ class UsingMapFragmentActivity : FragmentActivity(), W3WMapFragment.OnMapReadyCa
             "filled.count.soap",
             W3WMarkerColor.BLUE,
             W3WZoomOption.CENTER_AND_ZOOM,
-            {
+            onSuccess = {
                 Log.i(
                     "UsingMapFragmentActivity",
                     "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
                 )
-            }, {
+            },
+            onError = {
                 Toast.makeText(
                     this,
                     "${it.key}, ${it.message}",
