@@ -283,21 +283,57 @@ interface W3WMap {
      */
     fun getAllMarkers(): List<SuggestionWithCoordinates>
 
+    /** Get selected marker from the map.
+     *
+     * @return [SuggestionWithCoordinates] of the selected marker, if non currently selected it will return null.
+     */
     fun getSelectedMarker(): SuggestionWithCoordinates?
 
     /** Remove selected marker from the map. */
     fun unselect()
 
+    /** Moves map camera to position without animations.
+     *
+     * @param latitude is the latitude of the map camera to move to.
+     * @param longitude is the latitude of the map camera to move to.
+     * @param zoom is the zoom level of the map camera to move to.
+     */
     fun moveToPosition(latitude: Double, longitude: Double, zoom: Double)
+
+    /** Moves map camera to position with animation.
+     *
+     * @param latitude is the latitude of the map camera to move to.
+     * @param longitude is the latitude of the map camera to move to.
+     * @param zoom is the zoom level of the map camera to move to.
+     * @param onFinished a callback invoked when the camera animated move finishes.
+     */
     fun animateToPosition(
         latitude: Double,
         longitude: Double,
         zoom: Double,
         onFinished: () -> Unit
     )
+
+    /** Enable and disable map gestures.
+     *
+     * @param enabled turn map gestures on or off.
+     */
     fun setMapGesturesEnabled(enabled: Boolean)
+
+    /** Change map camera to 0 bearing. */
     fun orientCamera()
+
+    /** Enable or disable my location feature for map providers that support it (i.e. blue dot in Google maps).
+     *
+     * @param enabled turn on or off my location feature (i.e. blue dot in Google maps)
+     */
     fun setMyLocationEnabled(enabled: Boolean)
+
+    /** Enable or disable the default my location button. The developer might want the current location icon on the map
+     * but want to disable the default button to move to it.
+     *
+     * @param enabled turn my location button on or off.
+     */
     fun setMyLocationButton(enabled: Boolean)
 
     /** Get current [W3WMap.MapType] from the map, these are the available options due to multiple map provide compatibility:
