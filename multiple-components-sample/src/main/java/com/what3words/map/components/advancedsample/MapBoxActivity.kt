@@ -6,10 +6,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.maps.Style
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.components.text.W3WAutoSuggestEditText
 
-class MapBoxActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallback {
+class MapBoxActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
     private lateinit var map: W3WMap
     lateinit var search: W3WAutoSuggestEditText
     override fun onCreate(savedInstanceState: Bundle?) {

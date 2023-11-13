@@ -8,9 +8,10 @@ import com.google.android.gms.maps.GoogleMap
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.views.W3WGoogleMapFragment
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.components.text.W3WAutoSuggestEditText
 
-class GoogleMapsActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
+class GoogleMapsActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
     private lateinit var map: W3WMap
     lateinit var search: W3WAutoSuggestEditText
     override fun onCreate(savedInstanceState: Bundle?) {
