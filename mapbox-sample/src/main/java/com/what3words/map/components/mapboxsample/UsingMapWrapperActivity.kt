@@ -6,19 +6,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.wrappers.W3WMapBoxWrapper
-import com.what3words.javawrapper.request.Coordinates
 import com.what3words.map.components.mapboxsample.databinding.ActivityUsingMapWrapperBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class UsingMapWrapperActivity : AppCompatActivity() {
     private lateinit var w3wMapsWrapper: W3WMapBoxWrapper

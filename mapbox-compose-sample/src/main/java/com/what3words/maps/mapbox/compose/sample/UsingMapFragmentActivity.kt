@@ -14,11 +14,12 @@ import com.mapbox.maps.Style
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.components.maps.views.W3WMapFragment
 import com.what3words.components.maps.views.W3WMapboxMapFragment
 import com.what3words.maps.mapbox.compose.sample.databinding.ActivityUsingMapFragmentBinding
 import com.what3words.maps.mapbox.compose.sample.ui.theme.W3wandroidcomponentsmapsTheme
 
-class UsingMapFragmentActivity : FragmentActivity(), W3WMapboxMapFragment.OnMapReadyCallback {
+class UsingMapFragmentActivity : FragmentActivity(), W3WMapFragment.OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,12 +61,13 @@ class UsingMapFragmentActivity : FragmentActivity(), W3WMapboxMapFragment.OnMapR
             "filled.count.soap",
             W3WMarkerColor.BLUE,
             W3WZoomOption.CENTER_AND_ZOOM,
-            {
+            onSuccess = {
                 Log.i(
                     "com.what3words.maps.mapbox.compose.sample.UsingMapFragmentActivity",
                     "added ${it.words} at ${it.coordinates.lat}, ${it.coordinates.lng}"
                 )
-            }, {
+            },
+            onError = {
                 Toast.makeText(
                     this@UsingMapFragmentActivity,
                     "${it.key}, ${it.message}",
