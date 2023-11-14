@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+//To be moved to core library extensions?
 internal fun io(dispatcher: DispatcherProvider, work: suspend (() -> Unit)): Job {
     return CoroutineScope(dispatcher.io()).launch {
         work()

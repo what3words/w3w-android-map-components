@@ -3,7 +3,10 @@ package com.what3words.components.maps.wrappers
 import androidx.core.util.Consumer
 import com.google.android.gms.maps.GoogleMap
 import com.mapbox.maps.MapboxMap
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
+import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
+import com.what3words.components.maps.views.W3WMap
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
@@ -23,34 +26,48 @@ interface W3WMapWrapper {
      */
     fun setLanguage(language: String): W3WMapWrapper
 
-    /** Due to different map providers setting Dark/Light modes differently i.e: GoogleMaps sets dark mode using JSON styles but Mapbox has dark mode as a MapType.
+    /** Set zoom switch level. If the map zoom level is lower than [zoom], it will not show the grid; if the map zoom is higher or equal to [zoom], it will show the grid.
      *
-     * [GridColor.AUTO] - Will leave up to the library to decide which Grid color and selected square color to use to match some specific map types, i.e: use [GridColor.DARK] on normal map types, [GridColor.LIGHT] on Satellite and Traffic map types.
-     * [GridColor.LIGHT] - Will force grid and selected square color to be light.
-     * [GridColor.DARK] - Will force grid and selected square color to be dark.
+     * @param zoom the zoom level to turn the grid visibility on and off.
+     */
+    fun setZoomSwitchLevel(zoom: Float)
+
+    /** Get zoom switch level.
      *
-     * @param gridColor set grid color, per default will be [GridColor.AUTO].
+     * @return the zoom level that defines the grid visibility.
+     */
+    fun getZoomSwitchLevel() : Float
+
+    /** Due to different map providers setting Dark/Light modes differently, i.e., GoogleMaps sets dark mode using JSON styles, but Mapbox sets the dark mode as a MapType, this will allow you to control the colour of the what3words 3x3m grid.
+     *
+     * [GridColor.AUTO] - Will leave it up to the library to decide which Grid colour and selected square colour to match some specific map types, i.e., use [GridColor.DARK] on standard map types, [GridColor.LIGHT] on Satellite and Traffic map types.
+     * [GridColor.LIGHT] - Will force the grid and the selected square colour to be light.
+     * [GridColor.DARK] - Will force the grid and the selected square colour to be dark.
+     *
+     * @param gridColor set grid the colour. Per default, it will be [GridColor.AUTO].
      */
     fun setGridColor(gridColor: GridColor)
 
-    /** Enable grid overlay over map with all 3mx3m squares on the visible map bounds.
+    /** Enable grid overlay over the map with all 3mx3m squares on the visible map bounds.
      *
-     * @param isEnabled enable or disable grid, enabled by default.
+     * @param isEnabled turn grid on or off, enabled by default.
      */
     fun gridEnabled(isEnabled: Boolean): W3WMapWrapper
 
     /** A callback for when an existing marker on the map is clicked.
      *
-     * @param callback it will be invoked when an existing marker on the map is clicked by the user.
+     * @param callback will be invoked when the user clicks an existing marker on the map.
      */
     fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WMapWrapper
 
-    /** Add [SuggestionWithCoordinates] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
+    /** Add [SuggestionWithCoordinates] to the map.
+     * This method will add a marker to the map after getting the [SuggestionWithCoordinates.square]
+     * from our AutosuggestEditText or OCR.
      *
-     * @param suggestion the [SuggestionWithCoordinates] returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param suggestion the [SuggestionWithCoordinates] returned by our text/voice/OCR component.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the map.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] adding the [SuggestionWithCoordinates.square] to the map.
      */
     fun addMarkerAtSuggestionWithCoordinates(
         suggestion: SuggestionWithCoordinates,
@@ -59,11 +76,11 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Set [SuggestionWithCoordinates] as selected marker on the map, it can only have one selected marker at the time.
+    /** Set a [SuggestionWithCoordinates] as a selected square. Only one selected square is allowed at a time.
      *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param suggestion [SuggestionWithCoordinates] to be selected.
+     * @param onSuccess a success callback will return the same [SuggestionWithCoordinates].
+     * @param onError is called if there was an error [APIResponse.What3WordsError] selecting the [SuggestionWithCoordinates.square] on the map.
      */
     fun selectAtSuggestionWithCoordinates(
         suggestion: SuggestionWithCoordinates,
@@ -71,12 +88,14 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
+    /** Add [Suggestion] from our text/voice/ocr component to the map.
+     * This method will add a marker/square to the map after converting [Suggestion] to
+     * [SuggestionWithCoordinates.square].
      *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the [Suggestion] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param suggestion the [Suggestion] returned by our text/voice/ocr component.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the map.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] adding the [SuggestionWithCoordinates.square] to the map.
      */
     fun addMarkerAtSuggestion(
         suggestion: Suggestion,
@@ -85,12 +104,14 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add a list of [Suggestion] to the map. This method will add multiple markers/squares to the map after getting the suggestions from our W3WAutosuggestEditText.
+    /** Add a list of [Suggestion]'s from our text/voice/ocr component to the map.
+     * This method will add ALL markers/squares to the map after converting [Suggestion] to
+     * [SuggestionWithCoordinates.square], if one failed none will be added.
      *
-     * @param listSuggestions list of [Suggestion]s returned by our text/voice autosuggest component.
-     * @param markerColor is the [W3WMarkerColor] for the suggestion added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus Coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param listSuggestions the list of [Suggestion]'s returned by our text/voice/ocr component.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the map.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] adding any of the [SuggestionWithCoordinates.square]'s to the map.
      */
     fun addMarkerAtSuggestion(
         listSuggestions: List<Suggestion>,
@@ -99,23 +120,23 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Remove [Suggestion] from the map.
+    /** Remove marker at [Suggestion.words] from the map.
      *
-     * @param suggestion the [Suggestion] to be removed.
+     * @param suggestion the [Suggestion] to remove.
      */
     fun removeMarkerAtSuggestion(suggestion: Suggestion)
 
-    /** Remove [Suggestion]s from the map.
+    /** Remove markers at all [Suggestion.words]'s from the map.
      *
-     * @param listSuggestions the list of [Suggestion]s to remove.
+     * @param listSuggestions the list of [Suggestion.words] to remove.
      */
     fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>)
 
-    /** Set [Suggestion] as selected marker on the map, it can only have one selected marker at the time.
+    /** Set a [Suggestion] as a selected square. Only one selected square is allowed at a time.
      *
-     * @param suggestion the [Suggestion] returned by our text/voice autosuggest component.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus Coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param suggestion [Suggestion] to be selected.
+     * @param onSuccess a success callback will return [SuggestionWithCoordinates], including coordinates.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] selecting the [SuggestionWithCoordinates.square] on the map.
      */
     fun selectAtSuggestion(
         suggestion: Suggestion,
@@ -123,13 +144,13 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add marker at [lat], [lng] coordinates to the map. This method will add a marker/square to the map based on each of the Coordinates provided latitude and longitude.
+    /** Add marker at [SuggestionWithCoordinates.square] that contains coordinates [lat] latitude and [lng] longitude and add it to the map.
      *
-     * @param lat latitude coordinates to be added.
-     * @param lng longitude coordinates to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [lat],[lng] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those Coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param lat latitude coordinates within [SuggestionWithCoordinates.square] to be added to the map.
+     * @param lng longitude coordinates within [SuggestionWithCoordinates.square] to be added to the map.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if the marker at [SuggestionWithCoordinates.square] is added successfully to the map.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] adding the [SuggestionWithCoordinates.square]'s to the map.
      */
     fun addMarkerAtCoordinates(
         lat: Double,
@@ -139,12 +160,12 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Add list of Coordinates [Pair.first] latitude, [Pair.second] longitude to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
+    /** Add markers at multiple [SuggestionWithCoordinates.square]'s that contain coordinates inside [listCoordinates] where [Pair.first] is latitude and [Pair.second] is longitude, and add them to map.
      *
-     * @param listCoordinates list of [Pair.first] latitude, [Pair.second] longitude coordinates to be added.
-     * @param markerColor is the [W3WMarkerColor] for the [listCoordinates] added.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] with all the what3words info needed for those coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param listCoordinates list of coordinates where [Pair.first] is latitude and [Pair.second] is longitude within the [SuggestionWithCoordinates.square] to add.
+     * @param markerColor is the [W3WMarkerColor] for the [SuggestionWithCoordinates.square] added.
+     * @param onSuccess is called if ALL markers at [SuggestionWithCoordinates.square] are added successfully to the the map.
+     * @param onError is called if there was an error [APIResponse.What3WordsError] adding any of the [SuggestionWithCoordinates.square]'s to the map.
      */
     fun addMarkerAtCoordinates(
         listCoordinates: List<Pair<Double, Double>>,
@@ -153,12 +174,12 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
-    /** Set [lat], [lng] coordinates as selected marker on the map, it can only have one selected marker at the time.
+    /** Select [SuggestionWithCoordinates.square] that contains coordinates [lat] latitude and [lng] longitude. Only one selected square is allowed at a time.
      *
-     * @param lat latitude coordinates to be selected.
-     * @param lng longitude coordinates to be selected.
-     * @param onSuccess the success callback will return a [SuggestionWithCoordinates] that will have all the [Suggestion] info plus coordinates.
-     * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
+     * @param lat coordinates latitude to be selected.
+     * @param lng coordinates longitude to be selected.
+     * @param onSuccess is called if [SuggestionWithCoordinates.square] was selected successfully.
+     * @param onError is called if there was an [APIResponse.What3WordsError] selecting [SuggestionWithCoordinates.square] in the map.
      */
     fun selectAtCoordinates(
         lat: Double,
@@ -167,6 +188,12 @@ interface W3WMapWrapper {
         onError: Consumer<APIResponse.What3WordsError>? = null
     )
 
+    /** Finds a marker on the map strictly by [lat] and [lng].
+     *
+     * @param lat the latitude search query.
+     * @param lng the longitude search query.
+     * @return if a marker on the map matches the search query [SuggestionWithCoordinates] will be returned. If not, it will return null.
+     */
     fun findMarkerByCoordinates(
         lat: Double,
         lng: Double
@@ -265,4 +292,30 @@ interface W3WMapWrapper {
      */
     fun updateMove()
 
+    /** Set [W3WMap.MapType] of the map, these are the available options due to multiple map provide compatibility:
+     * [W3WMap.MapType.NORMAL], [W3WMap.MapType.TERRAIN], [W3WMap.MapType.HYBRID] and [W3WMap.MapType.SATELLITE].
+     *
+     * @param mapType the [W3WMap.MapType] to be applied to the map.
+     */
+    fun setMapType(mapType: W3WMap.MapType)
+
+    /** Get current [W3WMap.MapType] from the map, these are the available options due to multiple map provide compatibility:
+     * [W3WMap.MapType.NORMAL], [W3WMap.MapType.TERRAIN], [W3WMap.MapType.HYBRID] and [W3WMap.MapType.SATELLITE].
+     *
+     * @returns the [W3WMap.MapType] currently applied to the map.
+     */
+    fun getMapType() : W3WMap.MapType
+
+    /** Set the map to Dark/Night or Light/Day mode, to maintain compatibility with different map providers, we either handle setting
+     * as a MapType internally (i.e. Mapbox) or we apply a default JSON style or the one provided with [customJsonStyle] (i.e. GoogleMaps).
+     *
+     * @param darkMode true if should be using dark mode, false should be using day mode.
+     */
+    fun setDarkMode(darkMode: Boolean, customJsonStyle: String?)
+
+    /** Check if the map is currently presenting in Dark/Night or Light/Day mode.
+     *
+     * @returns true if map is currently using dark mode, false if using day mode.
+     */
+    fun isDarkMode(): Boolean
 }
