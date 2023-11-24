@@ -1,6 +1,7 @@
 package com.what3words.components.maps
 
 import com.what3words.components.maps.extensions.generateUniqueId
+import com.what3words.components.maps.extensions.toCoordinates
 import com.what3words.javawrapper.response.Coordinates
 import junit.framework.TestCase.assertEquals
 import org.junit.Test
@@ -44,5 +45,21 @@ class W3WCoordinateUniqueIdentifierTest {
     fun `should handle coordinates with latitude and longitude outside the valid range`() {
         val suggestion = Coordinates(91.000000, -181.000000)
         suggestion.generateUniqueId()
+    }
+
+    @Test
+    fun `should be able to revert the id back to coordinates`() {
+        val coordinate = Coordinates(10.822351, 106.630201)
+        val uniqueId = coordinate.generateUniqueId()
+        val revertCoordinate = uniqueId.toCoordinates()
+
+        assertEquals(true, coordinate.lat == revertCoordinate.lat)
+        assertEquals(true, coordinate.lng == revertCoordinate.lng)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `should handle invalid id reversion`() {
+        val invalidId: Long = -25
+        invalidId.toCoordinates()
     }
 }

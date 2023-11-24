@@ -26,16 +26,30 @@ internal fun ConvertToCoordinates.toSuggestionWithCoordinates(): SuggestionWithC
     return SuggestionWithCoordinates(suggestion, this)
 }
 
-internal fun Coordinates.generateUniqueId(): Long {
+fun Coordinates.generateUniqueId(): Long {
     if (lat < -90 || lat > 90) {
         throw IllegalArgumentException("Invalid latitude value: must be between -90 and 90")
     }
     if (lng < -180 || lng > 180) {
         throw IllegalArgumentException("Invalid longitude value: must be between -180 and 180")
     }
-    val latBits = (this.lat * 1e6).toLong() shl 16 and 0xffff0000
-    val lngBits = (this.lng * 1e6).toLong() and 0x0000ffff
+    val latBits = (lat * 1e6).toLong() shl 32
+    val lngBits = (lng * 1e6).toLong() and 0xffffffff
     return (latBits or lngBits)
+}
+
+fun Long.toCoordinates(): Coordinates {
+    val lat = (this ushr 32).toDouble() / 1e6
+    val lng = (this and 0xffffffff).toDouble() / 1e6
+
+    if (lat < -90 || lat > 90) {
+        throw IllegalArgumentException("Invalid latitude value: must be between -90 and 90")
+    }
+    if (lng < -180 || lng > 180) {
+        throw IllegalArgumentException("Invalid longitude value: must be between -180 and 180")
+    }
+
+    return Coordinates(lat, lng)
 }
 
 /** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
