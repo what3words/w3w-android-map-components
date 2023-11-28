@@ -15,8 +15,8 @@ buildscript {
         mockk_version = '1.13.5'
         junit_version = "4.13.2"
         test_runner_version = "1.5.2"
-        gms_version = "18.1.0"
-        gms_utils_version = "2.3.0"
+        gms_version = "18.2.0"
+        gms_utils_version = "2.4.0"
         mapbox_version = "10.4.0"
         androidx_core_ktx_version = "1.10.1"
         androidx_appcompat_version = "1.6.1"
