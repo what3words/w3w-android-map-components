@@ -38,6 +38,7 @@ import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
+import com.what3words.components.maps.extensions.generateUniqueId
 import com.what3words.components.maps.extensions.main
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
@@ -78,15 +79,17 @@ class W3WMapBoxWrapper(
     private var w3WMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
     private var isDarkMode: Boolean = false
     private var zoomSwitchLevel: Float = DEFAULT_ZOOM_SWITCH_LEVEL
+    private var selectedZoomedLayerId: String? = null
+    private var selectedPinLayerId: String? = null
 
 
     companion object {
         const val GRID_LAYER = "GRID_LAYER"
         const val GRID_SOURCE = "GRID_SOURCE"
         const val SELECTED_SOURCE = "SELECTED_SOURCE"
-        const val SELECTED_LAYER = "SELECTED_LAYER"
+        const val SELECTED_PIN_LAYER_PREFIX = "SELECTED_PIN_LAYER_%s"
         const val SELECTED_ZOOMED_SOURCE = "SELECTED_ZOOMED_SOURCE"
-        const val SELECTED_ZOOMED_LAYER = "SELECTED_ZOOMED_LAYER"
+        const val SELECTED_ZOOMED_LAYER_PREFIX = "SELECTED_ZOOMED_LAYER_%s"
         const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
         const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 8f
@@ -556,6 +559,7 @@ class W3WMapBoxWrapper(
         )
         mapView.getStyle { style ->
             val test = listLines.toJson()
+            selectedZoomedLayerId = String.format(SELECTED_ZOOMED_LAYER_PREFIX, suggestion.coordinates.generateUniqueId())
             if (style.styleSourceExists(SELECTED_ZOOMED_SOURCE)) {
                 style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.data(test)
             } else {
@@ -565,9 +569,9 @@ class W3WMapBoxWrapper(
                     }
                 )
             }
-            if (!style.styleLayerExists(SELECTED_ZOOMED_LAYER)) {
+            if (!style.styleLayerExists(selectedZoomedLayerId!!)) {
                 style.addLayer(
-                    lineLayer(SELECTED_ZOOMED_LAYER, SELECTED_ZOOMED_SOURCE) {
+                    lineLayer(selectedZoomedLayerId!!, SELECTED_ZOOMED_SOURCE) {
                         lineColor(
                             if (shouldShowDarkGrid()) {
                                 context.getColor(R.color.grid_selected_normal)
@@ -585,7 +589,7 @@ class W3WMapBoxWrapper(
     /** [drawZoomedMarkers] will be responsible for the drawing all square images to four coordinates (top right, then clockwise) by adding them [MapboxMap.style] using [RasterLayer], still looking for a better option for this, this is the way I found it online.*/
     private fun drawFilledZoomedMarker(suggestion: SuggestionWithCoordinatesAndStyle) {
         main(dispatchers) {
-            val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.words)
+            val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.coordinates.generateUniqueId())
             bitmapFromDrawableRes(context, suggestion.markerColor.toGridFill())?.let { image ->
                 mapView.getStyle { style ->
                     if (!style.styleSourceExists(id)) {
@@ -674,12 +678,14 @@ class W3WMapBoxWrapper(
                 val layer = style.getLayerAs<LineLayer>(GRID_LAYER)
                 layer?.visibility(Visibility.NONE)
             }
-            if (style.styleLayerExists(SELECTED_ZOOMED_LAYER)) {
-                style.removeStyleLayer(SELECTED_ZOOMED_LAYER)
-                style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
+            selectedZoomedLayerId?.let {nonNullLayerId ->
+                if (style.styleLayerExists(nonNullLayerId)) {
+                    style.removeStyleLayer(nonNullLayerId)
+                    style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
+                }
             }
             w3WMapManager.suggestionsCached.forEach {
-                val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.words)
+                val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.coordinates.generateUniqueId())
                 if (style.styleLayerExists(id)) {
                     style.removeStyleLayer(id)
                     style.removeStyleSource(id)
@@ -693,7 +699,7 @@ class W3WMapBoxWrapper(
             runBlocking {
                 w3WMapManager.suggestionsRemoved.forEach { suggestion ->
                     mapView.getStyle { style ->
-                        val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.words)
+                        val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.coordinates.generateUniqueId())
                         if (style.styleLayerExists(id)) {
                             style.removeStyleLayer(id)
                             style.removeStyleSource(id)
@@ -752,9 +758,10 @@ class W3WMapBoxWrapper(
                         }
                     )
                 }
-                if (!style.styleLayerExists(SELECTED_LAYER)) {
+                selectedPinLayerId = String.format(SELECTED_PIN_LAYER_PREFIX, data.coordinates.generateUniqueId())
+                if (!style.styleLayerExists(selectedPinLayerId!!)) {
                     style.addLayer(
-                        symbolLayer(SELECTED_LAYER, SELECTED_SOURCE) {
+                        symbolLayer(selectedPinLayerId!!, SELECTED_SOURCE) {
                             iconImage(image.toString())
                             iconAnchor(IconAnchor.BOTTOM)
                             iconAllowOverlap(true)
@@ -786,9 +793,9 @@ class W3WMapBoxWrapper(
                             }
                         )
                     }
-                    if (!style.styleLayerExists(data.suggestion.words)) {
+                    if (!style.styleLayerExists(data.suggestion.coordinates.generateUniqueId().toString())) {
                         style.addLayer(
-                            symbolLayer(data.suggestion.words, data.suggestion.words) {
+                            symbolLayer(data.suggestion.coordinates.generateUniqueId().toString(), data.suggestion.words) {
                                 iconImage(String.format(PIN_ID_PREFIX, data.markerColor.toString()))
                                 iconAnchor(IconAnchor.BOTTOM)
                                 iconAllowOverlap(true)
@@ -821,9 +828,9 @@ class W3WMapBoxWrapper(
                             }
                         )
                     }
-                    if (!style.styleLayerExists(data.suggestion.words)) {
+                    if (!style.styleLayerExists(data.suggestion.coordinates.generateUniqueId().toString())) {
                         style.addLayer(
-                            symbolLayer(data.suggestion.words, data.suggestion.words) {
+                            symbolLayer(data.suggestion.coordinates.generateUniqueId().toString(), data.suggestion.words) {
                                 iconImage(
                                     String.format(
                                         CIRCLE_ID_PREFIX,
@@ -897,16 +904,19 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [clearMarkers] will clear the [SELECTED_LAYER] and all [W3WMapManager.suggestionsCached] added [SymbolLayer]'s from [MapboxMap.style].*/
+    /** [clearMarkers] will clear the [selectedPinLayerId] and all [W3WMapManager.suggestionsCached] added [SymbolLayer]'s from [MapboxMap.style].*/
     private fun clearMarkers() {
         mapView.getStyle { style ->
-            if (style.styleLayerExists(SELECTED_LAYER)) {
-                style.removeStyleLayer(SELECTED_LAYER)
-                style.removeStyleSource(SELECTED_SOURCE)
+            selectedPinLayerId?.let {
+                if (style.styleLayerExists(it)) {
+                    style.removeStyleLayer(it)
+                    style.removeStyleSource(SELECTED_SOURCE)
+                }
             }
+
             w3WMapManager.suggestionsCached.forEach {
-                if (style.styleLayerExists(it.suggestion.words)) {
-                    style.removeStyleLayer(it.suggestion.words)
+                if (style.styleLayerExists(it.suggestion.coordinates.generateUniqueId().toString())) {
+                    style.removeStyleLayer(it.suggestion.coordinates.generateUniqueId().toString())
                     style.removeStyleSource(it.suggestion.words)
                 }
             }

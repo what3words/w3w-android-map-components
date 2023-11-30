@@ -43,6 +43,7 @@ import com.what3words.components.maps.models.DarkModeStyle
 import com.what3words.components.maps.views.W3WMap
 import com.what3words.components.maps.extensions.computeHorizontalLines
 import com.what3words.components.maps.extensions.computeVerticalLines
+import com.what3words.components.maps.extensions.generateUniqueId
 import kotlin.math.roundToInt
 
 /**
@@ -532,6 +533,7 @@ class W3WGoogleMapsWrapper(
     private fun drawPin(data: SuggestionWithCoordinatesAndStyle) {
         data.markerColor.toPin().let { markerFillColor ->
             val markerOptions = MarkerOptions()
+                .contentDescription(data.suggestion.coordinates.generateUniqueId().toString())
                 .position(LatLng(data.suggestion.coordinates.lat, data.suggestion.coordinates.lng))
                 .icon(getBitmapDescriptorFromVector(context, markerFillColor))
             markerManager.getCollection(
@@ -549,6 +551,7 @@ class W3WGoogleMapsWrapper(
     /** [drawSelectedPin] will be responsible for the drawing of the zoomed out marker if it's selected [W3WMapManager.selectedSuggestion] AND NOT cached [W3WMapManager.suggestionsCached] using [GoogleMap] [markerManager]. (only one at the time)*/
     private fun drawSelectedPin(data: SuggestionWithCoordinates) {
         val markerOptions = MarkerOptions()
+            .contentDescription(data.coordinates.generateUniqueId().toString())
             .position(LatLng(data.coordinates.lat, data.coordinates.lng))
             .icon(
                 getBitmapDescriptorFromVector(
@@ -576,6 +579,7 @@ class W3WGoogleMapsWrapper(
     /** [drawCircle] will be responsible for the drawing of the zoomed out marker if it's cached [W3WMapManager.suggestionsCached] AND NOT selected [W3WMapManager.selectedSuggestion] using [GoogleMap] [markerManager].*/
     private fun drawCircle(data: SuggestionWithCoordinatesAndStyle) {
         val markerOptions = MarkerOptions()
+            .contentDescription(data.suggestion.coordinates.generateUniqueId().toString())
             .position(LatLng(data.suggestion.coordinates.lat, data.suggestion.coordinates.lng))
             .icon(getBitmapDescriptorFromVector(context, data.markerColor.toCircle()))
         markerManager.getCollection(
