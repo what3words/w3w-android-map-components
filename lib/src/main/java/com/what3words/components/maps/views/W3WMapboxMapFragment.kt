@@ -27,7 +27,8 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.databinding.W3wMapboxMapViewBinding
 
 class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
-    private lateinit var onReadyCallback: W3WMapFragment.OnMapReadyCallback
+    private var onReadyCallback: W3WMapFragment.OnMapReadyCallback? = null
+    private var oldOnReadyCallback: OnMapReadyCallback? = null
     private var mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
 
     private var _binding: W3wMapboxMapViewBinding? = null
@@ -35,6 +36,18 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
     private var apiKey: String? = null
     private var wrapper: What3WordsAndroidWrapper? = null
     private lateinit var map: W3WMap
+
+    @Deprecated(
+        message = "Use W3WMapFragment.OnMapReadyCallback callback",
+        replaceWith = ReplaceWith(
+            "W3WMapFragment.OnMapReadyCallback",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
+    interface OnMapReadyCallback {
+        fun onMapReady(map: W3WMap)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,9 +63,47 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         _binding = null
     }
 
-    override fun apiKey(key: String,
-                        callback: W3WMapFragment.OnMapReadyCallback,
-                        mapEventsCallback: W3WMapFragment.MapEventsCallback?) {
+    @Deprecated(
+        message = "Use apiKey() with W3WMapFragment.OnMapReadyCallback",
+        replaceWith = ReplaceWith(
+            "apiKey(key, W3WMapFragment.OnMapReadyCallback, W3WMapFragment.MapEventsCallback)",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
+    fun apiKey(
+        key: String,
+        callback: OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
+    ) {
+        apiKey = key
+        oldOnReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
+    }
+
+    @Deprecated(
+        message = "Use sdk() with W3WMapFragment.OnMapReadyCallback",
+        replaceWith = ReplaceWith(
+            "sdk(source, W3WMapFragment.OnMapReadyCallback, W3WMapFragment.MapEventsCallback)",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
+    fun sdk(
+        source: What3WordsAndroidWrapper,
+        callback: OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
+    ) {
+        wrapper = source
+        oldOnReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
+    }
+
+    override fun apiKey(
+        key: String,
+        callback: W3WMapFragment.OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback?
+    ) {
         apiKey = key
         onReadyCallback = callback
         this.mapEventsCallback = mapEventsCallback
@@ -113,10 +164,15 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             }
         }
         map = Map(w3wMapsWrapper, binding.mapView.getMapboxMap(), mapEventsCallback)
-        onReadyCallback.onMapReady(map)
+        onReadyCallback?.onMapReady(map)
+        oldOnReadyCallback?.onMapReady(map)
     }
 
-    class Map(private val w3wMapsWrapper: W3WMapBoxWrapper, private val map: MapboxMap, private val mapEventsCallback: W3WMapFragment.MapEventsCallback?) :
+    class Map(
+        private val w3wMapsWrapper: W3WMapBoxWrapper,
+        private val map: MapboxMap,
+        private val mapEventsCallback: W3WMapFragment.MapEventsCallback?
+    ) :
         W3WMap {
         private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
         private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
@@ -179,9 +235,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             suggestion: Suggestion,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestion(suggestion, markerColor, {
                 handleZoomOption(
@@ -260,9 +316,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         override fun selectAtSuggestion(
             suggestion: Suggestion,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtSuggestion(suggestion, {
                 handleZoomOption(
@@ -288,9 +344,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             suggestion: SuggestionWithCoordinates,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
                 handleZoomOption(
@@ -307,9 +363,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         override fun selectAtSquare(
             square: SuggestionWithCoordinates,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtSuggestionWithCoordinates(square, {
                 handleZoomOption(
@@ -331,9 +387,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             words: String,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtWords(words, markerColor, {
                 handleZoomOption(
@@ -374,9 +430,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         override fun selectAtWords(
             words: String,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtWords(words, {
                 handleZoomOption(
@@ -411,9 +467,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             lng: Double,
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
                 handleZoomOption(
@@ -455,9 +511,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             lat: Double,
             lng: Double,
             zoomOption: W3WZoomOption,
-            zoomLevel: Float?,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtCoordinates(lat, lng, {
                 handleZoomOption(
