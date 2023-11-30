@@ -43,7 +43,10 @@ interface W3WMap {
      * @param onSuccess it will be invoked when an user clicks on the map. [SuggestionWithCoordinates] with all what3words info of the clicked square and [Boolean] will be true if the clicked square is added as a marker, false if not.
      * @param onError the error callback, will return a [APIResponse.What3WordsError] that will have the error type and message.
      */
-    fun onSquareSelected(onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>, onError: Consumer<APIResponse.What3WordsError>? = null)
+    fun onSquareSelected(
+        onSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>,
+        onError: Consumer<APIResponse.What3WordsError>? = null
+    )
 
     /** Add [Suggestion] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our autosuggest wrapper.
      *
@@ -57,9 +60,9 @@ interface W3WMap {
         suggestion: Suggestion,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Add [SuggestionWithCoordinates] to the map. This method will add a marker/square to the map after getting the [Suggestion] from our W3WAutosuggestEditText.
@@ -74,9 +77,9 @@ interface W3WMap {
         suggestion: SuggestionWithCoordinates,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Set [SuggestionWithCoordinates] as selected marker on the map, it can only have one selected marker at the time.
@@ -89,9 +92,9 @@ interface W3WMap {
     fun selectAtSquare(
         square: SuggestionWithCoordinates,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Remove a marker from square [SuggestionWithCoordinates]
@@ -139,9 +142,9 @@ interface W3WMap {
     fun selectAtSuggestion(
         suggestion: Suggestion,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Add a three word address to the map. This method will add a marker/square to the map if [words] are a valid three word address, e.g., filled.count.soap. If it's not a valid three word address, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
@@ -156,9 +159,9 @@ interface W3WMap {
         words: String,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Add a list of three word addresses to the map. This method will add a marker/square to the map if all [listWords] are a valid three word addresses, e.g., filled.count.soap. If any valid three word address is not valid, [onError] will be called returning [APIResponse.What3WordsError.BAD_WORDS].
@@ -187,9 +190,9 @@ interface W3WMap {
     fun selectAtWords(
         words: String,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Remove three word address from the map.
@@ -218,9 +221,9 @@ interface W3WMap {
         lng: Double,
         markerColor: W3WMarkerColor = W3WMarkerColor.RED,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     /** Add list of Coordinates [Pair.first] latitude, [Pair.second] longitude to the map. This method will add multiple markers/squares to the map based on the latitude and longitude of each [Coordinates] on the list.
@@ -251,9 +254,9 @@ interface W3WMap {
         lat: Double,
         lng: Double,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null,
         onSuccess: Consumer<SuggestionWithCoordinates>? = null,
-        onError: Consumer<APIResponse.What3WordsError>? = null
+        onError: Consumer<APIResponse.What3WordsError>? = null,
+        zoomLevel: Float? = null
     )
 
     fun findMarkerByCoordinates(
@@ -341,7 +344,7 @@ interface W3WMap {
      *
      * @returns the [W3WMap.MapType] currently applied to the map.
      */
-    fun getMapType() : MapType
+    fun getMapType(): MapType
 
     /** Set [W3WMap.MapType] of the map, these are the available options due to multiple map provide compatibility:
      * [W3WMap.MapType.NORMAL], [W3WMap.MapType.TERRAIN], [W3WMap.MapType.HYBRID] and [W3WMap.MapType.SATELLITE].
@@ -354,7 +357,7 @@ interface W3WMap {
      *
      * @returns true if map is currently using dark mode, false if using day mode.
      */
-    fun isDarkMode() : Boolean
+    fun isDarkMode(): Boolean
 
     /** Set the map to Dark/Night or Light/Day mode, to maintain compatibility with different map providers, we either handle setting
      * as a MapType internally (i.e. Mapbox) or we apply a default JSON style or the one provided with [customJsonStyle] (i.e. GoogleMaps).
@@ -379,7 +382,7 @@ interface W3WMap {
      *
      * @return the zoom level that defines the grid visibility.
      */
-    fun getZoomSwitchLevel() : Float
+    fun getZoomSwitchLevel(): Float
 
     /** Get Map current target, the center position (lat/lng) of the camera.
      *
