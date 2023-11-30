@@ -28,8 +28,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "w3w-android-components-maps"
 include ':lib'
-include ':google-maps-sample'
-include ':mapbox-sample'
-include ':multiple-components-sample'
-include ':google-maps-compose-sample'
-include ':mapbox-compose-sample'
