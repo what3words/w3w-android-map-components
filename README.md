@@ -33,7 +33,7 @@ through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/
 ### Gradle
 
 ```
-implementation 'com.what3words:w3w-android-map-components:1.0.2'
+implementation 'com.what3words:w3w-android-map-components:1.0.3'
 ```
 
 ## Documentation summary
@@ -306,7 +306,7 @@ activity_main.xml
 Kotlin
 
 ```Kotlin
-class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -390,7 +390,7 @@ activity_main.xml
 Kotlin
 
 ```Kotlin
-class MainActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
