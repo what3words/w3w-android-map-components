@@ -1,10 +1,14 @@
 package com.what3words.components.maps.views
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RelativeLayout
+import androidx.annotation.RequiresPermission
 import androidx.core.util.Consumer
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -15,9 +19,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.What3WordsV3
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
-import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
@@ -25,15 +29,26 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
 import com.what3words.map.components.databinding.W3wGoogleMapViewBinding
 
-class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
+class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
 
-    private lateinit var onReadyCallback: OnMapReadyCallback
+    private var mapFragment: SupportMapFragment? = null
+    private var onReadyCallback: W3WMapFragment.OnMapReadyCallback? = null
+    private var oldOnReadyCallback: OnMapReadyCallback? = null
+    private var mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
     private var _binding: W3wGoogleMapViewBinding? = null
     private val binding get() = _binding!!
     private var apiKey: String? = null
     private var wrapper: What3WordsAndroidWrapper? = null
     private lateinit var map: W3WMap
 
+    @Deprecated(
+        message = "Use W3WMapFragment.OnMapReadyCallback callback",
+        replaceWith = ReplaceWith(
+            "W3WMapFragment.OnMapReadyCallback",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
     interface OnMapReadyCallback {
         fun onMapReady(map: W3WMap)
     }
@@ -44,9 +59,9 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
         savedInstanceState: Bundle?
     ): View {
         _binding = W3wGoogleMapViewBinding.inflate(inflater, container, false)
-        val mapFragment = this.childFragmentManager
+        mapFragment = this.childFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
+        mapFragment?.getMapAsync(this)
         return binding.root
     }
 
@@ -55,15 +70,92 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
         _binding = null
     }
 
-    fun apiKey(key: String, callback: OnMapReadyCallback) {
-        apiKey = key
-        onReadyCallback = callback
+    private fun getMapCompass(): View? {
+        val view = mapFragment?.view?.findViewWithTag<View>("GoogleMapMyLocationButton")
+        val parent = view?.parent as? ViewGroup
+        return parent?.getChildAt(4)
     }
 
-    fun sdk(source: What3WordsAndroidWrapper, callback: OnMapReadyCallback) {
+    override fun moveCompassBy(
+        leftMargin: Int,
+        topMargin: Int,
+        rightMargin: Int,
+        bottomMargin: Int
+    ) {
+        val mapCompass = getMapCompass()
+        mapCompass?.doOnLayout {
+            // create layoutParams, giving it our wanted width and height(important, by default the width is "match parent")
+            val rlp = RelativeLayout.LayoutParams(mapCompass.height, mapCompass.height)
+            // position on top end
+            rlp.addRule(RelativeLayout.ALIGN_PARENT_START, 0)
+            rlp.addRule(RelativeLayout.ALIGN_PARENT_END)
+            rlp.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+            rlp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0)
+            //give compass margin
+
+            rlp.setMargins(leftMargin, topMargin, rightMargin, bottomMargin)
+            mapCompass.layoutParams = rlp
+        }
+    }
+
+    @Deprecated(
+        message = "Use apiKey() with W3WMapFragment.OnMapReadyCallback",
+        replaceWith = ReplaceWith(
+            "apiKey(key, W3WMapFragment.OnMapReadyCallback, W3WMapFragment.MapEventsCallback)",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
+    fun apiKey(
+        key: String,
+        callback: OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
+    ) {
+        apiKey = key
+        oldOnReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
+    }
+
+    @Deprecated(
+        message = "Use sdk() with W3WMapFragment.OnMapReadyCallback",
+        replaceWith = ReplaceWith(
+            "sdk(source, W3WMapFragment.OnMapReadyCallback, W3WMapFragment.MapEventsCallback)",
+            "com.what3words.components.maps.views"
+        ),
+        level = DeprecationLevel.WARNING
+    )
+    fun sdk(
+        source: What3WordsAndroidWrapper,
+        callback: OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback? = null
+    ) {
+        wrapper = source
+        oldOnReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
+    }
+
+    override fun apiKey(
+        key: String,
+        callback: W3WMapFragment.OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback?
+    ) {
+        apiKey = key
+        onReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
+    }
+
+    override fun sdk(
+        source: What3WordsAndroidWrapper,
+        callback: W3WMapFragment.OnMapReadyCallback,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback?
+    ) {
         wrapper = source
         onReadyCallback = callback
+        this.mapEventsCallback = mapEventsCallback
     }
+
+    override val fragment: Fragment
+        get() = this
 
     override fun onMapReady(p0: GoogleMap) {
         val w3wMapsWrapper = when {
@@ -75,6 +167,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
                     wrapper
                 )
             }
+
             wrapper != null -> {
                 W3WGoogleMapsWrapper(
                     requireContext(),
@@ -82,15 +175,21 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
                     wrapper!!
                 )
             }
+
             else -> {
                 throw Exception("MISSING SETUP")
             }
         }
-        map = Map(w3wMapsWrapper, p0)
-        onReadyCallback.onMapReady(map)
+        map = Map(w3wMapsWrapper, p0, mapEventsCallback)
+        onReadyCallback?.onMapReady(map)
+        oldOnReadyCallback?.onMapReady(map)
     }
 
-    class Map(private val w3wMapsWrapper: W3WGoogleMapsWrapper, private val map: GoogleMap) :
+    class Map(
+        private val w3wMapsWrapper: W3WGoogleMapsWrapper,
+        private val map: GoogleMap,
+        mapEventsCallback: W3WMapFragment.MapEventsCallback?
+    ) :
         W3WMap {
         private var squareSelectedError: Consumer<APIResponse.What3WordsError>? = null
         private var squareSelectedSuccess: SelectedSquareConsumer<SuggestionWithCoordinates, Boolean, Boolean>? =
@@ -98,7 +197,7 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
 
         init {
             map.setMinZoomPreference(2.0f)
-            map.setMaxZoomPreference(20.0f)
+            map.setMaxZoomPreference(22.0f)
 
             map.setOnMapClickListener { latLng ->
                 //OTHER FUNCTIONS
@@ -117,10 +216,12 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             }
 
             map.setOnCameraIdleListener {
+                mapEventsCallback?.onIdle()
                 this.w3wMapsWrapper.updateMap()
             }
 
             map.setOnCameraMoveListener {
+                mapEventsCallback?.onMove()
                 this.w3wMapsWrapper.updateMove()
             }
         }
@@ -153,17 +254,22 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestion(suggestion, markerColor, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
             })
         }
 
-        private fun handleZoomOption(latLng: LatLng, zoomOption: W3WZoomOption) {
+        private fun handleZoomOption(latLng: LatLng, zoomOption: W3WZoomOption, zoom: Float?) {
             when (zoomOption) {
                 W3WZoomOption.NONE -> {}
                 W3WZoomOption.CENTER -> {
@@ -172,10 +278,11 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
                         .build()
                     map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
                 }
+
                 W3WZoomOption.CENTER_AND_ZOOM -> {
                     val cameraPosition = CameraPosition.Builder()
                         .target(latLng)
-                        .zoom(19f)
+                        .zoom(zoom ?: getZoomSwitchLevel())
                         .build()
                     map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
                 }
@@ -220,10 +327,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtSuggestionWithCoordinates(suggestion, markerColor, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -234,10 +346,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             square: SuggestionWithCoordinates,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtSuggestionWithCoordinates(square, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -268,10 +385,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             suggestion: Suggestion,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtSuggestion(suggestion, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -291,10 +413,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtWords(words, markerColor, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -329,10 +456,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             words: String,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtWords(words, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -361,10 +493,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             markerColor: W3WMarkerColor,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.addMarkerAtCoordinates(lat, lng, markerColor, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
             }, {
                 onError?.accept(it)
@@ -400,10 +537,15 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
             lng: Double,
             zoomOption: W3WZoomOption,
             onSuccess: Consumer<SuggestionWithCoordinates>?,
-            onError: Consumer<APIResponse.What3WordsError>?
+            onError: Consumer<APIResponse.What3WordsError>?,
+            zoomLevel: Float?
         ) {
             w3wMapsWrapper.selectAtCoordinates(lat, lng, {
-                handleZoomOption(LatLng(it.coordinates.lat, it.coordinates.lng), zoomOption)
+                handleZoomOption(
+                    LatLng(it.coordinates.lat, it.coordinates.lng),
+                    zoomOption,
+                    zoomLevel
+                )
                 onSuccess?.accept(it)
                 squareSelectedSuccess?.accept(
                     it,
@@ -445,5 +587,88 @@ class W3WGoogleMapFragment() : Fragment(), OnMapReadyCallback {
         override fun unselect() {
             w3wMapsWrapper.unselect()
         }
+
+        override fun moveToPosition(latitude: Double, longitude: Double, zoom: Double) {
+            map.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(latitude, longitude), zoom.toFloat()
+                )
+            )
+        }
+
+        override fun animateToPosition(
+            latitude: Double,
+            longitude: Double,
+            zoom: Double,
+            onFinished: () -> Unit
+        ) {
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(latitude, longitude), zoom.toFloat()
+                ), object : GoogleMap.CancelableCallback {
+                    override fun onCancel() {
+                        onFinished.invoke()
+                    }
+
+                    override fun onFinish() {
+                        onFinished.invoke()
+                    }
+
+                }
+            )
+        }
+
+        override fun setMapGesturesEnabled(enabled: Boolean) {
+            map.uiSettings.setAllGesturesEnabled(enabled)
+        }
+
+        override fun orientCamera() = with(map.cameraPosition) {
+            val newCameraPosition = CameraPosition(target, zoom, tilt, 0f)
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition))
+        }
+
+        @SuppressLint("MissingPermission")
+        @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
+        override fun setMyLocationEnabled(enabled: Boolean) {
+            map.isMyLocationEnabled = enabled
+        }
+
+        override fun setMyLocationButton(enabled: Boolean) {
+            map.uiSettings.isMyLocationButtonEnabled = enabled
+        }
+
+        override fun getMapType(): W3WMap.MapType {
+            return w3wMapsWrapper.getMapType()
+        }
+
+        override fun setMapType(mapType: W3WMap.MapType) {
+            w3wMapsWrapper.setMapType(mapType)
+        }
+
+        override fun isDarkMode(): Boolean {
+            return w3wMapsWrapper.isDarkMode()
+        }
+
+        override fun setDarkMode(darkMode: Boolean, customJsonStyle: String?) {
+            w3wMapsWrapper.setDarkMode(darkMode, customJsonStyle)
+        }
+
+        override fun isMapAtGridLevel(): Boolean {
+            return w3wMapsWrapper.isGridVisible
+        }
+
+        override fun setZoomSwitchLevel(zoom: Float) {
+            w3wMapsWrapper.setZoomSwitchLevel(zoom)
+        }
+
+        override fun getZoomSwitchLevel(): Float {
+            return w3wMapsWrapper.getZoomSwitchLevel()
+        }
+
+        override val target: Pair<Double, Double>
+            get() = Pair(map.cameraPosition.target.latitude, map.cameraPosition.target.longitude)
+
+        override val zoom: Float
+            get() = map.cameraPosition.zoom
     }
 }

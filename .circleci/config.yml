@@ -1,14 +1,14 @@
 version: 2.1
 orbs:
   gradle: circleci/gradle@2.2.0
-  android: circleci/android@1.0
+  android: circleci/android@2.1.2
 
 jobs:
   build-test-sonar:
-    docker:
-      - image: circleci/android:api-30
-    environment:
-      JVM_OPTS: -Xmx3200m
+    executor:
+      name: android/android-machine
+      resource-class: large
+      tag: 2023.05.1
     steps:
       - checkout
       - restore_cache:
@@ -32,21 +32,11 @@ jobs:
 #      - run:
 #          name: Upload Coverage Report to SonarCloud
 #          command: ./gradlew sonarqube
-      - run:
-          name: Assemble google-maps-sample release build
-          command: ./gradlew google-maps-sample:assembleRelease
-      - run:
-          name: Assemble mapbox-sample release build
-          command: ./gradlew mapbox-sample:assembleRelease
       - store_test_results:
           path: lib/build/test-results/testDebugUnitTest
-      - store_artifacts:
-          path: google-maps-sample/build/outputs/apk/release
-      - store_artifacts:
-          path: mapbox-sample/build/outputs/apk/release
   deploy-to-sonatype:
     docker:
-      - image: circleci/android:api-30
+      - image: cimg/android:2023.05-browsers
     environment:
       JVM_OPTS: -Xmx3200m
     steps:
@@ -69,9 +59,8 @@ jobs:
       - run:
           name: Inject Maven signing key
           command: |
-            echo $GPG_SIGNING_KEY \
-            | awk 'NR == 1 { print "SIGNING_KEY=" } 1' ORS='\\n' \
-            >> gradle.properties
+            chmod +x signing.sh
+            ./signing.sh
       - run:
           name: Publish to Maven
           command: ./gradlew assemble publish
@@ -94,4 +83,4 @@ workflows:
           filters:
             branches:
               only:
-                - dev
+                - staging
