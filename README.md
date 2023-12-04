@@ -306,7 +306,7 @@ activity_main.xml
 Kotlin
 
 ```Kotlin
-class MainActivity : AppCompatActivity(), W3WGoogleMapFragment.OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -390,7 +390,7 @@ activity_main.xml
 Kotlin
 
 ```Kotlin
-class MainActivity : AppCompatActivity(), W3WMapboxMapFragment.OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
