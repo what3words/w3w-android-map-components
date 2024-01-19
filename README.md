@@ -1,5 +1,12 @@
 # <img src="https://what3words.com/assets/images/w3w_square_red.png" width="64" height="64" alt="what3words">&nbsp;w3w-android-map-components
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.what3words/w3w-android-map-components.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.what3words%22%20AND%20a:%22w3w-android-map-components%22)
+
+### Android minimum SDK support
+
+[![Generic badge](https://img.shields.io/badge/minSdk-23-green.svg)](https://developer.android.com/about/versions/marshmallow/android-6.0/)
+
+
 ## Introduction
 
 The what3words Map Component provides a straightforward way to add what3words to a Google or Mapbox
@@ -21,91 +28,34 @@ To obtain an API key, please
 visit [https://what3words.com/select-plan](https://what3words.com/select-plan) and sign up for an
 account.
 
-## Installation
-
-The artifact is available
-through [![Maven Central](https://img.shields.io/maven-central/v/com.what3words/w3w-android-map-components.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.what3words%22%20AND%20a:%22w3w-android-map-components%22)
-
-### Android minimum SDK support
-
-[![Generic badge](https://img.shields.io/badge/minSdk-23-green.svg)](https://developer.android.com/about/versions/marshmallow/android-6.0/)
-
 ### Gradle
 
 ```
 implementation 'com.what3words:w3w-android-map-components:1.0.4'
 ```
 
-## Documentation summary
+## Sample using MapWrapper and MapFragment in compose and xml for MapBox of the w3w-android-map-components library
 
-- [Initial setup](#initial-setup)
-- [Enable what3words features in an existing Google Maps app using W3WGoogleMapsWrapper](#enable-what3words-features-in-an-existing-google-maps-app-using-W3WGoogleMapsWrapper)
-- [Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper](#enable-what3words-features-in-an-existing-mapbox-maps-app-using-W3WMapBoxWrapper)
-- [General map wrapper functions](#general-map-wrapper-functions)
-- [Enable what3words features in an new Google Maps app using W3WGoogleMapFragment](#enable-what3words-features-in-an-new-google-maps-app-using-w3wgooglemapfragment)
-- [Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment](#enable-what3words-features-in-an-new-mapbox-maps-app-using-w3wmapboxmapfragment)
-- [General map fragment functions](#general-map-fragment-functions)
-- [Use library with Jetpack Compose](#use-library-with-jetpack-compose)
+[mapbox-sample](https://github.com/what3words/w3w-android-samples/tree/main/mapbox-sample)
 
-## Initial setup
+## Sample using MapWrapper and MapFragment in compose and xml for Google Map of the w3w-android-map-components library
 
-AndroidManifest.xml
+[maps-googlemaps-sample](https://github.com/what3words/w3w-android-samples/tree/main/maps-googlemaps-sample)
 
-```xml
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.yourpackage.yourapp">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    ...
-```
+## MapWrapper
 
-add this to build.gradle (app level)
-
-```
-compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
-}
-```
-
-add this the following proguard rules
-
-```
--keep class com.what3words.javawrapper.request.* { *; }
--keep class com.what3words.javawrapper.response.* { *; }
-```
-
-## Enable what3words features in an existing Google Maps app using W3WGoogleMapsWrapper
+Google Map
 
 To use Google Maps on your app, follow the quick start tutorial on the Google developer portal
 here: https://developers.google.com/maps/documentation/android-sdk/start
 
 After a successful Google Maps run, you can start using our GoogleMapsWrapper following these steps:
 
-activity_main.xml
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-    ...
-<fragment xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/map"
-    android:name="com.google.android.gms.maps.SupportMapFragment"
-    android:layout_width="match_parent" android:layout_height="match_parent" />
-```
-
-Kotlin
-
 ```Kotlin
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
-
-    }
+    ...
 
     override fun onMapReady(map: GoogleMap) {
         val apiWrapper = What3WordsV3("YOUR_API_KEY_HERE", this)
@@ -161,31 +111,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 }
 ```
 
-## Enable what3words features in an existing Mapbox maps app using W3WMapBoxWrapper
+MapBox
 
 To use Mapbox Maps on your app, follow the quick start tutorial on the Mapbox developer portal
 here: https://docs.mapbox.com/android/navigation/guides/get-started/install/
 
 After a successful Mapbox map run, you can start using our MapboxWrapper following these steps:
-
-activity_main.xml
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.mapbox.maps.MapView android:id="@+id/mapView" android:layout_width="0dp"
-        android:layout_height="0dp" app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
-```
-
-Kotlin
 
 ```kotlin
 class MainActivity : AppCompatActivity() {
@@ -279,7 +210,11 @@ mandatory if gridEnabled is set to true (default)* |
 |**updateMove**, This method should be called on GoogleMap.setOnCameraMoveListener or MapboxMap.addOnCameraChangeListener. This method will allow swapping from markers to squares and show/hide grid when zoom goes higher or lower than the zoom level threshold (can differ per map provider).|```updateMove()```<br>*
 mandatory if gridEnabled is set to true (default)* |
 
-## Enable what3words features in an new Google Maps app using W3WGoogleMapFragment
+
+<br><br>
+## Map Fragment
+
+Google Map
 
 Since you are creating a new app, you can always opt to use our W3WGoogleMapFragment. The main
 advantage is that all the required events to draw the grid are done under the hood, resulting in
@@ -364,7 +299,7 @@ class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 }
 ```
 
-## Enable what3words features in an new Mapbox maps app using W3WMapboxMapFragment
+MapBox
 
 Since you are creating a new app, you can always opt to use our W3WMapboxMapFragment. The main
 advantage is that all the required events to draw the grid are done under the hood, resulting in
@@ -466,8 +401,3 @@ class MainActivity : AppCompatActivity(), W3WMapFragment.OnMapReadyCallback {
 |**removeAllMarkers**, remove all markers added to the map. |```removeAllMarkers()```|
 |**getAllMarkers**, Gets all added markers from the map. | ```val markers = getAllMarkers()```|
 |**unselect**, remove the selected marker from the map.|```unselect()```|
-
-## Use library with Jetpack Compose:
-
-Both GoogleMaps and Mapbox Wrapper and Fragment work with Jetpack compose using AndroidView and AndroidViewBinding, please check the modules google-maps-compose-sample and mapbox-compose-sample in this repo as an example of usage of our w3w-android-map-components library in a Jetpack Compose app.
-
