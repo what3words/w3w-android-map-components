@@ -93,7 +93,7 @@ class W3WMapBoxWrapper(
         const val SELECTED_ZOOMED_SOURCE = "SELECTED_ZOOMED_SOURCE"
         const val SELECTED_ZOOMED_LAYER_PREFIX = "SELECTED_ZOOMED_LAYER_%s"
         const val SELECTED_ZOOMED_LAYER_SEARCH = "SELECTED_ZOOMED_LAYER_"
-        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 19f
         const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 8f
         const val CIRCLE_ID_PREFIX = "CIRCLE_%s"
@@ -955,13 +955,13 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < 18 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
 
-            zoom >= 18 && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
+            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
                 .toDouble()
 
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
+            zoom >= 20 && zoom < 21 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
                 .toDouble()
 
             else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_close)

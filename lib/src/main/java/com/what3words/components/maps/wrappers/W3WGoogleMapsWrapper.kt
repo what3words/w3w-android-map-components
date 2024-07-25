@@ -70,7 +70,7 @@ class W3WGoogleMapsWrapper(
         const val VERTICAL_LINES_COLLECTION = "VERTICAL_LINES_COLLECTION"
         const val HORIZONTAL_LINES_COLLECTION = "HORIZONTAL_LINES_COLLECTION"
         const val SELECTED = "SELECTED"
-        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 19f
         const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 6f
         const val SCALE_NORMALIZATION = 1f
@@ -443,21 +443,27 @@ class W3WGoogleMapsWrapper(
         bounds: LatLngBounds,
         scale: Float = DEFAULT_BOUNDS_SCALE
     ): LatLngBounds {
-        val center = bounds.center
-        val centerPoint: Point = mapView.projection.toScreenLocation(center)
-        val screenPositionNortheast: Point = mapView.projection.toScreenLocation(bounds.northeast)
-        screenPositionNortheast.x =
-            ((scale * (screenPositionNortheast.x - centerPoint.x) + centerPoint.x).roundToInt())
-        screenPositionNortheast.y =
-            ((scale * (screenPositionNortheast.y - centerPoint.y) + centerPoint.y).roundToInt())
-        val scaledNortheast = mapView.projection.fromScreenLocation(screenPositionNortheast)
-        val screenPositionSouthwest: Point = mapView.projection.toScreenLocation(bounds.southwest)
-        screenPositionSouthwest.x =
-            ((scale * (screenPositionSouthwest.x - centerPoint.x) + centerPoint.x).roundToInt())
-        screenPositionSouthwest.y =
-            ((scale * (screenPositionSouthwest.y - centerPoint.y) + centerPoint.y).roundToInt())
-        val scaledSouthwest = mapView.projection.fromScreenLocation(screenPositionSouthwest)
-        return LatLngBounds(scaledSouthwest, scaledNortheast)
+        try {
+            val center = bounds.center
+            val centerPoint: Point = mapView.projection.toScreenLocation(center)
+            val screenPositionNortheast: Point = mapView.projection.toScreenLocation(bounds.northeast)
+            screenPositionNortheast.x =
+                ((scale * (screenPositionNortheast.x - centerPoint.x) + centerPoint.x).roundToInt())
+            screenPositionNortheast.y =
+                ((scale * (screenPositionNortheast.y - centerPoint.y) + centerPoint.y).roundToInt())
+            val scaledNortheast = mapView.projection.fromScreenLocation(screenPositionNortheast)
+            val screenPositionSouthwest: Point = mapView.projection.toScreenLocation(bounds.southwest)
+            screenPositionSouthwest.x =
+                ((scale * (screenPositionSouthwest.x - centerPoint.x) + centerPoint.x).roundToInt())
+            screenPositionSouthwest.y =
+                ((scale * (screenPositionSouthwest.y - centerPoint.y) + centerPoint.y).roundToInt())
+            val scaledSouthwest = mapView.projection.fromScreenLocation(screenPositionSouthwest)
+            return LatLngBounds(scaledSouthwest, scaledNortheast)
+        } catch (e: Exception) {
+            //fallback to original bounds if something goes wrong with scaling
+            e.printStackTrace()
+            return bounds
+        }
     }
 
     /** [onMapMoved] will be responsible for the drawing of grid, markers and squares depending on the zoom levels.
@@ -652,9 +658,9 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < 18 -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= 18 && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
+            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
+            zoom >= 20 && zoom < 21 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_selected_width_close)
         }
     }
