@@ -79,7 +79,7 @@ workflows:
       - deploy-to-sonatype:
           name: Deploy to sonatype and build sample apps
           requires:
-            - test-sonar
+            - build-test-sonar
           context:
             - mobile
             - maven-sign
