@@ -1,9 +1,8 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     ext {
-        what3words_android_wrapper_version = "3.2.0"
-        what3words_android_bridge_version = "1.0.5"
-        what3words_android_design_version = "1.0.3"
+        what3words_android_wrapper_version = "4.0.0"
+        what3words_android_design_version = "2.0.2-SNAPSHOT"
         compose_version = "1.4.3"
         compose_activity_version = "1.7.2"
         compose_constraint_layout_version = "1.0.1"
@@ -17,7 +16,7 @@ buildscript {
         test_runner_version = "1.5.2"
         gms_version = "18.2.0"
         gms_utils_version = "2.4.0"
-        mapbox_version = "10.4.0"
+        mapbox_version = "10.16.4"
         androidx_core_ktx_version = "1.10.1"
         androidx_appcompat_version = "1.6.1"
         material_version= "1.9.0"

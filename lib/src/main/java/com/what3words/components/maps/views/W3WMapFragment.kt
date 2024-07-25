@@ -2,6 +2,7 @@ package com.what3words.components.maps.views
 
 import androidx.fragment.app.Fragment
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
+import com.what3words.core.datasource.text.W3WTextDataSource
 
 /** [W3WMapFragment] A generic fragment interface to apply to all different map providers Fragments */
 interface W3WMapFragment {
@@ -50,7 +51,7 @@ interface W3WMapFragment {
      * @param mapEventsCallback [MapEventsCallback] multiple [W3WMap] map events that allow developer add some extra needed logic on their apps.
      */
     fun sdk(
-        source: What3WordsAndroidWrapper,
+        source: W3WTextDataSource,
         callback: OnMapReadyCallback,
         mapEventsCallback: MapEventsCallback? = null
     )

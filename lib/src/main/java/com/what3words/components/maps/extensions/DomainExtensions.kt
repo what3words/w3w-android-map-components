@@ -2,31 +2,20 @@ package com.what3words.components.maps.extensions
 
 import com.google.maps.android.collections.PolylineManager
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
-import com.what3words.javawrapper.response.ConvertTo3WA
-import com.what3words.javawrapper.response.ConvertToCoordinates
-import com.what3words.javawrapper.response.Line
-import com.what3words.javawrapper.response.Square
-import com.what3words.javawrapper.response.Suggestion
+import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WLine
+import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.javawrapper.response.Coordinates
-import com.what3words.javawrapper.response.SuggestionWithCoordinates
+import com.what3words.javawrapper.response.Line
 
 //To be moved to core library extensions?
-internal fun Square.contains(lat: Double, lng: Double): Boolean {
+internal fun W3WRectangle.contains(lat: Double?, lng: Double?): Boolean {
+    if (lat == null || lng == null) return false
     return if (lat >= this.southwest.lat && lat <= this.northeast.lat && lng >= this.southwest.lng && lng <= this.northeast.lng) return true
     else false
 }
 
-internal fun ConvertTo3WA.toSuggestionWithCoordinates(): SuggestionWithCoordinates {
-    val suggestion = Suggestion(this.words, this.nearestPlace, this.country, null, 0, this.language)
-    return SuggestionWithCoordinates(suggestion, this)
-}
-
-internal fun ConvertToCoordinates.toSuggestionWithCoordinates(): SuggestionWithCoordinates {
-    val suggestion = Suggestion(this.words, this.nearestPlace, this.country, null, 0, this.language)
-    return SuggestionWithCoordinates(suggestion, this)
-}
-
-fun Coordinates.generateUniqueId(): Long {
+fun W3WCoordinates.generateUniqueId(): Long {
     if (lat < -90 || lat > 90) {
         throw IllegalArgumentException("Invalid latitude value: must be between -90 and 90")
     }
@@ -38,7 +27,7 @@ fun Coordinates.generateUniqueId(): Long {
     return (latBits or lngBits)
 }
 
-fun Long.toCoordinates(): Coordinates {
+fun Long.toCoordinates(): W3WCoordinates {
     val lat = (this ushr 32).toDouble() / 1e6
     val lng = (this and 0xffffffff).toDouble() / 1e6
 
@@ -49,7 +38,7 @@ fun Long.toCoordinates(): Coordinates {
         throw IllegalArgumentException("Invalid longitude value: must be between -180 and 180")
     }
 
-    return Coordinates(lat, lng)
+    return W3WCoordinates(lat, lng)
 }
 
 /** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
@@ -63,12 +52,12 @@ fun Long.toCoordinates(): Coordinates {
  * |     |     |
  * 2-----3     6 ..
  */
-internal fun List<Line>.computeVerticalLines(): List<Coordinates> {
+internal fun List<W3WLine>.computeVerticalLines(): List<W3WCoordinates> {
     val computedVerticalLines =
-        mutableListOf<Coordinates>()
+        mutableListOf<W3WCoordinates>()
 
     // all vertical lines
-    val verticalLines = mutableListOf<Line>()
+    val verticalLines = mutableListOf<W3WLine>()
     verticalLines.addAll(this.filter { it.start.lng == it.end.lng })
 
     var t = 0
@@ -103,12 +92,12 @@ internal fun List<Line>.computeVerticalLines(): List<Coordinates> {
  * |
  * E-----F
  */
-internal fun List<Line>.computeHorizontalLines(): List<Coordinates> {
+internal fun List<W3WLine>.computeHorizontalLines(): List<W3WCoordinates> {
     val computedHorizontalLines =
-        mutableListOf<Coordinates>()
+        mutableListOf<W3WCoordinates>()
 
     // all horizontal lines
-    val horizontalLines = mutableListOf<Line>()
+    val horizontalLines = mutableListOf<W3WLine>()
     horizontalLines.addAll(this.filter { it.start.lat == it.end.lat })
 
     var t = 0

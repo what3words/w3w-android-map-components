@@ -13,11 +13,11 @@ apply from: 'maven-push.gradle'
 apply from: '../jacoco.gradle'
 
 android {
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         minSdk 24
-        targetSdk 33
+        targetSdk 34
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -77,7 +77,7 @@ dependencies {
 
     // what3words
     api "com.what3words:w3w-android-wrapper:$what3words_android_wrapper_version"
-    api "com.what3words:w3w-android-api-sdk-bridge:$what3words_android_bridge_version"
+    api "com.what3words:w3w-android-design-library:$what3words_android_design_version"
 
     // Google maps
     compileOnly "com.google.android.gms:play-services-maps:$gms_version"
@@ -85,7 +85,7 @@ dependencies {
     testImplementation "com.google.android.gms:play-services-maps:$gms_version"
 
     // Mapbox
-    compileOnly "com.mapbox.maps:android:$mapbox_version"
+    implementation "com.mapbox.maps:android:$mapbox_version"
 
     // kotlin
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
