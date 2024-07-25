@@ -85,7 +85,7 @@ dependencies {
     testImplementation "com.google.android.gms:play-services-maps:$gms_version"
 
     // Mapbox
-    implementation "com.mapbox.maps:android:$mapbox_version"
+    compileOnly "com.mapbox.maps:android:$mapbox_version"
 
     // kotlin
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
