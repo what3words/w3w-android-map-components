@@ -180,11 +180,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             suggestion.w3wAddress.words,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -195,11 +197,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<W3WAddress>>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addSuggestion(
             listSuggestions,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -219,10 +223,12 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.selectSuggestion(
             suggestion,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -236,11 +242,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addAddress(
             address,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -251,8 +259,10 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<W3WAddress>>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
-        w3WMapManager.addAddress(listAddresses, markerColor, onSuccess, onError)
+        w3WMapManager.addAddress(listAddresses, markerColor, {
+            isDirty = true
+            onSuccess?.accept(it)
+        }, onError)
     }
 
     override fun selectAtAddress(
@@ -260,8 +270,10 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
-        w3WMapManager.selectedAddress(address, onSuccess, onError)
+        w3WMapManager.selectedAddress(address, {
+            isDirty = true
+            onSuccess?.accept(it)
+        }, onError)
     }
 
     override fun removeMarkerAtAddress(address: W3WAddress) {
@@ -284,12 +296,14 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addCoordinates(
             lat,
             lng,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -300,11 +314,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<W3WAddress>>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addCoordinates(
             listCoordinates,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -315,11 +331,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.selectCoordinates(
             lat,
             lng,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -346,11 +364,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             words,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -361,11 +381,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<W3WAddress>>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             listWords,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -375,10 +397,12 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<W3WAddress>?,
         onError: Consumer<W3WError>?
     ) {
-        isDirty = true
         w3WMapManager.selectWords(
             words,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
