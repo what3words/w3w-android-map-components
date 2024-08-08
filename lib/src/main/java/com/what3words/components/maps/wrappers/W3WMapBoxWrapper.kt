@@ -52,13 +52,12 @@ import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
-import java.nio.ByteBuffer
-import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 
 /**
  * [W3WMapBoxWrapper] a wrapper to add what3words support to [MapboxMap].
@@ -90,7 +89,8 @@ class W3WMapBoxWrapper(
         const val SELECTED_PIN_LAYER_PREFIX = "SELECTED_PIN_LAYER_%s"
         const val SELECTED_ZOOMED_SOURCE = "SELECTED_ZOOMED_SOURCE"
         const val SELECTED_ZOOMED_LAYER_PREFIX = "SELECTED_ZOOMED_LAYER_%s"
-        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val SELECTED_ZOOMED_LAYER_SEARCH = "SELECTED_ZOOMED_LAYER_"
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 19f
         const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 8f
         const val CIRCLE_ID_PREFIX = "CIRCLE_%s"
@@ -104,38 +104,39 @@ class W3WMapBoxWrapper(
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
 
-
-    // TODO: Rethink this logic, MapBox v10 really complicated this, and the suggestion from someone at mapbox was this: https://github.com/mapbox/mapbox-maps-android/issues/1245#issuecomment-1082884148
     init {
-        var latch: CountDownLatch
-        var callbackResult: Boolean
         mapView.addOnMapClickListener { point ->
-            callbackResult = false
-            latch = CountDownLatch(1)
-            mapView.executeOnRenderThread {
-                mapView.queryRenderedFeatures(
-                    RenderedQueryGeometry(mapView.pixelForCoordinate(point)),
-                    RenderedQueryOptions(
-                        w3WMapManager.suggestionsCached.map { it.suggestion.words },
-                        null
-                    )
-                ) {
-                    if (it.isValue && it.value!!.isNotEmpty()) {
-                        it.value!![0].source.let { source ->
-                            w3WMapManager.suggestionsCached.firstOrNull { it.suggestion.words == source }
-                                ?.let {
-                                    isDirty = true
-                                    w3WMapManager.selectExistingMarker(it.suggestion)
-                                    onMarkerClickedCallback?.accept(it.suggestion)
-                                    callbackResult = true
-                                }
-                        }
-                    }
-                    latch.countDown()
+            checkIfMarkerClicked(point) { suggestion ->
+                if (suggestion != null) onMarkerClickedCallback?.accept(suggestion)
+            }
+            false
+        }
+    }
+
+    /**
+     * Checks if a marker was clicked on the map. This because the [MapboxMap.addOnMapClickListener] does not take into account markers at higher zoom levels.
+     */
+    fun checkIfMarkerClicked(point: Point, clickedMarker: (SuggestionWithCoordinates?) -> Unit) {
+        if (mapView.cameraState.zoom < zoomSwitchLevel) {
+            mapView.queryRenderedFeatures(
+                RenderedQueryGeometry(mapView.pixelForCoordinate(point)),
+                RenderedQueryOptions(null, null)
+            ) { result ->
+                val features = result.value ?: return@queryRenderedFeatures clickedMarker(null)
+                val w3wSource = features.filter { feature ->
+                    w3WMapManager.suggestionsCached.any { it.suggestion.words == feature.source }
+                }
+                if (w3wSource.isNotEmpty()) {
+                    val source = w3wSource.first().source
+                    val suggestion =
+                        w3WMapManager.suggestionsCached.first { it.suggestion.words == source }
+                    clickedMarker(suggestion.suggestion)
+                } else {
+                    clickedMarker(null)
                 }
             }
-            latch.await()
-            return@addOnMapClickListener callbackResult
+        } else {
+            clickedMarker(findMarkerByCoordinates(point.latitude(), point.longitude()))
         }
     }
 
@@ -170,6 +171,7 @@ class W3WMapBoxWrapper(
         this.gridColor = gridColor
     }
 
+    @Deprecated("Use checkIfMarkerClicked onMapClick events instead")
     override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WMapBoxWrapper {
         onMarkerClickedCallback = callback
         return this
@@ -183,11 +185,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             suggestion.words,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -198,11 +202,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             listSuggestions.map { it.words },
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -225,7 +231,10 @@ class W3WMapBoxWrapper(
         isDirty = true
         w3WMapManager.selectWords(
             suggestion.words,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -249,11 +258,16 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         if (suggestion.coordinates != null) {
-            w3WMapManager.selectSuggestionWithCoordinates(suggestion, onSuccess)
+            w3WMapManager.selectSuggestionWithCoordinates(suggestion) {
+                isDirty = true
+                onSuccess?.accept(it)
+            }
         } else {
-            w3WMapManager.selectWords(suggestion.words, onSuccess, onError)
+            w3WMapManager.selectWords(suggestion.words, {
+                isDirty = true
+                onSuccess?.accept(it)
+            }, onError)
         }
     }
     //endregion
@@ -267,12 +281,14 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addCoordinates(
             lat,
             lng,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -283,11 +299,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addCoordinates(
             listCoordinates,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -298,11 +316,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.selectCoordinates(
             lat,
             lng,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -329,11 +349,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             words,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -344,11 +366,13 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.addWords(
             listWords,
             markerColor,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -358,10 +382,12 @@ class W3WMapBoxWrapper(
         onSuccess: Consumer<SuggestionWithCoordinates>?,
         onError: Consumer<APIResponse.What3WordsError>?
     ) {
-        isDirty = true
         w3WMapManager.selectWords(
             words,
-            onSuccess,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
             onError
         )
     }
@@ -559,7 +585,10 @@ class W3WMapBoxWrapper(
         )
         mapView.getStyle { style ->
             val test = listLines.toJson()
-            selectedZoomedLayerId = String.format(SELECTED_ZOOMED_LAYER_PREFIX, suggestion.coordinates.generateUniqueId())
+            selectedZoomedLayerId = String.format(
+                SELECTED_ZOOMED_LAYER_PREFIX,
+                suggestion.coordinates.generateUniqueId()
+            )
             if (style.styleSourceExists(SELECTED_ZOOMED_SOURCE)) {
                 style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.data(test)
             } else {
@@ -589,7 +618,10 @@ class W3WMapBoxWrapper(
     /** [drawZoomedMarkers] will be responsible for the drawing all square images to four coordinates (top right, then clockwise) by adding them [MapboxMap.style] using [RasterLayer], still looking for a better option for this, this is the way I found it online.*/
     private fun drawFilledZoomedMarker(suggestion: SuggestionWithCoordinatesAndStyle) {
         main(dispatchers) {
-            val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.coordinates.generateUniqueId())
+            val id = String.format(
+                SQUARE_IMAGE_ID_PREFIX,
+                suggestion.suggestion.coordinates.generateUniqueId()
+            )
             bitmapFromDrawableRes(context, suggestion.markerColor.toGridFill())?.let { image ->
                 mapView.getStyle { style ->
                     if (!style.styleSourceExists(id)) {
@@ -678,14 +710,16 @@ class W3WMapBoxWrapper(
                 val layer = style.getLayerAs<LineLayer>(GRID_LAYER)
                 layer?.visibility(Visibility.NONE)
             }
-            selectedZoomedLayerId?.let {nonNullLayerId ->
-                if (style.styleLayerExists(nonNullLayerId)) {
-                    style.removeStyleLayer(nonNullLayerId)
+            style.styleLayers.filter { it.id.startsWith(SELECTED_ZOOMED_LAYER_SEARCH) }
+                .forEach { t ->
+                    style.removeStyleLayer(t.id)
                     style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
                 }
-            }
             w3WMapManager.suggestionsCached.forEach {
-                val id = String.format(SQUARE_IMAGE_ID_PREFIX, it.suggestion.coordinates.generateUniqueId())
+                val id = String.format(
+                    SQUARE_IMAGE_ID_PREFIX,
+                    it.suggestion.coordinates.generateUniqueId()
+                )
                 if (style.styleLayerExists(id)) {
                     style.removeStyleLayer(id)
                     style.removeStyleSource(id)
@@ -699,7 +733,10 @@ class W3WMapBoxWrapper(
             runBlocking {
                 w3WMapManager.suggestionsRemoved.forEach { suggestion ->
                     mapView.getStyle { style ->
-                        val id = String.format(SQUARE_IMAGE_ID_PREFIX, suggestion.suggestion.coordinates.generateUniqueId())
+                        val id = String.format(
+                            SQUARE_IMAGE_ID_PREFIX,
+                            suggestion.suggestion.coordinates.generateUniqueId()
+                        )
                         if (style.styleLayerExists(id)) {
                             style.removeStyleLayer(id)
                             style.removeStyleSource(id)
@@ -758,7 +795,8 @@ class W3WMapBoxWrapper(
                         }
                     )
                 }
-                selectedPinLayerId = String.format(SELECTED_PIN_LAYER_PREFIX, data.coordinates.generateUniqueId())
+                selectedPinLayerId =
+                    String.format(SELECTED_PIN_LAYER_PREFIX, data.coordinates.generateUniqueId())
                 if (!style.styleLayerExists(selectedPinLayerId!!)) {
                     style.addLayer(
                         symbolLayer(selectedPinLayerId!!, SELECTED_SOURCE) {
@@ -793,9 +831,15 @@ class W3WMapBoxWrapper(
                             }
                         )
                     }
-                    if (!style.styleLayerExists(data.suggestion.coordinates.generateUniqueId().toString())) {
+                    if (!style.styleLayerExists(
+                            data.suggestion.coordinates.generateUniqueId().toString()
+                        )
+                    ) {
                         style.addLayer(
-                            symbolLayer(data.suggestion.coordinates.generateUniqueId().toString(), data.suggestion.words) {
+                            symbolLayer(
+                                data.suggestion.coordinates.generateUniqueId().toString(),
+                                data.suggestion.words
+                            ) {
                                 iconImage(String.format(PIN_ID_PREFIX, data.markerColor.toString()))
                                 iconAnchor(IconAnchor.BOTTOM)
                                 iconAllowOverlap(true)
@@ -828,9 +872,15 @@ class W3WMapBoxWrapper(
                             }
                         )
                     }
-                    if (!style.styleLayerExists(data.suggestion.coordinates.generateUniqueId().toString())) {
+                    if (!style.styleLayerExists(
+                            data.suggestion.coordinates.generateUniqueId().toString()
+                        )
+                    ) {
                         style.addLayer(
-                            symbolLayer(data.suggestion.coordinates.generateUniqueId().toString(), data.suggestion.words) {
+                            symbolLayer(
+                                data.suggestion.coordinates.generateUniqueId().toString(),
+                                data.suggestion.words
+                            ) {
                                 iconImage(
                                     String.format(
                                         CIRCLE_ID_PREFIX,
@@ -893,12 +943,15 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < 18 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
-            zoom >= 18 && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
+
+            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
                 .toDouble()
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
+
+            zoom >= 20 && zoom < 21 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
                 .toDouble()
+
             else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_close)
                 .toDouble()
         }
@@ -915,7 +968,10 @@ class W3WMapBoxWrapper(
             }
 
             w3WMapManager.suggestionsCached.forEach {
-                if (style.styleLayerExists(it.suggestion.coordinates.generateUniqueId().toString())) {
+                if (style.styleLayerExists(
+                        it.suggestion.coordinates.generateUniqueId().toString()
+                    )
+                ) {
                     style.removeStyleLayer(it.suggestion.coordinates.generateUniqueId().toString())
                     style.removeStyleSource(it.suggestion.words)
                 }

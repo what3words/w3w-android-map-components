@@ -79,6 +79,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         apiKey = key
         oldOnReadyCallback = callback
         this.mapEventsCallback = mapEventsCallback
+        binding.mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS) {
+            setup()
+        }
     }
 
     @Deprecated(
@@ -97,6 +100,9 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
         wrapper = source
         oldOnReadyCallback = callback
         this.mapEventsCallback = mapEventsCallback
+        binding.mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS) {
+            setup()
+        }
     }
 
     override fun apiKey(
@@ -180,28 +186,37 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
 
         init {
             map.addOnMapClickListener { latLng ->
-                //OTHER FUNCTIONS
-                w3wMapsWrapper.selectAtCoordinates(latLng.latitude(), latLng.longitude(), {
-                    squareSelectedSuccess?.accept(
-                        it,
-                        true,
-                        this.w3wMapsWrapper.findMarkerByCoordinates(
+                this.w3wMapsWrapper.checkIfMarkerClicked(latLng) { clickedMarker ->
+                    if (clickedMarker == null) {
+                        this.w3wMapsWrapper.selectAtCoordinates(
                             latLng.latitude(),
-                            latLng.longitude()
-                        ) != null
-                    )
-                }, {
-                    squareSelectedError?.accept(it)
-                })
+                            latLng.longitude(),
+                            onSuccess = {
+                                squareSelectedSuccess?.accept(
+                                    it,
+                                    selectedByTouch = true,
+                                    isMarked = false
+                                )
+                            },
+                            onError = {
+                                squareSelectedError?.accept(it)
+                            }
+                        )
+                    } else {
+                        this.w3wMapsWrapper.selectAtSuggestionWithCoordinates(
+                            clickedMarker, onSuccess = {
+                                squareSelectedSuccess?.accept(
+                                    clickedMarker,
+                                    selectedByTouch = true,
+                                    isMarked = true
+                                )
+                            }, onError = {
+                                squareSelectedError?.accept(it)
+                            }
+                        )
+                    }
+                }
                 true
-            }
-
-            w3wMapsWrapper.onMarkerClicked {
-                squareSelectedSuccess?.accept(
-                    it,
-                    true,
-                    true
-                )
             }
 
             map.addOnMapIdleListener {
@@ -374,6 +389,14 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
                     zoomLevel
                 )
                 onSuccess?.accept(it)
+                squareSelectedSuccess?.accept(
+                    it,
+                    selectedByTouch = false,
+                    isMarked = this.w3wMapsWrapper.findMarkerByCoordinates(
+                        it.coordinates.lat,
+                        it.coordinates.lng
+                    ) != null
+                )
             }, {
                 onError?.accept(it)
             })

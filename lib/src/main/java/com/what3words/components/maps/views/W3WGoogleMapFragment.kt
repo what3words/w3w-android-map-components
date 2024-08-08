@@ -12,11 +12,15 @@ import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.data.Renderer
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.What3WordsV3
 import com.what3words.components.maps.wrappers.GridColor
@@ -29,7 +33,8 @@ import com.what3words.javawrapper.response.SuggestionWithCoordinates
 import com.what3words.map.components.R
 import com.what3words.map.components.databinding.W3wGoogleMapViewBinding
 
-class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
+class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback,
+    OnMapsSdkInitializedCallback {
 
     private var mapFragment: SupportMapFragment? = null
     private var onReadyCallback: W3WMapFragment.OnMapReadyCallback? = null
@@ -53,6 +58,11 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
         fun onMapReady(map: W3WMap)
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        MapsInitializer.initialize(requireContext().applicationContext, MapsInitializer.Renderer.LEGACY, this)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -68,6 +78,9 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onMapsSdkInitialized(p0: MapsInitializer.Renderer) {
     }
 
     private fun getMapCompass(): View? {
@@ -215,6 +228,14 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
                 })
             }
 
+            this.w3wMapsWrapper.onMarkerClicked {
+                selectAtSquare(it, onSuccess = {
+                    squareSelectedSuccess?.accept(it, selectedByTouch = true, isMarked = true)
+                }, onError = {
+                    squareSelectedError?.accept(it)
+                })
+            }
+
             map.setOnCameraIdleListener {
                 mapEventsCallback?.onIdle()
                 this.w3wMapsWrapper.updateMap()
@@ -244,9 +265,6 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback {
         ) {
             this.squareSelectedSuccess = onSuccess
             this.squareSelectedError = onError
-            this.w3wMapsWrapper.onMarkerClicked {
-                onSuccess.accept(it, selectedByTouch = true, isMarked = true)
-            }
         }
 
         override fun addMarkerAtSuggestion(
