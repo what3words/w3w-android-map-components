@@ -1,9 +1,9 @@
 package com.what3words.components.maps.views
 
 import androidx.core.util.Consumer
-import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
 import com.what3words.javawrapper.response.SuggestionWithCoordinates

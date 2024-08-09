@@ -6,26 +6,34 @@ import android.graphics.Canvas
 import android.graphics.Point
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.GroundOverlayOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolylineManager
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
+import com.what3words.components.maps.extensions.computeHorizontalLines
+import com.what3words.components.maps.extensions.computeVerticalLines
 import com.what3words.components.maps.extensions.contains
+import com.what3words.components.maps.extensions.generateUniqueId
 import com.what3words.components.maps.extensions.main
+import com.what3words.components.maps.models.DarkModeStyle
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
+import com.what3words.components.maps.views.W3WMap
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
@@ -36,14 +44,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import androidx.core.util.Consumer
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.what3words.androidwrapper.What3WordsAndroidWrapper
-import com.what3words.components.maps.models.DarkModeStyle
-import com.what3words.components.maps.views.W3WMap
-import com.what3words.components.maps.extensions.computeHorizontalLines
-import com.what3words.components.maps.extensions.computeVerticalLines
-import com.what3words.components.maps.extensions.generateUniqueId
 import kotlin.math.roundToInt
 
 /**
@@ -67,7 +67,7 @@ class W3WGoogleMapsWrapper(
         const val VERTICAL_LINES_COLLECTION = "VERTICAL_LINES_COLLECTION"
         const val HORIZONTAL_LINES_COLLECTION = "HORIZONTAL_LINES_COLLECTION"
         const val SELECTED = "SELECTED"
-        const val DEFAULT_ZOOM_SWITCH_LEVEL = 18f
+        const val DEFAULT_ZOOM_SWITCH_LEVEL = 19f
         const val MAX_ZOOM_LEVEL = 22f
         const val DEFAULT_BOUNDS_SCALE = 6f
         const val SCALE_NORMALIZATION = 1f
@@ -404,15 +404,20 @@ class W3WGoogleMapsWrapper(
 
     //region managers/collections on click events
     private val zoomedOutMarkerListener = GoogleMap.OnMarkerClickListener { p0 ->
-        w3WMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-        onMarkerClickedCallback?.accept(w3WMapManager.selectedSuggestion)
+        w3WMapManager.squareContains(p0.position.latitude, p0.position.longitude)?.suggestion?.let {
+            onMarkerClickedCallback?.accept(it)
+        }
         return@OnMarkerClickListener true
     }
 
     private val zoomedInMarkerListener =
         GoogleMap.OnGroundOverlayClickListener { p0 ->
-            w3WMapManager.selectExistingMarker(p0.position.latitude, p0.position.longitude)
-            onMarkerClickedCallback?.accept(w3WMapManager.selectedSuggestion)
+            w3WMapManager.squareContains(
+                p0.position.latitude,
+                p0.position.longitude
+            )?.suggestion?.let {
+                onMarkerClickedCallback?.accept(it)
+            }
         }
     //endregion
 
@@ -428,21 +433,28 @@ class W3WGoogleMapsWrapper(
         bounds: LatLngBounds,
         scale: Float = DEFAULT_BOUNDS_SCALE
     ): LatLngBounds {
-        val center = bounds.center
-        val centerPoint: Point = mapView.projection.toScreenLocation(center)
-        val screenPositionNortheast: Point = mapView.projection.toScreenLocation(bounds.northeast)
-        screenPositionNortheast.x =
-            ((scale * (screenPositionNortheast.x - centerPoint.x) + centerPoint.x).roundToInt())
-        screenPositionNortheast.y =
-            ((scale * (screenPositionNortheast.y - centerPoint.y) + centerPoint.y).roundToInt())
-        val scaledNortheast = mapView.projection.fromScreenLocation(screenPositionNortheast)
-        val screenPositionSouthwest: Point = mapView.projection.toScreenLocation(bounds.southwest)
-        screenPositionSouthwest.x =
-            ((scale * (screenPositionSouthwest.x - centerPoint.x) + centerPoint.x).roundToInt())
-        screenPositionSouthwest.y =
-            ((scale * (screenPositionSouthwest.y - centerPoint.y) + centerPoint.y).roundToInt())
-        val scaledSouthwest = mapView.projection.fromScreenLocation(screenPositionSouthwest)
-        return LatLngBounds(scaledSouthwest, scaledNortheast)
+        try {
+            val center = bounds.center
+            val centerPoint: Point = mapView.projection.toScreenLocation(center)
+            val screenPositionNortheast: Point =
+                mapView.projection.toScreenLocation(bounds.northeast)
+            screenPositionNortheast.x =
+                ((scale * (screenPositionNortheast.x - centerPoint.x) + centerPoint.x).roundToInt())
+            screenPositionNortheast.y =
+                ((scale * (screenPositionNortheast.y - centerPoint.y) + centerPoint.y).roundToInt())
+            val scaledNortheast = mapView.projection.fromScreenLocation(screenPositionNortheast)
+            val screenPositionSouthwest: Point =
+                mapView.projection.toScreenLocation(bounds.southwest)
+            screenPositionSouthwest.x =
+                ((scale * (screenPositionSouthwest.x - centerPoint.x) + centerPoint.x).roundToInt())
+            screenPositionSouthwest.y =
+                ((scale * (screenPositionSouthwest.y - centerPoint.y) + centerPoint.y).roundToInt())
+            val scaledSouthwest = mapView.projection.fromScreenLocation(screenPositionSouthwest)
+            return LatLngBounds(scaledSouthwest, scaledNortheast)
+        } catch (e: Exception) {
+            //fallback to original bounds if something goes wrong with scaling
+            return bounds
+        }
     }
 
     /** [onMapMoved] will be responsible for the drawing of grid, markers and squares depending on the zoom levels.
@@ -628,9 +640,9 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < 18 -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= 18 && zoom < 19 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom >= zoomSwitchLevel && zoom < (zoomSwitchLevel + 1) -> context.resources.getDimension(R.dimen.grid_selected_width_far)
+            zoom >= (zoomSwitchLevel + 1) && zoom < (zoomSwitchLevel + 2) -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_selected_width_close)
         }
     }
