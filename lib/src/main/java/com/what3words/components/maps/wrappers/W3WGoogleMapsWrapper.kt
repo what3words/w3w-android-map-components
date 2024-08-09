@@ -60,7 +60,6 @@ class W3WGoogleMapsWrapper(
     private val wrapper: What3WordsAndroidWrapper,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
-    private var test: ((SuggestionWithCoordinates?) -> Unit)? = null
     private var zoomSwitchLevel: Float = DEFAULT_ZOOM_SWITCH_LEVEL
     private var isDarkMode: Boolean = false
 
