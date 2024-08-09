@@ -943,13 +943,13 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
 
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
+            zoom >= zoomSwitchLevel && zoom < (zoomSwitchLevel + 1) -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
                 .toDouble()
 
-            zoom >= 20 && zoom < 21 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
+            zoom >= (zoomSwitchLevel + 1) && zoom < (zoomSwitchLevel + 2) -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
                 .toDouble()
 
             else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_close)

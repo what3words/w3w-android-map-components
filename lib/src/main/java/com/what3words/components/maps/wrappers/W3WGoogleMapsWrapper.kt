@@ -1,35 +1,39 @@
 package com.what3words.components.maps.wrappers
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
-import android.location.LocationManager
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.GroundOverlayOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolylineManager
+import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.helpers.DefaultDispatcherProvider
 import com.what3words.androidwrapper.helpers.DispatcherProvider
+import com.what3words.components.maps.extensions.computeHorizontalLines
+import com.what3words.components.maps.extensions.computeVerticalLines
 import com.what3words.components.maps.extensions.contains
+import com.what3words.components.maps.extensions.generateUniqueId
 import com.what3words.components.maps.extensions.main
+import com.what3words.components.maps.models.DarkModeStyle
 import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
+import com.what3words.components.maps.views.W3WMap
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
@@ -40,20 +44,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import androidx.core.util.Consumer
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.mapbox.maps.MapboxMap
-import com.mapbox.maps.RenderedQueryGeometry
-import com.mapbox.maps.RenderedQueryOptions
-import com.mapbox.maps.plugin.gestures.addOnMapClickListener
-import com.what3words.androidwrapper.What3WordsAndroidWrapper
-import com.what3words.components.maps.models.DarkModeStyle
-import com.what3words.components.maps.views.W3WMap
-import com.what3words.components.maps.extensions.computeHorizontalLines
-import com.what3words.components.maps.extensions.computeVerticalLines
-import com.what3words.components.maps.extensions.generateUniqueId
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.callbackFlow
 import kotlin.math.roundToInt
 
 /**
@@ -651,9 +641,9 @@ class W3WGoogleMapsWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [GoogleMap.getCameraPosition] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Float = mapView.cameraPosition.zoom): Float {
         return when {
-            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_gone)
-            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_far)
-            zoom >= 20 && zoom < 22 -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
+            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
+            zoom >= zoomSwitchLevel && zoom < (zoomSwitchLevel + 1) -> context.resources.getDimension(R.dimen.grid_selected_width_far)
+            zoom >= (zoomSwitchLevel + 1) && zoom < (zoomSwitchLevel + 2) -> context.resources.getDimension(R.dimen.grid_selected_width_middle)
             else -> context.resources.getDimension(R.dimen.grid_selected_width_close)
         }
     }

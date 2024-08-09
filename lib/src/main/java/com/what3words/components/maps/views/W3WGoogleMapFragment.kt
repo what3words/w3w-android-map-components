@@ -19,13 +19,11 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.maps.android.data.Renderer
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.androidwrapper.What3WordsV3
-import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.W3WZoomOption
+import com.what3words.components.maps.wrappers.GridColor
 import com.what3words.components.maps.wrappers.W3WGoogleMapsWrapper
 import com.what3words.javawrapper.response.APIResponse
 import com.what3words.javawrapper.response.Suggestion
@@ -287,6 +285,10 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback,
             })
         }
 
+        /**
+         * Handle zoom option for a [LatLng] with multiple zoom options which will use the zoom level
+         * if it's provided or the default zoom level.
+         */
         private fun handleZoomOption(latLng: LatLng, zoomOption: W3WZoomOption, zoom: Float?) {
             when (zoomOption) {
                 W3WZoomOption.NONE -> {}
@@ -307,6 +309,10 @@ class W3WGoogleMapFragment() : W3WMapFragment, Fragment(), OnMapReadyCallback,
             }
         }
 
+        /**
+         * Handle zoom option for a [LatLngBounds] rectangle with multiple zoom options which will use the zoom level
+         * if it's provided or the default zoom level.
+         */
         private fun handleZoomOption(latLng: LatLngBounds, zoomOption: W3WZoomOption) {
             when (zoomOption) {
                 W3WZoomOption.NONE -> {}

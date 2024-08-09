@@ -266,6 +266,10 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             })
         }
 
+        /**
+         * Handle zoom option for a [Point] with multiple zoom options which will use the zoom level
+         * if it's provided or the default zoom level.
+         */
         private fun handleZoomOption(latLng: Point, zoomOption: W3WZoomOption, zoomLevel: Float?) {
             when (zoomOption) {
                 W3WZoomOption.NONE -> {}
@@ -286,6 +290,10 @@ class W3WMapboxMapFragment() : W3WMapFragment, Fragment() {
             }
         }
 
+        /**
+         * Handle zoom option for a list of [Point] with multiple zoom options which will use the zoom level
+         * if it's provided or the default zoom level.
+         */
         private fun handleZoomOption(latLng: List<Point>, zoomOption: W3WZoomOption) {
             when (zoomOption) {
                 W3WZoomOption.NONE -> {}
