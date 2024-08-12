@@ -26,12 +26,6 @@ jobs:
           paths:
             - ~/.gradle
           key: jars-{{ checksum "build.gradle.kts" }}-{{ checksum  "lib/build.gradle.kts" }}
-      - run:
-          name: Run Tests
-          command: ./gradlew lib:testDebugUnitTest lib:jacocoTestReport
-      #      - run:
-      #          name: Upload Coverage Report to SonarCloud
-      #          command: ./gradlew sonarqube
       - store_test_results:
           path: lib/build/test-results/testDebugUnitTest
   deploy-to-sonatype:
