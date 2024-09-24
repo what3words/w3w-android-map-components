@@ -3,8 +3,6 @@ package com.what3words.components.maps.wrappers
 import androidx.core.util.Consumer
 import com.google.android.gms.maps.GoogleMap
 import com.mapbox.maps.MapboxMap
-import com.what3words.androidwrapper.What3WordsAndroidWrapper
-import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.views.W3WMap
 import com.what3words.javawrapper.response.APIResponse

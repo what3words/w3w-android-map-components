@@ -12,7 +12,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "lib/build.gradle" }}
+          key: jars-{{ checksum "build.gradle.kts" }}-{{ checksum  "lib/build.gradle.kts" }}
       - run:
           name: Chmod permissions #if permission for Gradlew Dependencies fail, use this.
           command: sudo chmod +x ./gradlew
@@ -25,24 +25,21 @@ jobs:
       - save_cache:
           paths:
             - ~/.gradle
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "lib/build.gradle" }}
+          key: jars-{{ checksum "build.gradle.kts" }}-{{ checksum  "lib/build.gradle.kts" }}
       - run:
           name: Run Tests
-          command: ./gradlew lib:testDebugUnitTest lib:jacocoTestReport
-#      - run:
-#          name: Upload Coverage Report to SonarCloud
-#          command: ./gradlew sonarqube
+          command: ./gradlew lib:testDebugUnitTest
       - store_test_results:
           path: lib/build/test-results/testDebugUnitTest
   deploy-to-sonatype:
-    docker:
-      - image: cimg/android:2023.05-browsers
-    environment:
-      JVM_OPTS: -Xmx3200m
+    executor:
+      name: android/android-machine
+      resource-class: large
+      tag: 2023.05.1
     steps:
       - checkout
       - restore_cache:
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "lib/build.gradle" }}
+          key: jars-{{ checksum "build.gradle.kts" }}-{{ checksum  "lib/build.gradle.kts" }}
       - run:
           name: Chmod permissions #if permission for Gradlew Dependencies fail, use this.
           command: sudo chmod +x ./gradlew
@@ -55,7 +52,11 @@ jobs:
       - save_cache:
           paths:
             - ~/.gradle
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "lib/build.gradle" }}
+          key: jars-{{ checksum "build.gradle.kts" }}-{{ checksum  "lib/build.gradle.kts" }}
+      - run:
+          name: Snapshot Release Check
+          command: |
+            echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
       - run:
           name: Inject Maven signing key
           command: |
@@ -73,14 +74,14 @@ workflows:
             - maven-sign
             - mobile
       - deploy-to-sonatype:
-          name: Build, run tests, sonar and push to maven staging
+          name: Deploy to sonatype and build sample apps
           requires:
             - build-test-sonar
           context:
-            - SonarCloud
-            - maven-sign
             - mobile
+            - maven-sign
           filters:
             branches:
               only:
                 - staging
+                - /^epic.*/
