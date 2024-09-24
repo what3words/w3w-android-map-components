@@ -4,10 +4,10 @@ import com.google.maps.android.collections.PolylineManager
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.javawrapper.response.ConvertTo3WA
 import com.what3words.javawrapper.response.ConvertToCoordinates
+import com.what3words.javawrapper.response.Coordinates
 import com.what3words.javawrapper.response.Line
 import com.what3words.javawrapper.response.Square
 import com.what3words.javawrapper.response.Suggestion
-import com.what3words.javawrapper.response.Coordinates
 import com.what3words.javawrapper.response.SuggestionWithCoordinates
 
 //To be moved to core library extensions?
