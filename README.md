@@ -31,7 +31,7 @@ account.
 ### Gradle
 
 ```
-implementation 'com.what3words:w3w-android-map-components:1.0.4'
+implementation 'com.what3words:w3w-android-map-components:$latest'
 ```
 
 ## Sample using MapWrapper and MapFragment in compose and xml for MapBox of the w3w-android-map-components library
