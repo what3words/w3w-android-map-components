@@ -65,7 +65,6 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     // what3words
     api("com.what3words:w3w-android-wrapper:4.0.2")
-    api("com.what3words:w3w-android-design-library:2.0.3-SNAPSHOT")
 
     // Google maps
     compileOnly("com.google.android.gms:play-services-maps:19.0.0")
