@@ -1,5 +1,6 @@
 package com.what3words.components.maps.models
 
+import com.google.android.gms.maps.model.Marker
 import com.what3words.map.components.R
 
 enum class W3WMarkerColor {
@@ -30,6 +31,13 @@ internal fun W3WMarkerColor.toPin(): Int {
         W3WMarkerColor.GREEN -> R.drawable.ic_marker_pin_green
         W3WMarkerColor.FUCHSIA -> R.drawable.ic_marker_pin_fuchsia
     }
+}
+
+class State {
+    val zoom = 0f
+    val tilt = 0f
+    val listOfMarkers = mutableListOf<Pair<String, List<Marker>>>()
+    val selectedMarker = mutableListOf<Marker>()
 }
 
 internal fun W3WMarkerColor.toCircle(): Int {
