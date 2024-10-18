@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="grid_light">#1AEBEBEB</color>
+    <color name="grid_dark">#29292929</color>
+    <color name="grid_selected_normal">#0A3049</color>
+    <color name="grid_selected_sat">#FFF</color>
+    <color name="grid_filled">#E11F26</color>
+
+    <color name="marker_default">#E11F26</color>
+    <color name="marker_coral">#F26C50</color>
+    <color name="marker_turquoise">#3CABAA</color>
+    <color name="marker_skyblue">#98D5E5</color>
+    <color name="marker_purple">#8B4CA1</color>
+    <color name="marker_yellow">#F6D31F</color>
+    <color name="marker_brightorange">#F26C50</color>
+    <color name="marker_blue">#2E71B8</color>
+    <color name="marker_orange">#F4A344</color>
+    <color name="marker_green">#5FC98F</color>
+    <color name="marker_fuchsia">#CD3B72</color>
+</resources>
