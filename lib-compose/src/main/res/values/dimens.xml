@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <dimen name="grid_width_gone">0dp</dimen>
+    <dimen name="grid_width_close">1dp</dimen>
+    <dimen name="grid_selected_width_close">2.5dp</dimen>
+    <dimen name="grid_selected_width_middle">2dp</dimen>
+    <dimen name="grid_selected_width_far">1.5dp</dimen>
+    <dimen name="grid_width_mapbox_gone" tools:ignore="PxUsage">0px</dimen>
+    <dimen name="grid_width_mapbox_close" tools:ignore="PxUsage">2px</dimen>
+    <dimen name="grid_width_mapbox_middle" tools:ignore="PxUsage">1.5px</dimen>
+    <dimen name="grid_width_mapbox_far" tools:ignore="PxUsage">1px</dimen>
+    <dimen name="grid_selected_width_mapbox_close" tools:ignore="PxUsage">2.5px</dimen>
+    <dimen name="grid_selected_width_mapbox_middle" tools:ignore="PxUsage">2.5px</dimen>
+    <dimen name="grid_selected_width_mapbox_far" tools:ignore="PxUsage">2px</dimen>
+</resources>

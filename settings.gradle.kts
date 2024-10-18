@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "w3w-android-components-maps"
 include(":lib")
+include(":lib-compose")
