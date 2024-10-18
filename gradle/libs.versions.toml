@@ -1,0 +1,102 @@
+[versions]
+#Android
+minSdk = "24"
+compileSdk = "34"
+compose-compiler = "1.4.6"
+jvmTarget = "1.8"
+androidGradlePlugin = "8.5.0"
+autonomousappsAnalysis = "1.20.0"
+gradleKtlint = "10.1.0"
+
+#Kotlin
+kotlin = "1.8.20"
+kotlinxCoroutinesAndroid = "1.8.1"
+kotlinxCoroutinesCore = "1.8.1"
+kotlinxCoroutinesTest = "1.8.1"
+
+#Testing
+truth = "1.4.2"
+junit4 = "4.13.2"
+mockk = "1.13.10"
+androidxCoreTesting = "1.6.1"
+androidArchCoreTesting = "2.2.0"
+
+#Compose
+androidxComposeBom = "2024.10.00"
+
+#Material
+material = "1.12.0"
+
+#Sonarqube
+secretsGradlePlugin = "2.0.1"
+sonarqubeGradlePlugin = "3.3"
+
+#Map Box
+mapboxV10 = "10.18.3"
+mapboxV11 = "11.7.1"
+
+#Google Map
+googleMap = "6.1.1"
+googleMapUtils = "3.4.0"
+googleMapPlayService = "19.0.0"
+
+#What3words Library
+what3wordsWrapper = "4.0.2"
+what3wordsDesignLibrary = "2.0.3"
+
+#Maven Publish
+dokka = "1.5.0"
+
+[libraries]
+#Kotlin
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
+ktlint-gradle = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "gradleKtlint" }
+
+#AndroidX
+androidx-core = { module = "androidx.test:core", version.ref = "androidxCoreTesting" }
+androidx-core-testing = { module = "androidx.arch.core:core-testing", version.ref = "androidArchCoreTesting" }
+
+#Testing
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+truth = { module = "com.google.truth:truth", version.ref = "truth" }
+
+#Compose
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-viewbinding = { module = "androidx.compose.ui:ui-viewbinding" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+
+#Material
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+
+#Sonarqube
+secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
+sonarqube-gradle-plugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarqubeGradlePlugin" }
+
+#Map Box
+mapbox-v10 = { module = "com.mapbox.maps:android", version.ref = "mapboxV10" }
+mapbox-v11 = { module = "com.mapbox.maps:android", version.ref = "mapboxV11" }
+extension-mapbox-compose = { module = "com.mapbox.extension:maps-compose", version.ref = "mapboxV11" }
+
+#Google Map
+googlemap-compose = { module = "com.google.maps.android:maps-compose", version.ref = "googleMap" }
+googlemap-playservice= { module = "com.google.android.gms:play-services-maps", version.ref = "googleMapPlayService" }
+googlemap-utils = { module = "com.google.maps.android:android-maps-utils", version.ref = "googleMapUtils" }
+
+#What3words Library
+what3words-api-wrapper = { group = "com.what3words", name = "w3w-android-wrapper", version.ref = "what3wordsWrapper" }
+what3words-designLibrary = { group = "com.what3words", name = "w3w-android-design-library", version.ref = "what3wordsDesignLibrary" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+gradle-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "gradleKtlint" }
+autonomousapps-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "autonomousappsAnalysis" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+dokka = { id = "org.jetbrains.dokka" , version.ref = "dokka"}
+maven-publish = { id = "maven-publish" }
+signing = { id = "signing" }
