@@ -61,7 +61,7 @@ internal class W3WMapManager(
                         lat,
                         lng
                     )
-                ).execute()
+                ).language(language).execute()
             }
             if (c23wa.isSuccessful) {
                 val withCoordinates = c23wa.toSuggestionWithCoordinates()
@@ -148,7 +148,7 @@ internal class W3WMapManager(
                         lat,
                         lng
                     )
-                ).execute()
+                ).language(language).execute()
             }
             if (c23wa.isSuccessful) {
                 val withCoordinates = c23wa.toSuggestionWithCoordinates()
@@ -185,7 +185,7 @@ internal class W3WMapManager(
                             location.first,
                             location.second
                         )
-                    ).execute()
+                    ).language(language).execute()
                 if (c23wa.isSuccessful) {
                     val withCoordinates = c23wa.toSuggestionWithCoordinates()
                     toBeAdded.add(
