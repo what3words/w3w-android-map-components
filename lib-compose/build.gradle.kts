@@ -1,9 +1,8 @@
 import java.net.URI
 
 plugins {
-    id(libs.plugins.android.library.get().pluginId)
-    id(libs.plugins.kotlin.android.get().pluginId)
-    id(libs.plugins.gradle.ktlint.get().pluginId)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
     id(libs.plugins.maven.publish.get().pluginId)
     id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
@@ -18,8 +17,8 @@ version =
     if (isSnapshotRelease) "${findProperty("LIBRARY_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_VERSION")}"
 
 android {
+    namespace = "com.what3words.map.components.compose"
     compileSdk = libs.versions.compileSdk.get().toInt()
-    namespace = "com.what3words.map.components"
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
@@ -29,29 +28,26 @@ android {
     }
 
     buildTypes {
-        named("debug") {
-            enableUnitTestCoverage = true
-        }
-        named("release") {
+        release {
             isMinifyEnabled = false
-            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
+    }
     kotlinOptions {
         jvmTarget = libs.versions.jvmTarget.get()
-    }
-
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
-
-    buildFeatures {
-        viewBinding = true
     }
 
     publishing {
@@ -62,22 +58,35 @@ android {
 }
 
 dependencies {
+    // Material
     implementation(libs.material)
+
     // what3words
     api(libs.what3words.api.wrapper)
+    api(libs.what3words.designLibrary)
 
     // Google maps
     compileOnly(libs.googlemap.playservice)
     compileOnly(libs.googlemap.utils)
     testImplementation(libs.googlemap.playservice)
+    implementation(libs.googlemap.compose)
 
     // Mapbox
-    compileOnly(libs.mapbox.v10)
+    implementation(libs.mapbox.v11)
+    implementation(libs.extension.mapbox.compose)
 
     // kotlin
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.viewbinding)
+    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.compose.ui.tooling.preview)
 
     // Testing
     testImplementation(libs.junit4)
@@ -113,7 +122,7 @@ publishing {
         }
         publications {
             create<MavenPublication>("Maven") {
-                artifactId = "w3w-android-map-components"
+                artifactId = "w3w-android-map-components-compose"
                 groupId = "com.what3words"
                 version = project.version.toString()
                 afterEvaluate {
@@ -136,7 +145,7 @@ publishing {
                     }
                 artifact(dokkaJar)
                 pom {
-                    name.set("w3w-android-map-components")
+                    name.set("w3w-android-map-components-compose")
                     description.set("Android library to integrate what3words with different map providers.")
                     url.set("https://github.com/what3words/w3w-android-map-components")
                     licenses {
