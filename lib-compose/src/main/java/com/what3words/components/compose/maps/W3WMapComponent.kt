@@ -8,8 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.models.W3WMapState
 import com.what3words.components.compose.maps.providers.W3WMapProvider
+import com.what3words.core.types.geometry.W3WCoordinates
 
 
 /**
@@ -25,14 +25,13 @@ import com.what3words.components.compose.maps.providers.W3WMapProvider
  * @param modifier The modifier to be applied to the layout.
  * @param layoutConfig The layout configuration for the map.
  * @param mapManager The [W3WMapManager] instance used to manage the map state.
- * @param mapProvider The [W3WMapProvider] instance used to provide map UI.
  */
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapManager: W3WMapManager,
-    mapProvider: W3WMapProvider) {
+) {
 
     val state by mapManager.state.collectAsState()
 
@@ -40,12 +39,15 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = layoutConfig,
         state = state,
-        mapProvider = mapProvider,
+        mapProvider = mapManager.mapProvider,
         onMapUpdate = {
             mapManager.updateMap()
         },
         onMapMove = {
             mapManager.updateMove()
+        },
+        onMapClicked = {
+            mapManager.onMapClicked(it)
         }
     )
 }
@@ -72,11 +74,12 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     state: W3WMapState,
     mapProvider: W3WMapProvider,
+    onMapClicked: ((W3WCoordinates) -> Unit),
     onMapUpdate: (() -> Unit),
     onMapMove: (() -> Unit)
 ) {
     Box(modifier = modifier) {
-        mapProvider.Map(
+        mapProvider.What3WordsMap(
             modifier = modifier,
             contentPadding = layoutConfig.contentPadding,
             state = state,
@@ -85,6 +88,9 @@ fun W3WMapComponent(
             },
             onMapMove = {
                 onMapMove.invoke()
+            },
+            onMapClicked = {
+                onMapClicked.invoke(it)
             }
         )
 
