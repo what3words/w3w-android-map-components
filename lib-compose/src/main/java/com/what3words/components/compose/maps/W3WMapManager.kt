@@ -1,14 +1,8 @@
 package com.what3words.components.compose.maps
 
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
-import com.google.android.gms.maps.GoogleMap
-import com.mapbox.maps.MapboxMap
-import com.what3words.components.compose.maps.models.W3WMapMarker
-import com.what3words.components.compose.maps.models.W3WMapState
-import com.what3words.components.compose.maps.models.W3WZoomOption
-import com.what3words.components.compose.maps.models.addMarker
+import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -21,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -37,7 +32,8 @@ import kotlinx.coroutines.launch
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    val mapProvider: W3WMapProvider
 ) {
     private var defaultZoomLevel: Float = 0f
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
@@ -47,22 +43,163 @@ class W3WMapManager(
 
     // Should be combine functions of W3WMap, W3WMapManager
 
+    //region W3WMap Config
+    /** Set the language of [W3WAddress.words] that onSuccess callbacks should return.
+     *
+     * @param language a supported [W3WRFC5646Language]. Defaults to en (English).
+     */
+    fun setLanguage(language: W3WRFC5646Language) {
+        this.language = language
+
+    }
+
+    fun setGridColor(gridColor: Color) {
+        _state.update {
+            it.copy(
+                gridColor = gridColor
+            )
+        }
+    }
+
+    /** Set zoom switch level. If the map zoom level is lower than [zoom], it will not show the grid; if the map zoom is higher or equal to [zoom], it will show the grid.
+     *
+     * @param zoom the zoom level to turn the grid visibility on and off.
+     */
+    fun setZoomSwitchLevel(zoom: Float) {
+        _state.update {
+            it.copy(
+                zoomSwitchLevel = zoom
+            )
+        }
+    }
+
+    /** Get zoom switch level.
+     *
+     * @return the zoom level that defines the grid visibility.
+     */
+    fun getZoomSwitchLevel() : Float {
+        return state.value.zoomSwitchLevel?:0f
+    }
+
+
+    fun isDarkMode(): Boolean {
+        return state.value.isDarkMode
+    }
+
+
+    fun setDarkMode(darkMode: Boolean) {
+        _state.update {
+            it.copy(
+                isDarkMode = darkMode
+            )
+        }
+    }
+
+    fun setGridEnabled(isEnabled: Boolean) {
+        _state.update {
+            it.copy(
+                isGridEnabled = isEnabled
+            )
+        }
+    }
+    //endregion
+
+    //region Map Ui Settings
+    fun getMapType(): W3WMapState.MapType {
+        return state.value.mapType
+    }
+
+    fun setMapType(mapType: W3WMapState.MapType) {
+        _state.update {
+            it.copy(
+                mapType = mapType
+            )
+        }
+    }
+
+    fun setMapGesturesEnabled(enabled: Boolean) {
+        _state.update {
+            it.copy(
+                isMapGestureEnable = enabled
+            )
+        }
+    }
+
+    fun setMyLocationEnabled(enabled: Boolean) {
+        _state.update {
+            it.copy(
+                isMyLocationEnabled = enabled
+            )
+        }
+    }
+
+    //TODO: Need to confirm on/off button in button layout
+    fun setMyLocationButton(enabled: Boolean) {
+        _state.update {
+            it.copy(
+                isMyLocationButtonEnabled = enabled
+            )
+        }
+    }
+
+    //endregion
+
+    // region Camera control
+    fun orientCamera() {
+        _state.update {
+            it.copy(
+                cameraPosition = it.cameraPosition?.copy(
+                    bearing = 0f
+                )
+            )
+        }
+    }
+
+    fun moveToPosition(cameraPosition: W3WMapState.CameraPosition) {
+        _state.update {
+            it.copy(
+                cameraPosition = cameraPosition
+            )
+        }
+    }
+
+
+    //endregion
+
+    //region Square
+    fun getSelectedMarker(): W3WAddress? {
+        return state.value.selectedAddress
+    }
+
+
+    fun unselect() {
+        _state.update {
+            it.copy(
+                selectedAddress = null
+            )
+        }
+    }
+
+    //endregion
+
+    //region Marker
     fun addMarkerAtWords(
         words: String,
         markerColor: Color = Color.Red,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
     ) {
         CoroutineScope(dispatcher).launch {
-            when(val c23wa =  textDataSource.convertToCoordinates(words)) {
+            when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addMarker(
-                        marker = W3WMapMarker(address = c23wa.value, color = markerColor)
+                    _state.value = state.value.addOrUpdateMarker(
+                        marker = W3WMapState.Marker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
+
                 is W3WResult.Failure -> {
                     onError?.accept(c23wa.error)
                 }
@@ -73,7 +210,7 @@ class W3WMapManager(
     fun addMarkerAtListWords(
         listWords: List<String>,
         markerColor: Color = Color.Red,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<List<W3WAddress>>? = null,
         onError: Consumer<W3WError>? = null
     ) {
@@ -83,19 +220,20 @@ class W3WMapManager(
     fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: Color = Color.Red,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
     ) {
         CoroutineScope(dispatcher).launch {
-            when(val c23wa =  textDataSource.convertTo3wa(coordinates, language)) {
+            when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addMarker(
-                        marker = W3WMapMarker(address = c23wa.value, color = markerColor)
+                    _state.value = state.value.addOrUpdateMarker(
+                        marker = W3WMapState.Marker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
+
                 is W3WResult.Failure -> {
                     onError?.accept(c23wa.error)
                 }
@@ -105,19 +243,20 @@ class W3WMapManager(
 
     fun selectAtCoordinates(
         coordinates: W3WCoordinates,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
     ) {
         CoroutineScope(dispatcher).launch {
-            when(val c23wa =  textDataSource.convertTo3wa(coordinates, language)) {
+            when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _state.value = state.value.copy(
                         selectedAddress = c23wa.value
                     )
                     onSuccess?.accept(c23wa.value)
                 }
+
                 is W3WResult.Failure -> {
                     onError?.accept(c23wa.error)
                 }
@@ -129,14 +268,15 @@ class W3WMapManager(
      * This will allow to refresh the grid bounds on camera idle.
      */
     fun updateMap() {
-        Log.d("XXX","Manager updateMap")
     }
 
     /** This method should be called on [GoogleMap.setOnCameraMoveListener] or [MapboxMap.addOnCameraChangeListener].
      * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [W3WGoogleMapsWrapper.ZOOM_SWITCH_LEVEL] or [W3WMapBoxWrapper.ZOOM_SWITCH_LEVEL] threshold.
      */
     fun updateMove() {
-        Log.d("XXX","Manager updateMove")
+    }
+
+    fun onMapClicked(w3WCoordinates: W3WCoordinates) {
     }
 
 }
