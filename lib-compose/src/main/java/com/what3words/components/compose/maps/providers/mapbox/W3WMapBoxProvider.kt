@@ -33,7 +33,8 @@ class W3WMapBoxProvider : W3WMapProvider {
         contentPadding: PaddingValues,
         state: W3WMapState,
         onMapClicked: ((W3WCoordinates) -> Unit),
-        onMapUpdate: (W3WRectangle?) -> Unit
+        onMapUpdate: (W3WRectangle?) -> Unit,
+        onMapMove: (W3WRectangle?) -> Unit
     ) {
         val mapViewportState = rememberMapViewportState {
             state.zoomSwitchLevel?.let {
@@ -65,6 +66,15 @@ class W3WMapBoxProvider : W3WMapProvider {
                 mapView.mapboxMap.subscribeMapIdle {
                     Log.d("MapIdle", "MapIdle")
                     onMapUpdate.invoke(
+                        mapView.mapboxMap.calculateGridScaledBoundingBox(
+                            zoomSwitchLevel = state.zoomSwitchLevel,
+                            scaleBy = state.gridScale
+                        )
+                    )
+                }
+                mapView.mapboxMap.subscribeCameraChanged {
+                    Log.d("CameraChanged", "CameraChanged")
+                    onMapMove.invoke(
                         mapView.mapboxMap.calculateGridScaledBoundingBox(
                             zoomSwitchLevel = state.zoomSwitchLevel,
                             scaleBy = state.gridScale

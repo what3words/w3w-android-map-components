@@ -44,6 +44,9 @@ fun W3WMapComponent(
         onMapUpdate = {
             mapManager.updateMap(it)
         },
+        onMapMove = {
+            mapManager.updateMove(it)
+        },
         onMapClicked = {
             mapManager.onMapClicked(it)
         }
@@ -73,7 +76,8 @@ fun W3WMapComponent(
     state: W3WMapState,
     mapProvider: W3WMapProvider,
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onMapUpdate: ((W3WRectangle?) -> Unit)
+    onMapUpdate: ((W3WRectangle?) -> Unit),
+    onMapMove: ((W3WRectangle?) -> Unit)
 ) {
     Box(modifier = modifier) {
         mapProvider.What3WordsMap(
@@ -82,6 +86,9 @@ fun W3WMapComponent(
             state = state,
             onMapUpdate = {
                 onMapUpdate.invoke(it)
+            },
+            onMapMove = {
+                onMapMove.invoke(it)
             },
             onMapClicked = {
                 onMapClicked.invoke(it)

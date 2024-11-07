@@ -29,6 +29,7 @@ import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapState
 import com.what3words.components.compose.maps.mapper.toMapType
 import com.what3words.components.compose.maps.providers.W3WMapProvider
+import com.what3words.components.compose.maps.updateCameraPosition
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
@@ -46,7 +47,8 @@ class W3WGoogleMapProvider : W3WMapProvider {
         contentPadding: PaddingValues,
         state: W3WMapState,
         onMapClicked: ((W3WCoordinates) -> Unit),
-        onMapUpdate: (W3WRectangle?) -> Unit
+        onMapUpdate: (W3WRectangle?) -> Unit,
+        onMapMove: (W3WRectangle?) -> Unit
     ) {
         val cameraPositionState = rememberCameraPositionState {
             state.zoomSwitchLevel?.let {
@@ -91,13 +93,15 @@ class W3WGoogleMapProvider : W3WMapProvider {
                 map.setOnCameraIdleListener {
                     onMapUpdate.invoke(cameraPositionState.calculateGridScaledBoundingBox(zoomSwitchLevel = state.zoomSwitchLevel, scaleBy = state.gridScale))
                 }
+
+                map.setOnCameraMoveListener {
+                    onMapMove.invoke(cameraPositionState.calculateGridScaledBoundingBox(zoomSwitchLevel = state.zoomSwitchLevel, scaleBy = state.gridScale))
+                }
             }
 
             W3WMapDrawer(state = state)
         }
     }
-
-
 
     @Composable
     override fun W3WMapDrawer(state: W3WMapState) {
@@ -116,22 +120,21 @@ class W3WGoogleMapProvider : W3WMapProvider {
     @Composable
     override fun DrawGridLines(gridLines: W3WMapState.GridLines?, gridColor: Color) {
         //The code below is an example of how to draw a polyline on the map.
-        var polylineCoordinates = remember {
-            emptyList<LatLng>()
+        gridLines?.verticalLines?.map { LatLng(it.lat, it.lng) }?.let {
+            Polyline(
+                points = it,
+                color = gridColor,
+                width = 1f
+            )
         }
 
-        LaunchedEffect(gridLines) {
-            polylineCoordinates = gridLines?.let { gridLines ->
-                gridLines.verticalLines.map { LatLng(it.lat, it.lng) } +
-                        gridLines.horizontalLines.map { LatLng(it.lat, it.lng) }
-            } ?: emptyList()
+        gridLines?.horizontalLines?.map { LatLng(it.lat, it.lng) }?.let {
+            Polyline(
+                points = it,
+                color = gridColor,
+                width = 1f
+            )
         }
-
-        Polyline(
-            points = polylineCoordinates,
-            color = gridColor,
-            width = 1f
-        )
     }
 
     @Composable

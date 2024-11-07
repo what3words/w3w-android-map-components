@@ -276,6 +276,27 @@ class W3WMapManager(
         handleGrid(gridBoundingBox)
     }
 
+    /** This method should be called on [GoogleMap.setOnCameraMoveListener].
+     * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [ZOOM_SWITCH_LEVEL] threshold.
+     */
+    fun updateMove(gridBoundingBox: W3WRectangle?) {
+        if (state.value.cameraPosition == null || state.value.zoomSwitchLevel == null) {
+            return
+        }
+        if (state.value.cameraPosition!!.zoom < state.value.zoomSwitchLevel!! && state.value.gridLines != null) {
+            _state.update {
+                it.copy(
+                    gridLines = null
+                )
+            }
+            return
+        }
+        if (state.value.cameraPosition!!.zoom >= state.value.zoomSwitchLevel!! && state.value.gridLines == null) {
+            handleGrid(gridBoundingBox)
+            return
+        }
+    }
+
     private fun handleGrid(gridBoundingBox: W3WRectangle?) {
         if (!state.value.isGridEnabled || gridBoundingBox == null) {
             _state.update {

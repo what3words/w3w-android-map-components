@@ -116,3 +116,9 @@ fun W3WMapState.updateGridLines(
 ): W3WMapState {
     return copy(gridLines = gridLines)
 }
+
+fun W3WMapState.updateCameraPosition(
+    cameraPosition: W3WMapState.CameraPosition
+): W3WMapState {
+    return copy(cameraPosition = cameraPosition)
+}

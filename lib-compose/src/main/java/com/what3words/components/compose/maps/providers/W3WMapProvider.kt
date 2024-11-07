@@ -18,7 +18,8 @@ interface W3WMapProvider {
         contentPadding: PaddingValues,
         state: W3WMapState,
         onMapClicked: ((W3WCoordinates) -> Unit),
-        onMapUpdate: ((W3WRectangle?) -> Unit)
+        onMapUpdate: ((W3WRectangle?) -> Unit),
+        onMapMove: ((W3WRectangle?) -> Unit)
     )
 
     @Composable
