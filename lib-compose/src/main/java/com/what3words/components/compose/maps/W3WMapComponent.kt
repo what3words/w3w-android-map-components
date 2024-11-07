@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
 import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
 
 
 /**
@@ -41,10 +42,7 @@ fun W3WMapComponent(
         state = state,
         mapProvider = mapManager.mapProvider,
         onMapUpdate = {
-            mapManager.updateMap()
-        },
-        onMapMove = {
-            mapManager.updateMove()
+            mapManager.updateMap(it)
         },
         onMapClicked = {
             mapManager.onMapClicked(it)
@@ -75,8 +73,7 @@ fun W3WMapComponent(
     state: W3WMapState,
     mapProvider: W3WMapProvider,
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onMapUpdate: (() -> Unit),
-    onMapMove: (() -> Unit)
+    onMapUpdate: ((W3WRectangle?) -> Unit)
 ) {
     Box(modifier = modifier) {
         mapProvider.What3WordsMap(
@@ -84,10 +81,7 @@ fun W3WMapComponent(
             contentPadding = layoutConfig.contentPadding,
             state = state,
             onMapUpdate = {
-                onMapUpdate.invoke()
-            },
-            onMapMove = {
-                onMapMove.invoke()
+                onMapUpdate.invoke(it)
             },
             onMapClicked = {
                 onMapClicked.invoke(it)

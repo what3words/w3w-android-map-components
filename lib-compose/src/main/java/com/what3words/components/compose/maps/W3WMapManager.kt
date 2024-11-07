@@ -1,13 +1,18 @@
 package com.what3words.components.compose.maps
 
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
+import com.what3words.components.compose.maps.extensions.computeHorizontalLines
+import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
+import com.what3words.core.types.geometry.toGeoJSON
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +43,7 @@ class W3WMapManager(
     private var defaultZoomLevel: Float = 0f
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
-    private val _state = MutableStateFlow(W3WMapState())
+    private val _state = MutableStateFlow(W3WMapState(zoomSwitchLevel = 19f))
     val state: StateFlow<W3WMapState> = _state.asStateFlow()
 
     // Should be combine functions of W3WMap, W3WMapManager
@@ -77,8 +82,8 @@ class W3WMapManager(
      *
      * @return the zoom level that defines the grid visibility.
      */
-    fun getZoomSwitchLevel() : Float {
-        return state.value.zoomSwitchLevel?:0f
+    fun getZoomSwitchLevel(): Float {
+        return state.value.zoomSwitchLevel ?: 0f
     }
 
 
@@ -267,13 +272,43 @@ class W3WMapManager(
     /** This method should be called on [GoogleMap.setOnCameraIdleListener] or [MapboxMap.addOnMapIdleListener].
      * This will allow to refresh the grid bounds on camera idle.
      */
-    fun updateMap() {
+    fun updateMap(gridBoundingBox: W3WRectangle?) {
+        handleGrid(gridBoundingBox)
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraMoveListener] or [MapboxMap.addOnCameraChangeListener].
-     * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [W3WGoogleMapsWrapper.ZOOM_SWITCH_LEVEL] or [W3WMapBoxWrapper.ZOOM_SWITCH_LEVEL] threshold.
-     */
-    fun updateMove() {
+    private fun handleGrid(gridBoundingBox: W3WRectangle?) {
+        if (!state.value.isGridEnabled || gridBoundingBox == null) {
+            _state.update {
+                it.copy(
+                    gridLines = null
+                )
+            }
+        } else {
+            CoroutineScope(dispatcher).launch {
+                when (val grid = textDataSource.gridSection(gridBoundingBox)) {
+                    is W3WResult.Success -> {
+                        _state.update {
+                            it.copy(
+                                gridLines = W3WMapState.GridLines(
+                                    verticalLines = grid.value.lines.computeVerticalLines(),
+                                    horizontalLines = grid.value.lines.computeHorizontalLines(),
+                                    geoJSON = grid.value.toGeoJSON()
+                                )
+                            )
+                        }
+                    }
+
+                    is W3WResult.Failure -> {
+                        Log.e("W3WMapManager", "Error getting grid section: ${grid.error}")
+                        _state.update {
+                            it.copy(
+                                gridLines = null
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun onMapClicked(w3WCoordinates: W3WCoordinates) {

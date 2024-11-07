@@ -6,6 +6,7 @@ import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
 
 const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
+const val DEFAULT_BOUNDS_SCALE = 6f
 
 data class W3WMapState(
     // Map Config
@@ -31,12 +32,23 @@ data class W3WMapState(
 
     // List marker
     val listMakers: Map<String, List<Marker>> = emptyMap(),
+
+    // Grid
+    val gridLines: GridLines? = null,
+    val gridScale: Float = DEFAULT_BOUNDS_SCALE
 ) {
     data class CameraPosition(
         val zoom: Float,
         val coordinates: W3WCoordinates,
         val bearing: Float = 0f,
-        val isAnimated: Boolean = false
+        val isAnimated: Boolean = false,
+        val visibleBounds: List<W3WCoordinates>? = null
+    )
+
+    data class GridLines(
+        val verticalLines: List<W3WCoordinates>,
+        val horizontalLines: List<W3WCoordinates>,
+        val geoJSON: String? = null
     )
 
     data class Marker(
@@ -97,4 +109,10 @@ fun W3WMapState.getAllMarkers(): List<W3WMapState.Marker> {
 
 fun W3WMapState.removeAllMarkers(): W3WMapState {
     return copy(listMakers = emptyMap())
+}
+
+fun W3WMapState.updateGridLines(
+    gridLines: W3WMapState.GridLines?
+): W3WMapState {
+    return copy(gridLines = gridLines)
 }

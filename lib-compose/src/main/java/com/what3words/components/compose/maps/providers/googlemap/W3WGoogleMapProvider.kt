@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
+import android.graphics.Point
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +15,8 @@ import androidx.core.graphics.drawable.toBitmap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
@@ -28,7 +31,9 @@ import com.what3words.components.compose.maps.mapper.toMapType
 import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.map.components.compose.R
+import kotlin.math.roundToInt
 
 class W3WGoogleMapProvider : W3WMapProvider {
     override val defaultZoomLevel: Float
@@ -41,13 +46,13 @@ class W3WGoogleMapProvider : W3WMapProvider {
         contentPadding: PaddingValues,
         state: W3WMapState,
         onMapClicked: ((W3WCoordinates) -> Unit),
-        onMapUpdate: () -> Unit,
-        onMapMove: () -> Unit,
+        onMapUpdate: (W3WRectangle?) -> Unit
     ) {
         val cameraPositionState = rememberCameraPositionState {
             state.zoomSwitchLevel?.let {
-                position = CameraPosition.fromLatLngZoom(LatLng(0.0,0.0), it)
+                position = CameraPosition.fromLatLngZoom(LatLng(0.0, 0.0), it)
             }
+            calculateGridScaledBoundingBox(state.zoomSwitchLevel, state.gridScale)
         }
 
         val uiSettings by remember {
@@ -84,11 +89,7 @@ class W3WGoogleMapProvider : W3WMapProvider {
 
             MapEffect { map ->
                 map.setOnCameraIdleListener {
-                    onMapUpdate.invoke()
-                }
-
-                map.setOnCameraMoveListener {
-                    onMapMove.invoke()
+                    onMapUpdate.invoke(cameraPositionState.calculateGridScaledBoundingBox(zoomSwitchLevel = state.zoomSwitchLevel, scaleBy = state.gridScale))
                 }
             }
 
@@ -96,12 +97,14 @@ class W3WGoogleMapProvider : W3WMapProvider {
         }
     }
 
+
+
     @Composable
     override fun W3WMapDrawer(state: W3WMapState) {
         val zoomLevel = state.zoomSwitchLevel ?: defaultZoomLevel
 
         //Draw the grid lines by zoom in state
-        DrawGridLines(zoomLevel)
+        DrawGridLines(state.gridLines, state.gridColor ?: Color.Black)
 
         //Draw the markers
         DrawMarkers(zoomLevel, state.listMakers)
@@ -111,23 +114,23 @@ class W3WGoogleMapProvider : W3WMapProvider {
     }
 
     @Composable
-    override fun DrawGridLines(zoomLevel: Float) {
-        //TODO: Draw visible grid lines based on zoomLevel
-
-
+    override fun DrawGridLines(gridLines: W3WMapState.GridLines?, gridColor: Color) {
         //The code below is an example of how to draw a polyline on the map.
-        val polylineCoordinates = remember {
-            listOf(
-                LatLng(37.7749, -122.4194), // San Francisco
-                LatLng(34.0522, -118.2437), // Los Angeles
-                LatLng(40.7128, -74.0060)  // New York City
-            )
+        var polylineCoordinates = remember {
+            emptyList<LatLng>()
+        }
+
+        LaunchedEffect(gridLines) {
+            polylineCoordinates = gridLines?.let { gridLines ->
+                gridLines.verticalLines.map { LatLng(it.lat, it.lng) } +
+                        gridLines.horizontalLines.map { LatLng(it.lat, it.lng) }
+            } ?: emptyList()
         }
 
         Polyline(
             points = polylineCoordinates,
-            color = Color.Blue,
-            width = 10f
+            color = gridColor,
+            width = 1f
         )
     }
 
@@ -141,7 +144,8 @@ class W3WGoogleMapProvider : W3WMapProvider {
         // The code below is an example of how to draw a marker on the map.
         val context = LocalContext.current
 
-        val markerState = rememberMarkerState(position = LatLng(address.center!!.lat, address.center!!.lng))
+        val markerState =
+            rememberMarkerState(position = LatLng(address.center!!.lat, address.center!!.lng))
         LaunchedEffect(address) {
             markerState.position = LatLng(address.center!!.lat, address.center!!.lng)
         }
@@ -187,3 +191,56 @@ class W3WGoogleMapProvider : W3WMapProvider {
     }
 }
 
+fun CameraPositionState.calculateGridScaledBoundingBox(
+    zoomSwitchLevel: Float?,
+    scaleBy: Float,
+): W3WRectangle? {
+    return if (zoomSwitchLevel == null || this.position.zoom < zoomSwitchLevel) {
+        null
+    } else {
+        this.projection?.let {
+            try {
+                val center = it.visibleRegion.latLngBounds.center
+                val centerPoint: Point = it.toScreenLocation(center)
+                val screenPositionNortheast: Point =
+                    it.toScreenLocation(it.visibleRegion.latLngBounds.northeast)
+                screenPositionNortheast.x =
+                    ((scaleBy * (screenPositionNortheast.x - centerPoint.x) + centerPoint.x).roundToInt())
+                screenPositionNortheast.y =
+                    ((scaleBy * (screenPositionNortheast.y - centerPoint.y) + centerPoint.y).roundToInt())
+                val scaledNortheast = it.fromScreenLocation(screenPositionNortheast)
+                val screenPositionSouthwest: Point =
+                    it.toScreenLocation(it.visibleRegion.latLngBounds.southwest)
+                screenPositionSouthwest.x =
+                    ((scaleBy * (screenPositionSouthwest.x - centerPoint.x) + centerPoint.x).roundToInt())
+                screenPositionSouthwest.y =
+                    ((scaleBy * (screenPositionSouthwest.y - centerPoint.y) + centerPoint.y).roundToInt())
+                val scaledSouthwest = it.fromScreenLocation(screenPositionSouthwest)
+                val scaledBounds = LatLngBounds(scaledSouthwest, scaledNortheast)
+
+                return W3WRectangle(
+                    W3WCoordinates(
+                        scaledBounds.southwest.latitude,
+                        scaledBounds.southwest.longitude
+                    ),
+                    W3WCoordinates(
+                        scaledBounds.northeast.latitude,
+                        scaledBounds.northeast.longitude
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return W3WRectangle(
+                    W3WCoordinates(
+                        it.visibleRegion.latLngBounds.southwest.latitude,
+                        it.visibleRegion.latLngBounds.southwest.longitude
+                    ),
+                    W3WCoordinates(
+                        it.visibleRegion.latLngBounds.northeast.latitude,
+                        it.visibleRegion.latLngBounds.northeast.longitude
+                    )
+                )
+            }
+        }
+    }
+}
