@@ -1,21 +1,18 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
@@ -23,82 +20,101 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapState
+import com.what3words.components.compose.maps.mapper.toCameraPosition
 import com.what3words.components.compose.maps.mapper.toMapType
+import com.what3words.components.compose.maps.mapper.toW3WMapStateCameraPosition
 import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
+import kotlinx.coroutines.FlowPreview
 
 class W3WGoogleMapProvider : W3WMapProvider {
     override val defaultZoomLevel: Float
         get() = 19f
+    override val minZoomLevel: Float
+        get() = 17f
+    override val maxZoomLevel: Float
+        get() = 20f
 
-    @OptIn(MapsComposeExperimentalApi::class)
+
+    @OptIn(MapsComposeExperimentalApi::class, FlowPreview::class)
     @Composable
     override fun What3WordsMap(
         modifier: Modifier,
-        contentPadding: PaddingValues,
+        layoutConfig: W3WMapDefaults.LayoutConfig,
+        mapConfig: W3WMapDefaults.MapConfig,
         state: W3WMapState,
         onMapClicked: ((W3WCoordinates) -> Unit),
-        onMapUpdate: () -> Unit,
-        onMapMove: () -> Unit,
+        onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
     ) {
+        val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
+            MapProperties(
+                mapType = state.mapType.toMapType(),
+                isMyLocationEnabled = state.isMyLocationEnabled,
+                mapStyleOptions = if (state.isDarkMode) MapStyleOptions(mapConfig.darkModeCustomJsonStyle) else null
+            )
+        }
+
+        val uiSettings = remember(state.isMyLocationButtonEnabled, state.isMapGestureEnable) {
+            MapUiSettings(
+                zoomControlsEnabled = false,
+                myLocationButtonEnabled = false,
+                scrollGesturesEnabled = state.isMapGestureEnable,
+                tiltGesturesEnabled = state.isMapGestureEnable,
+                zoomGesturesEnabled = state.isMapGestureEnable,
+                rotationGesturesEnabled = state.isMapGestureEnable,
+                scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable
+            )
+        }
+
         val cameraPositionState = rememberCameraPositionState {
-            state.zoomSwitchLevel?.let {
-                position = CameraPosition.fromLatLngZoom(LatLng(0.0,0.0), it)
+            state.cameraPosition?.let {
+                position = it.toCameraPosition()
             }
         }
 
-        val uiSettings by remember {
-            mutableStateOf(
-                MapUiSettings(
-                    zoomControlsEnabled = false
-                )
-            )
+        LaunchedEffect(state.cameraPosition) {
+            if (state.cameraPosition?.toCameraPosition() != cameraPositionState.position) {
+                state.cameraPosition?.let {
+                    if (it.isAnimated) {
+                        cameraPositionState.animate(
+                            update = CameraUpdateFactory.newCameraPosition(it.toCameraPosition())
+                        )
+                    } else {
+                        cameraPositionState.position = it.toCameraPosition()
+                    }
+                }
+            }
+
         }
 
-        val mapProperties by remember {
-            mutableStateOf(
-                MapProperties(
-                    mapType = state.mapType.toMapType(),
-                )
-            )
+        LaunchedEffect(cameraPositionState.position, cameraPositionState.isMoving) {
+            onCameraUpdated.invoke(cameraPositionState.toW3WMapStateCameraPosition())
         }
-
-        //TODO:
-        // cameraPositionState: animate camera
-        // uiSetting: turn off some buttons control
-        // mapProperties: switch mapType
 
         GoogleMap(
             modifier = modifier,
             cameraPositionState = cameraPositionState,
-            contentPadding = contentPadding,
+            contentPadding = layoutConfig.contentPadding,
             uiSettings = uiSettings,
             properties = mapProperties,
             onMapClick = {
                 onMapClicked.invoke(W3WCoordinates(it.latitude, it.longitude))
-            }
+            },
         ) {
-
-            MapEffect { map ->
-                map.setOnCameraIdleListener {
-                    onMapUpdate.invoke()
-                }
-
-                map.setOnCameraMoveListener {
-                    onMapMove.invoke()
-                }
-            }
-
-            W3WMapDrawer(state = state)
+            W3WMapDrawer(state = state, mapConfig)
         }
     }
 
     @Composable
-    override fun W3WMapDrawer(state: W3WMapState) {
-        val zoomLevel = state.zoomSwitchLevel ?: defaultZoomLevel
+    override fun W3WMapDrawer(
+        state: W3WMapState,
+        mapConfig: W3WMapDefaults.MapConfig
+    ) {
+        val zoomLevel = mapConfig.zoomSwitchLevel ?: defaultZoomLevel
 
         //Draw the grid lines by zoom in state
         DrawGridLines(zoomLevel)
@@ -141,7 +157,8 @@ class W3WGoogleMapProvider : W3WMapProvider {
         // The code below is an example of how to draw a marker on the map.
         val context = LocalContext.current
 
-        val markerState = rememberMarkerState(position = LatLng(address.center!!.lat, address.center!!.lng))
+        val markerState =
+            rememberMarkerState(position = LatLng(address.center!!.lat, address.center!!.lng))
         LaunchedEffect(address) {
             markerState.position = LatLng(address.center!!.lat, address.center!!.lng)
         }

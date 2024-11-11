@@ -17,17 +17,19 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun W3WMapButtons(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMapTypeClicked: (() -> Unit),
 ) {
     Column(
         modifier = modifier
     ) {
-        OutlinedButton(onClick = { /*TODO*/ },
-            modifier= Modifier.size(50.dp),  //avoid the oval shape
+        OutlinedButton(
+            onClick = { onMapTypeClicked.invoke() },
+            modifier = Modifier.size(50.dp),  //avoid the oval shape
             shape = CircleShape,
-            border= BorderStroke(1.dp, Color.Blue),
+            border = BorderStroke(1.dp, Color.Blue),
             contentPadding = PaddingValues(0.dp),  //avoid the little icon
-            colors = ButtonDefaults.outlinedButtonColors(contentColor =  Color.Blue)
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Blue)
         ) {
             Icon(Icons.Default.LocationSearching, contentDescription = "content description")
         }
