@@ -1,7 +1,6 @@
 package com.what3words.components.compose.maps
 
 import androidx.compose.ui.graphics.Color
-import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
@@ -25,6 +24,8 @@ data class W3WMapState(
     // Square selected
     val selectedAddress: W3WAddress? = null,
 
+    internal val grid: List<W3WCoordinates> = emptyList(),
+
     // List marker
     val listMakers: Map<String, List<Marker>> = emptyMap(),
 ) {
@@ -33,7 +34,7 @@ data class W3WMapState(
         val coordinates: W3WCoordinates,
         val bearing: Float,
         val isAnimated: Boolean = false,
-        val isMoving: Boolean = false
+        val isMoving: Boolean = false,
     )
 
     data class Marker(

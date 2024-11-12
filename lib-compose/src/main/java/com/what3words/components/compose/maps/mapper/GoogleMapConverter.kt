@@ -7,7 +7,7 @@ import com.google.maps.android.compose.MapType
 import com.what3words.components.compose.maps.W3WMapState
 import com.what3words.core.types.geometry.W3WCoordinates
 
-fun W3WCoordinates.toLatLng(): LatLng {
+fun W3WCoordinates.toGoogleLatLng(): LatLng {
     return LatLng(this.lat, this.lng)
 }
 
@@ -15,9 +15,9 @@ fun LatLng.toW3WCoordinates(): W3WCoordinates {
     return W3WCoordinates(this.latitude, this.longitude)
 }
 
-fun W3WMapState.CameraPosition.toCameraPosition(): CameraPosition {
+fun W3WMapState.CameraPosition.toGoogleCameraPosition(): CameraPosition {
     return CameraPosition(
-        this.coordinates.toLatLng(),
+        this.coordinates.toGoogleLatLng(),
         this.zoom,
         0f,
         this.bearing
@@ -30,11 +30,11 @@ fun CameraPositionState.toW3WMapStateCameraPosition(): W3WMapState.CameraPositio
         zoom = this.position.zoom,
         bearing = this.position.bearing,
         isMoving = this.isMoving,
-        isAnimated = false
+        isAnimated = false,
     )
 }
 
-fun W3WMapState.MapType.toMapType(): MapType {
+fun W3WMapState.MapType.toGoogleMapType(): MapType {
     return when (this) {
         W3WMapState.MapType.NORMAL -> MapType.NORMAL
         W3WMapState.MapType.SATELLITE -> MapType.SATELLITE

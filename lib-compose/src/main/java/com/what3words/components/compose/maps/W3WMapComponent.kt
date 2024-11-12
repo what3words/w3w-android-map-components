@@ -12,33 +12,21 @@ import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.providers.W3WMapProvider
+import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
+import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 
 
-/**
- * This is a closed library that allow for the creation of what3words maps and control through [W3WMapManager]
- *
- * A composable function that displays a what3words map and handles interactions
- * with [W3WMapManager] and [W3WMapProvider].
- *
- * This component collects the map state from the [W3WMapManager] and passes it
- * to another [W3WMapComponent] for rendering. It also provides callbacks to
- * the [W3WMapManager] for map updates and movements.
- *
- * @param modifier The modifier to be applied to the layout.
- * @param layoutConfig The layout configuration for the map.
- * @param mapManager The [W3WMapManager] instance used to manage the map state.
- */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
-    mapProvider: W3WMapProvider,
+    mapProvider: MapProvider,
     mapManager: W3WMapManager,
+    content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
 ) {
 
@@ -61,11 +49,26 @@ fun W3WMapComponent(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
-                state = state,
                 mapProvider = mapProvider,
+                content = content,
+                state = state,
                 onMapTypeClicked = {
-                    mapManager.setMyLocationButton(!state.isMyLocationButtonEnabled)
-                    mapManager.setDarkMode(!state.isDarkMode)
+//                    mapManager.setMyLocationButton(!state.isMyLocationEnabled)
+//                    mapManager.setDarkMode(!state.isDarkMode)
+                    mapManager.setCameraPosition(
+                        cameraPosition = W3WMapState.CameraPosition(
+                            zoom = 19f,
+                            W3WCoordinates(10.782147, 106.671892),
+                            50f,
+                            true
+                        )
+                    )
+
+//                    if (mapManager.getMapType() == W3WMapState.MapType.HYBRID) {
+//                        mapManager.setMapType(W3WMapState.MapType.TERRAIN)
+//                    } else {
+//                        mapManager.setMapType(W3WMapState.MapType.HYBRID)
+//                    }
                 },
                 onMapClicked = {
 
@@ -83,27 +86,14 @@ fun W3WMapComponent(
 }
 
 
-/**
- * This is an open library that allow for the creation of what3words maps and control through [W3WMapState]
- *
- * A composable function that displays a what3words map with UI elements.
- *
- * This component renders the map using the provided [mapProvider] and displays
- * UI elements such as buttons using [W3WMapButtons]. It also handles map
- * updates and movements through the [onMapUpdate] and [onMapMove] callbacks.
- *
- * @param modifier The modifier to be applied to the layout.
- * @param layoutConfig The layout configuration for the map.
- * @param state The current state of the what3words map.
- * @param mapProvider The provider used to render the map.
- */
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     state: W3WMapState,
-    mapProvider: W3WMapProvider,
+    mapProvider: MapProvider,
+    content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: (() -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
     onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)? = null
@@ -112,8 +102,9 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = layoutConfig,
         mapConfig = mapConfig,
-        state = state,
         mapProvider = mapProvider,
+        content = content,
+        state = state,
         onCameraUpdated = {
             onCameraUpdated?.invoke(it)
         },
@@ -122,7 +113,7 @@ fun W3WMapComponent(
         },
         onMapTypeClicked = {
             onMapTypeClicked?.invoke()
-        }
+        },
     )
 }
 
@@ -132,29 +123,75 @@ fun W3WMapContent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     state: W3WMapState,
-    mapProvider: W3WMapProvider,
+    mapProvider: MapProvider,
+    content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: (() -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
 ) {
     Box(modifier = modifier) {
-        mapProvider.What3WordsMap(
+        W3WMapView(
             modifier = modifier,
             layoutConfig = layoutConfig,
             mapConfig = mapConfig,
+            mapProvider = mapProvider,
             state = state,
+            onMapClicked = onMapClicked,
             onCameraUpdated = onCameraUpdated,
-            onMapClicked = onMapClicked
+            content = content
         )
 
         W3WMapButtons(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(layoutConfig.contentPadding),
-            onMapTypeClicked = onMapTypeClicked
+            onMyLocationClicked = {
+                //TODO
+            },
+            onMapTypeClicked = onMapTypeClicked,
         )
     }
 }
+
+@Composable
+fun W3WMapView(
+    modifier: Modifier,
+    layoutConfig: W3WMapDefaults.LayoutConfig,
+    mapConfig: W3WMapDefaults.MapConfig,
+    mapProvider: MapProvider,
+    state: W3WMapState,
+    content: (@Composable () -> Unit)? = null,
+    onMapClicked: ((W3WCoordinates) -> Unit),
+    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
+) {
+    when (mapProvider) {
+        MapProvider.GOOGLE_MAP -> {
+            W3WGoogleMap(
+                modifier = modifier,
+                layoutConfig = layoutConfig,
+                mapConfig = mapConfig,
+                state = state,
+                onMapClicked = onMapClicked,
+                onCameraUpdated = onCameraUpdated,
+                content = content
+            )
+        }
+
+        MapProvider.MAPBOX -> {
+            W3WMapBox(
+                modifier = modifier,
+                layoutConfig = layoutConfig,
+                mapConfig = mapConfig,
+                state = state,
+                onMapClicked = onMapClicked,
+                onCameraUpdated = onCameraUpdated,
+                content = content
+            )
+        }
+    }
+}
+
+
 
 
 

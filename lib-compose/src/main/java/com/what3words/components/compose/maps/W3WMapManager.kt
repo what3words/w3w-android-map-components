@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
-import com.what3words.components.compose.maps.models.DarkModeStyle
-import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -90,6 +88,14 @@ class W3WMapManager(
         _state.update {
             it.copy(
                 mapType = mapType
+            )
+        }
+    }
+
+    fun setCameraPosition(cameraPosition: W3WMapState.CameraPosition) {
+        _state.update {
+            it.copy(
+                cameraPosition = cameraPosition
             )
         }
     }
