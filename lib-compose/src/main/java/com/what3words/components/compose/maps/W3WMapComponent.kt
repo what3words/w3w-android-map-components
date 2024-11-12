@@ -1,14 +1,19 @@
 package com.what3words.components.compose.maps
 
+import android.Manifest
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
 import com.what3words.components.compose.maps.providers.W3WMapProvider
+import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 
 
@@ -26,30 +31,55 @@ import com.what3words.core.types.geometry.W3WCoordinates
  * @param layoutConfig The layout configuration for the map.
  * @param mapManager The [W3WMapManager] instance used to manage the map state.
  */
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
+    mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    mapProvider: W3WMapProvider,
     mapManager: W3WMapManager,
+    onError: ((W3WError) -> Unit)? = null,
 ) {
 
     val state by mapManager.state.collectAsState()
 
-    W3WMapComponent(
-        modifier = modifier,
-        layoutConfig = layoutConfig,
-        state = state,
-        mapProvider = mapManager.mapProvider,
-        onMapUpdate = {
-            mapManager.updateMap()
-        },
-        onMapMove = {
-            mapManager.updateMove()
-        },
-        onMapClicked = {
-            mapManager.onMapClicked(it)
-        }
+    val permissionState = rememberMultiplePermissionsState(
+        listOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        )
     )
+
+    LaunchedEffect(Unit) {
+        permissionState.launchMultiplePermissionRequest()
+    }
+
+    when {
+        permissionState.allPermissionsGranted -> {
+            W3WMapContent(
+                modifier = modifier,
+                layoutConfig = layoutConfig,
+                mapConfig = mapConfig,
+                state = state,
+                mapProvider = mapProvider,
+                onMapTypeClicked = {
+                    mapManager.setMyLocationButton(!state.isMyLocationButtonEnabled)
+                    mapManager.setDarkMode(!state.isDarkMode)
+                },
+                onMapClicked = {
+
+                },
+                onCameraUpdated = {
+                    mapManager.onCameraUpdated(it)
+                },
+            )
+        }
+
+        else -> {
+            onError?.invoke(W3WError(message = "Map component needs permission"))
+        }
+    }
 }
 
 
@@ -66,38 +96,65 @@ fun W3WMapComponent(
  * @param layoutConfig The layout configuration for the map.
  * @param state The current state of the what3words map.
  * @param mapProvider The provider used to render the map.
- * @param onMapUpdate A callback function invoked when the map is updated.
- * @param onMapMove A callback function invoked when the map is moved.*/
+ */
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
+    mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     state: W3WMapState,
     mapProvider: W3WMapProvider,
+    onMapTypeClicked: (() -> Unit)? = null,
+    onMapClicked: ((W3WCoordinates) -> Unit)? = null,
+    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)? = null
+) {
+    W3WMapContent(
+        modifier = modifier,
+        layoutConfig = layoutConfig,
+        mapConfig = mapConfig,
+        state = state,
+        mapProvider = mapProvider,
+        onCameraUpdated = {
+            onCameraUpdated?.invoke(it)
+        },
+        onMapClicked = {
+            onMapClicked?.invoke(it)
+        },
+        onMapTypeClicked = {
+            onMapTypeClicked?.invoke()
+        }
+    )
+}
+
+@Composable
+fun W3WMapContent(
+    modifier: Modifier = Modifier,
+    layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
+    mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    state: W3WMapState,
+    mapProvider: W3WMapProvider,
+    onMapTypeClicked: (() -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onMapUpdate: (() -> Unit),
-    onMapMove: (() -> Unit)
+    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
 ) {
     Box(modifier = modifier) {
         mapProvider.What3WordsMap(
             modifier = modifier,
-            contentPadding = layoutConfig.contentPadding,
+            layoutConfig = layoutConfig,
+            mapConfig = mapConfig,
             state = state,
-            onMapUpdate = {
-                onMapUpdate.invoke()
-            },
-            onMapMove = {
-                onMapMove.invoke()
-            },
-            onMapClicked = {
-                onMapClicked.invoke(it)
-            }
+            onCameraUpdated = onCameraUpdated,
+            onMapClicked = onMapClicked
         )
 
         W3WMapButtons(
-            modifier = Modifier.align(Alignment.BottomEnd).padding(layoutConfig.contentPadding)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(layoutConfig.contentPadding),
+            onMapTypeClicked = onMapTypeClicked
         )
     }
 }
+
 
 

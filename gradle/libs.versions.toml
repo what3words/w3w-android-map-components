@@ -1,5 +1,6 @@
 [versions]
 #Android
+accompanistPermissions = "0.34.0"
 minSdk = "24"
 compileSdk = "34"
 compose-compiler = "1.4.6"
@@ -49,6 +50,7 @@ dokka = "1.5.0"
 
 [libraries]
 #Kotlin
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }

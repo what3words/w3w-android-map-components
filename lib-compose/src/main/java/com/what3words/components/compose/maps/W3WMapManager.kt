@@ -1,7 +1,10 @@
 package com.what3words.components.compose.maps
 
+import android.annotation.SuppressLint
+import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
+import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.providers.W3WMapProvider
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
@@ -33,15 +36,27 @@ import kotlinx.coroutines.launch
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-    val mapProvider: W3WMapProvider
 ) {
-    private var defaultZoomLevel: Float = 0f
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
     private val _state = MutableStateFlow(W3WMapState())
     val state: StateFlow<W3WMapState> = _state.asStateFlow()
 
     // Should be combine functions of W3WMap, W3WMapManager
+
+    init {
+        _state.update {
+            it.copy(
+                language = language,
+                cameraPosition = W3WMapState.CameraPosition(
+                    zoom = 19f,
+                    W3WCoordinates(10.782147, 106.671892),
+                    50f,
+                    false
+                )
+            )
+        }
+    }
 
     //region W3WMap Config
     /** Set the language of [W3WAddress.words] that onSuccess callbacks should return.
@@ -53,52 +68,14 @@ class W3WMapManager(
 
     }
 
-    fun setGridColor(gridColor: Color) {
-        _state.update {
-            it.copy(
-                gridColor = gridColor
-            )
-        }
-    }
-
-    /** Set zoom switch level. If the map zoom level is lower than [zoom], it will not show the grid; if the map zoom is higher or equal to [zoom], it will show the grid.
-     *
-     * @param zoom the zoom level to turn the grid visibility on and off.
-     */
-    fun setZoomSwitchLevel(zoom: Float) {
-        _state.update {
-            it.copy(
-                zoomSwitchLevel = zoom
-            )
-        }
-    }
-
-    /** Get zoom switch level.
-     *
-     * @return the zoom level that defines the grid visibility.
-     */
-    fun getZoomSwitchLevel() : Float {
-        return state.value.zoomSwitchLevel?:0f
-    }
-
-
     fun isDarkMode(): Boolean {
         return state.value.isDarkMode
     }
-
 
     fun setDarkMode(darkMode: Boolean) {
         _state.update {
             it.copy(
                 isDarkMode = darkMode
-            )
-        }
-    }
-
-    fun setGridEnabled(isEnabled: Boolean) {
-        _state.update {
-            it.copy(
-                isGridEnabled = isEnabled
             )
         }
     }
@@ -125,6 +102,8 @@ class W3WMapManager(
         }
     }
 
+    @SuppressLint("MissingPermission")
+    @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
     fun setMyLocationEnabled(enabled: Boolean) {
         _state.update {
             it.copy(
@@ -141,7 +120,6 @@ class W3WMapManager(
             )
         }
     }
-
     //endregion
 
     // region Camera control
@@ -153,6 +131,7 @@ class W3WMapManager(
                 )
             )
         }
+
     }
 
     fun moveToPosition(cameraPosition: W3WMapState.CameraPosition) {
@@ -162,8 +141,6 @@ class W3WMapManager(
             )
         }
     }
-
-
     //endregion
 
     //region Square
@@ -264,19 +241,19 @@ class W3WMapManager(
         }
     }
 
-    /** This method should be called on [GoogleMap.setOnCameraIdleListener] or [MapboxMap.addOnMapIdleListener].
-     * This will allow to refresh the grid bounds on camera idle.
-     */
-    fun updateMap() {
-    }
+    fun onCameraUpdated(cameraPosition: W3WMapState.CameraPosition) {
+        if (cameraPosition != state.value.cameraPosition) {
+            if (cameraPosition.isMoving) {
+                //TODO implement same as  updateMove in Wrapper
 
-    /** This method should be called on [GoogleMap.setOnCameraMoveListener] or [MapboxMap.addOnCameraChangeListener].
-     * This will allow to swap from markers to squares and show/hide grid when zoom goes higher or lower than the [W3WGoogleMapsWrapper.ZOOM_SWITCH_LEVEL] or [W3WMapBoxWrapper.ZOOM_SWITCH_LEVEL] threshold.
-     */
-    fun updateMove() {
+            } else {
+                //TODO implement same as  updateMap in Wrapper
+                _state.update {
+                    it.copy(
+                        cameraPosition = cameraPosition
+                    )
+                }
+            }
+        }
     }
-
-    fun onMapClicked(w3WCoordinates: W3WCoordinates) {
-    }
-
 }

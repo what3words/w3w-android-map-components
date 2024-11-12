@@ -60,6 +60,7 @@ android {
 dependencies {
     // Material
     implementation(libs.material)
+    implementation(libs.accompanist.permissions)
 
     // what3words
     api(libs.what3words.api.wrapper)

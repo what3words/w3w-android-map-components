@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps
 
 import androidx.compose.ui.graphics.Color
+import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
@@ -12,16 +13,11 @@ data class W3WMapState(
     val language: W3WRFC5646Language = W3WRFC5646Language.EN_GB,
     val mapType: MapType = MapType.NORMAL,
     val isDarkMode: Boolean = false,
-    val isMapGestureEnable: Boolean = false,
-    val isMyLocationEnabled: Boolean = false,
+    val isMapGestureEnable: Boolean = true,
+    val isMyLocationEnabled: Boolean = true,
 
     // Button control
-    val isMyLocationButtonEnabled: Boolean = false,
-
-    // Grid view
-    val isGridEnabled: Boolean = true,
-    val gridColor: Color? = null,
-    val zoomSwitchLevel: Float? = null,
+    val isMyLocationButtonEnabled: Boolean = true,
 
     // Camera control
     val cameraPosition: CameraPosition? = null,
@@ -35,8 +31,9 @@ data class W3WMapState(
     data class CameraPosition(
         val zoom: Float,
         val coordinates: W3WCoordinates,
-        val bearing: Float = 0f,
-        val isAnimated: Boolean = false
+        val bearing: Float,
+        val isAnimated: Boolean = false,
+        val isMoving: Boolean = false
     )
 
     data class Marker(
