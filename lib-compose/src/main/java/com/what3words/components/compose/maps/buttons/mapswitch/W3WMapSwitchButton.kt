@@ -38,12 +38,12 @@ fun W3WMapSwitchButton(
             .shadow(elevation = 3.dp, shape = CircleShape)
             .size(50.dp),
         onClick = {
-            onMapTypeChange(mapType)
             mapType = when (mapType) {
                 W3WMapState.MapType.NORMAL -> W3WMapState.MapType.SATELLITE
                 W3WMapState.MapType.SATELLITE -> W3WMapState.MapType.NORMAL
                 else -> W3WMapState.MapType.NORMAL // Default to NORMAL
             }
+            onMapTypeChange(mapType)
         }
     ) {
         Image(
