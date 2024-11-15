@@ -50,6 +50,7 @@ class W3WMapManager(
                     zoom = 19f,
                     W3WCoordinates(10.782147, 106.671892),
                     50f,
+                    0f,
                     false
                 )
             )
@@ -133,7 +134,8 @@ class W3WMapManager(
         _state.update {
             it.copy(
                 cameraPosition = it.cameraPosition?.copy(
-                    bearing = 0f
+                    bearing = 0f,
+                    isAnimated = true,
                 )
             )
         }

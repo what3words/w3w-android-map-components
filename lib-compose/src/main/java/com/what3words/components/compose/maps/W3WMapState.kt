@@ -33,9 +33,35 @@ data class W3WMapState(
         val zoom: Float,
         val coordinates: W3WCoordinates,
         val bearing: Float,
+        val tilt: Float,
         val isAnimated: Boolean = false,
         val isMoving: Boolean = false,
-    )
+    ) {
+
+        override fun hashCode(): Int {
+            var result = zoom.hashCode()
+            result = 31 * result + coordinates.hashCode()
+            result = 31 * result + bearing.hashCode()
+            result = 31 * result + tilt.hashCode()
+            result = 31 * result + isAnimated.hashCode()
+            result = 31 * result + isMoving.hashCode()
+            return result
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as CameraPosition
+
+            if (zoom != other.zoom) return false
+            if (coordinates != other.coordinates) return false
+            if (bearing != other.bearing) return false
+            if (tilt != other.tilt) return false
+
+            return true
+        }
+    }
 
     data class Marker(
         val address: W3WAddress,

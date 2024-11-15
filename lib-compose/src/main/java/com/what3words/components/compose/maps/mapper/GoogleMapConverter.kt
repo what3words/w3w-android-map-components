@@ -19,7 +19,7 @@ fun W3WMapState.CameraPosition.toGoogleCameraPosition(): CameraPosition {
     return CameraPosition(
         this.coordinates.toGoogleLatLng(),
         this.zoom,
-        0f,
+        this.tilt,
         this.bearing
     )
 }
@@ -30,6 +30,7 @@ fun CameraPositionState.toW3WMapStateCameraPosition(): W3WMapState.CameraPositio
         zoom = this.position.zoom,
         bearing = this.position.bearing,
         isMoving = this.isMoving,
+        tilt = this.position.tilt,
         isAnimated = false,
     )
 }

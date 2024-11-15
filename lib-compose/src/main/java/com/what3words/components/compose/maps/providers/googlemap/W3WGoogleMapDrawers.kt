@@ -25,9 +25,6 @@ import com.what3words.components.compose.maps.W3WMapState
 import com.what3words.components.compose.maps.mapper.toGoogleCameraPosition
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
 import com.what3words.components.compose.maps.mapper.toW3WMapStateCameraPosition
-import com.what3words.components.compose.maps.providers.mapbox.W3WMapBoxDrawGridLines
-import com.what3words.components.compose.maps.providers.mapbox.W3WMapBoxDrawMarkers
-import com.what3words.components.compose.maps.providers.mapbox.W3WMapBoxDrawSelectedAddress
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
@@ -50,7 +47,7 @@ fun W3WGoogleMap(
         )
     }
 
-    val uiSettings = remember(state.isMyLocationButtonEnabled, state.isMapGestureEnable) {
+    val uiSettings = remember(state.isMapGestureEnable) {
         MapUiSettings(
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,
@@ -69,8 +66,8 @@ fun W3WGoogleMap(
     }
 
     LaunchedEffect(state.cameraPosition) {
-        if (state.cameraPosition?.toGoogleCameraPosition() != cameraPositionState.position) {
-            state.cameraPosition?.let {
+        state.cameraPosition?.let {
+            if (it != cameraPositionState.toW3WMapStateCameraPosition()) {
                 if (it.isAnimated) {
                     cameraPositionState.animate(
                         update = CameraUpdateFactory.newCameraPosition(it.toGoogleCameraPosition())
@@ -110,18 +107,23 @@ fun W3WGoogleMapDrawer(
 ) {
 
     //Draw the grid lines by zoom in state
-    W3WMapBoxDrawGridLines(mapConfig.zoomSwitchLevel)
+    W3WGoogleMapDrawGridLines(mapConfig.gridLineConfig)
 
     //Draw the markers
-    W3WMapBoxDrawMarkers(mapConfig.zoomSwitchLevel, state.listMakers)
+    W3WGoogleMapDrawMarkers(mapConfig.gridLineConfig.zoomSwitchLevel, state.listMakers)
 
     //Draw the selected address
-    state.selectedAddress?.let { W3WMapBoxDrawSelectedAddress(mapConfig.zoomSwitchLevel, it) }
+    state.selectedAddress?.let {
+        W3WGoogleMapDrawSelectedAddress(
+            mapConfig.gridLineConfig.zoomSwitchLevel,
+            it
+        )
+    }
 }
 
 @Composable
 @GoogleMapComposable
-fun W3WGoogleMapDrawGridLines(zoomLevel: Float) {
+fun W3WGoogleMapDrawGridLines(gridLineConfig: W3WMapDefaults.GridLineConfig) {
     //TODO: Draw visible grid lines based on zoomLevel
 
 
