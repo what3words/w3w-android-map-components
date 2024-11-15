@@ -14,15 +14,12 @@ enum class MapProvider {
 
 object W3WMapDefaults {
     data class MapConfig(
-        // Grid view
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
-
-        val isGridEnabled: Boolean = true,
-        val gridColor: Color? = null,
-        val zoomSwitchLevel: Float = 19f
+        // Grid view
+        val gridLineConfig: GridLineConfig
     )
 
-    data class GridLine(
+    data class GridLineConfig(
         val isGridEnabled: Boolean = true,
         val gridColor: Color? = null,
         val zoomSwitchLevel: Float = 19f
@@ -38,7 +35,7 @@ object W3WMapDefaults {
 
     @Composable
     fun defaultLayoutConfig(
-        contentPadding: PaddingValues = PaddingValues(0.dp)
+        contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp)
     ): LayoutConfig {
         return LayoutConfig(
             contentPadding = contentPadding
@@ -46,16 +43,25 @@ object W3WMapDefaults {
     }
 
     fun defaultMapConfig(
-        isGridEnabled: Boolean = true,
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
-        gridColor: Color? = null,
-        zoomSwitchLevel: Float = 0f
+        gridLineConfig: GridLineConfig = defaultGridLineConfig()
     ): MapConfig {
         return MapConfig(
-            isGridEnabled = isGridEnabled,
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
+            gridLineConfig = gridLineConfig
+        )
+    }
+
+    fun defaultGridLineConfig(
+        isGridEnabled: Boolean = true,
+        gridColor: Color? = null,
+        zoomSwitchLevel: Float = 0f
+    ): GridLineConfig {
+        return GridLineConfig(
+            isGridEnabled = isGridEnabled,
             gridColor = gridColor,
             zoomSwitchLevel = zoomSwitchLevel
         )
     }
+
 }

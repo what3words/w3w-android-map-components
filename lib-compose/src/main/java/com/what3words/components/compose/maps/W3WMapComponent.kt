@@ -53,22 +53,7 @@ fun W3WMapComponent(
                 content = content,
                 state = state,
                 onMapTypeClicked = {
-//                    mapManager.setMyLocationButton(!state.isMyLocationEnabled)
-//                    mapManager.setDarkMode(!state.isDarkMode)
-//                    mapManager.setCameraPosition(
-//                        cameraPosition = W3WMapState.CameraPosition(
-//                            zoom = 19f,
-//                            W3WCoordinates(10.782147, 106.671892),
-//                            50f,
-//                            true
-//                        )
-//                    )
-
-                    if (mapManager.getMapType() == W3WMapState.MapType.NORMAL) {
-                        mapManager.setMapType(W3WMapState.MapType.SATELLITE)
-                    } else {
-                        mapManager.setMapType(W3WMapState.MapType.NORMAL)
-                    }
+                    mapManager.setMapType(it)
                 },
                 onMapClicked = {
 
@@ -94,7 +79,7 @@ fun W3WMapComponent(
     state: W3WMapState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
-    onMapTypeClicked: (() -> Unit)? = null,
+    onMapTypeClicked: ((W3WMapState.MapType) -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
     onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)? = null
 ) {
@@ -112,7 +97,7 @@ fun W3WMapComponent(
             onMapClicked?.invoke(it)
         },
         onMapTypeClicked = {
-            onMapTypeClicked?.invoke()
+            onMapTypeClicked?.invoke(it)
         },
     )
 }

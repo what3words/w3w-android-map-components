@@ -1,22 +1,30 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.mapbox.geojson.Point
+import com.mapbox.maps.MapView
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.maps.extension.compose.rememberMapState
 import com.mapbox.maps.extension.compose.style.GenericStyle
+import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapState
+import com.what3words.components.compose.maps.mapper.toMapBoxCameraOptions
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
+import com.what3words.components.compose.maps.mapper.toW3WCameraPosition
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
+import kotlinx.coroutines.launch
 
 @Composable
 fun W3WMapBox(
@@ -28,22 +36,17 @@ fun W3WMapBox(
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
 ) {
-//    val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
-//        MapProperties(
-//            mapType = state.mapType.toMapType(),
-//            isMyLocationEnabled = state.isMyLocationEnabled,
-//            mapStyleOptions = if (state.isDarkMode) MapStyleOptions(mapConfig.darkModeCustomJsonStyle) else null
-//        )
-//    }
+    var mapView: MapView? by remember {
+        mutableStateOf(null)
+    }
 
-//    mapType = state.mapType.toGoogleMapType(),
-//    isMyLocationEnabled = state.isMyLocationEnabled,
+    var isCameraMoving: Boolean by remember {
+        mutableStateOf(false)
+    }
+
     val mapViewportState = rememberMapViewportState {
         setCameraOptions {
-            zoom(2.0)
-            center(Point.fromLngLat(-98.0, 39.5))
-            pitch(0.0)
-            bearing(0.0)
+            state.cameraPosition?.toMapBoxCameraOptions()
         }
     }
 
@@ -53,8 +56,65 @@ fun W3WMapBox(
         state.mapType.toMapBoxMapType(state.isDarkMode)
     }
 
+    LaunchedEffect(key1 = Unit) {
+        mapState.apply {
+            launch {
+                cameraChangedEvents.collect {
+                    isCameraMoving = true
+                    onCameraUpdated.invoke(it.cameraState.toW3WCameraPosition(isCameraMoving))
+                }
+            }
+
+            launch {
+                mapIdleEvents.collect {
+                    if(isCameraMoving) {
+                        isCameraMoving = false
+                        mapViewportState.cameraState?.let {
+                            onCameraUpdated.invoke(it.toW3WCameraPosition(isCameraMoving))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(state.isMyLocationEnabled) {
+        mapView?.let {
+            it.location.updateSettings {
+                enabled = state.isMyLocationEnabled
+            }
+        }
+    }
+
+    LaunchedEffect(state.isMapGestureEnable) {
+        state.isMapGestureEnable.let {
+            mapState.gesturesSettings = GesturesSettings {
+                pitchEnabled = it
+                rotateEnabled = it
+                scrollEnabled = it
+                quickZoomEnabled = it
+                pinchScrollEnabled = it
+                doubleTapToZoomInEnabled = it
+                doubleTouchToZoomOutEnabled = it
+            }
+        }
+    }
+
+    LaunchedEffect(state.cameraPosition) {
+        state.cameraPosition?.let {
+            if (it != mapViewportState.cameraState?.toW3WCameraPosition(false)) {
+                if (it.isAnimated) {
+                    mapViewportState.flyTo(it.toMapBoxCameraOptions())
+                } else {
+                    mapViewportState.setCameraOptions(it.toMapBoxCameraOptions())
+                }
+            }
+        }
+    }
+
     MapboxMap(
         modifier = modifier,
+        mapState = mapState,
         mapViewportState = mapViewportState,
         style = {
             GenericStyle(
@@ -62,13 +122,12 @@ fun W3WMapBox(
             )
         }
     ) {
-        MapEffect(Unit) { mapView ->
-            mapView.location.updateSettings {
-                locationPuck = createDefault2DPuck(withBearing = true)
-                enabled = true
-                pulsingEnabled = true
+        MapEffect(Unit) {
+            mapView = it
+            it.location.updateSettings {
+                enabled = state.isMyLocationEnabled
+                locationPuck = createDefault2DPuck(withBearing = false)
             }
-            mapViewportState.transitionToFollowPuckState()
         }
 
         W3WMapBoxDrawer(state, mapConfig)
@@ -78,7 +137,7 @@ fun W3WMapBox(
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawGridLines(zoomLevel: Float) {
+fun W3WMapBoxDrawGridLines(gridLineConfig: W3WMapDefaults.GridLineConfig) {
     //TODO: Draw visible grid lines based on zoomLevel
 }
 
@@ -102,11 +161,16 @@ fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<W3WMapSt
 @MapboxMapComposable
 fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
     //Draw the grid lines by zoom in state
-    W3WMapBoxDrawGridLines(mapConfig.zoomSwitchLevel)
+    W3WMapBoxDrawGridLines(mapConfig.gridLineConfig)
 
     //Draw the markers
-    W3WMapBoxDrawMarkers(mapConfig.zoomSwitchLevel, state.listMakers)
+    W3WMapBoxDrawMarkers(mapConfig.gridLineConfig.zoomSwitchLevel, state.listMakers)
 
     //Draw the selected address
-    state.selectedAddress?.let { W3WMapBoxDrawSelectedAddress(mapConfig.zoomSwitchLevel, it) }
+    state.selectedAddress?.let {
+        W3WMapBoxDrawSelectedAddress(
+            mapConfig.gridLineConfig.zoomSwitchLevel,
+            it
+        )
+    }
 }
