@@ -8,24 +8,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationSearching
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.what3words.components.compose.maps.W3WMapState
+import com.what3words.components.compose.maps.buttons.mapswitch.W3WMapSwitchButton
 
 @Composable
 fun W3WMapButtons(
     modifier: Modifier = Modifier,
     onMyLocationClicked: (() -> Unit),
-    onMapTypeClicked: (() -> Unit),
+    onMapTypeClicked: ((W3WMapState.MapType) -> Unit),
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalAlignment = Alignment.End
     ) {
         OutlinedButton(
             onClick = { onMyLocationClicked.invoke() },
@@ -38,15 +41,8 @@ fun W3WMapButtons(
             Icon(Icons.Default.LocationSearching, contentDescription = "content description")
         }
 
-        OutlinedButton(
-            onClick = { onMapTypeClicked.invoke() },
-            modifier = Modifier.size(50.dp),
-            shape = CircleShape,
-            border = BorderStroke(1.dp, Color.Blue),
-            contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Blue)
-        ) {
-            Icon(Icons.Default.Map, contentDescription = "content description")
+        W3WMapSwitchButton {
+            onMapTypeClicked(it)
         }
     }
 }
