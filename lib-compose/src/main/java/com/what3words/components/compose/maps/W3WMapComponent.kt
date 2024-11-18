@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
 import com.what3words.components.compose.maps.state.W3WCameraState
@@ -80,7 +81,7 @@ fun W3WMapComponent(
     state: W3WMapState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
-    onMapTypeClicked: ((W3WMapState.MapType) -> Unit)? = null,
+    onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
@@ -111,7 +112,7 @@ internal fun W3WMapContent(
     state: W3WMapState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
-    onMapTypeClicked: ((W3WMapState.MapType) -> Unit),
+    onMapTypeClicked: ((W3WMapType) -> Unit),
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {

@@ -11,9 +11,9 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
-import com.what3words.components.compose.maps.models.MapType
-import com.what3words.components.compose.maps.models.Marker
-import com.what3words.components.compose.maps.models.ZoomOption
+import com.what3words.components.compose.maps.models.W3WMapType
+import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WZoomOption
 import com.what3words.components.compose.maps.state.W3WCameraState
 import com.what3words.components.compose.maps.state.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.W3WMapState
@@ -110,11 +110,11 @@ class W3WMapManager(
     //endregion
 
     //region Map Ui Settings
-    fun getMapType(): MapType {
+    fun getMapType(): W3WMapType {
         return state.value.mapType
     }
 
-    fun setMapType(mapType: MapType) {
+    fun setMapType(mapType: W3WMapType) {
         _state.update {
             it.copy(
                 mapType = mapType
@@ -179,7 +179,7 @@ class W3WMapManager(
     fun addMarkerAtWords(
         words: String,
         markerColor: Color = Color.Red,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
@@ -188,7 +188,7 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
                     _state.value = state.value.addOrUpdateMarker(
-                        marker = Marker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -203,7 +203,7 @@ class W3WMapManager(
     fun addMarkerAtListWords(
         listWords: List<String>,
         markerColor: Color = Color.Red,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<List<W3WAddress>>? = null,
         onError: Consumer<W3WError>? = null
     ) {
@@ -213,7 +213,7 @@ class W3WMapManager(
     fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: Color = Color.Red,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
@@ -222,7 +222,7 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _state.value = state.value.addOrUpdateMarker(
-                        marker = Marker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -236,7 +236,7 @@ class W3WMapManager(
 
     fun selectAtCoordinates(
         coordinates: W3WCoordinates,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null

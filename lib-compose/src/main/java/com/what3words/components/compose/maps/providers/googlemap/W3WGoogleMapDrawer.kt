@@ -16,7 +16,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.models.Marker
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
@@ -99,7 +99,7 @@ fun W3WGoogleMapDrawSelectedAddress(zoomLevel: Float, address: W3WAddress) {
 
 @Composable
 @GoogleMapComposable
-fun W3WGoogleMapDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<Marker>>) {
+fun W3WGoogleMapDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<W3WMarker>>) {
     //TODO: Draw select for zoom in: filled square
 
     //TODO: Draw select for zoom out: circle

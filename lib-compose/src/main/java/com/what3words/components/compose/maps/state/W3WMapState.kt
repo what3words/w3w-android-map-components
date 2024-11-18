@@ -1,7 +1,7 @@
 package com.what3words.components.compose.maps.state
 
-import com.what3words.components.compose.maps.models.MapType
-import com.what3words.components.compose.maps.models.Marker
+import com.what3words.components.compose.maps.models.W3WMapType
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
@@ -12,7 +12,7 @@ data class W3WMapState(
     // Map Config
     val language: W3WRFC5646Language = W3WRFC5646Language.EN_GB,
 
-    val mapType: MapType = MapType.NORMAL,
+    val mapType: W3WMapType = W3WMapType.NORMAL,
 
     val isDarkMode: Boolean = false,
 
@@ -27,7 +27,7 @@ data class W3WMapState(
     val selectedAddress: W3WAddress? = null,
 
     // List marker
-    val listMakers: Map<String, List<Marker>> = emptyMap(),
+    val listMakers: Map<String, List<W3WMarker>> = emptyMap(),
 
     val cameraState: W3WCameraState<*>? = null,
 
@@ -40,7 +40,7 @@ data class W3WMapState(
 
 fun W3WMapState.addOrUpdateMarker(
     listId: String? = null,
-    marker: Marker
+    marker: W3WMarker
 ): W3WMapState {
     val key = listId ?: LIST_DEFAULT_ID
     val currentList = listMakers[key] ?: emptyList()
@@ -57,11 +57,11 @@ fun W3WMapState.addOrUpdateMarker(
     return copy(listMakers = listMakers + (key to updatedList))
 }
 
-fun W3WMapState.getListIdsByMarker(marker: Marker): List<String> {
+fun W3WMapState.getListIdsByMarker(marker: W3WMarker): List<String> {
     return listMakers.entries.filter { (_, markers) -> marker in markers }.map { it.key }
 }
 
-fun W3WMapState.getMarkersByListId(listId: String): List<Marker> {
+fun W3WMapState.getMarkersByListId(listId: String): List<W3WMarker> {
     return listMakers[listId] ?: emptyList()
 }
 
@@ -69,7 +69,7 @@ fun W3WMapState.removeMarkersByList(listId: String): W3WMapState {
     return copy(listMakers = listMakers - listId)
 }
 
-fun W3WMapState.getAllMarkers(): List<Marker> {
+fun W3WMapState.getAllMarkers(): List<W3WMarker> {
     return listMakers.values.flatten()
 }
 

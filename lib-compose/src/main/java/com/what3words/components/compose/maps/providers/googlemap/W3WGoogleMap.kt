@@ -1,7 +1,6 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
 import android.graphics.Point
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue

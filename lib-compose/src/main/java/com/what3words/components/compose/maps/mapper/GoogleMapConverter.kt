@@ -12,11 +12,11 @@ fun LatLng.toW3WCoordinates(): W3WCoordinates {
     return W3WCoordinates(this.latitude, this.longitude)
 }
 
-fun com.what3words.components.compose.maps.models.MapType.toGoogleMapType(): MapType {
+fun com.what3words.components.compose.maps.models.W3WMapType.toGoogleMapType(): MapType {
     return when (this) {
-        com.what3words.components.compose.maps.models.MapType.NORMAL -> MapType.NORMAL
-        com.what3words.components.compose.maps.models.MapType.SATELLITE -> MapType.SATELLITE
-        com.what3words.components.compose.maps.models.MapType.HYBRID -> MapType.HYBRID
-        com.what3words.components.compose.maps.models.MapType.TERRAIN -> MapType.TERRAIN
+        com.what3words.components.compose.maps.models.W3WMapType.NORMAL -> MapType.NORMAL
+        com.what3words.components.compose.maps.models.W3WMapType.SATELLITE -> MapType.SATELLITE
+        com.what3words.components.compose.maps.models.W3WMapType.HYBRID -> MapType.HYBRID
+        com.what3words.components.compose.maps.models.W3WMapType.TERRAIN -> MapType.TERRAIN
     }
 }
