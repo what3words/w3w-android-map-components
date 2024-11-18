@@ -2,6 +2,7 @@ package com.what3words.components.compose.maps.state
 
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
@@ -19,9 +20,6 @@ data class W3WMapState(
     val isMapGestureEnable: Boolean = true,
 
     val isMyLocationEnabled: Boolean = true,
-
-    // Button control
-    val isMyLocationButtonEnabled: Boolean = true,
 
     // Square selected
     val selectedAddress: W3WAddress? = null,

@@ -1,4 +1,4 @@
-package com.what3words.components.compose.maps
+package com.what3words.components.compose.maps.ui
 
 import android.Manifest
 import androidx.compose.foundation.layout.Box
@@ -11,65 +11,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.what3words.components.compose.maps.MapProvider
+import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.W3WMapManager
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
-import com.what3words.components.compose.maps.state.W3WCameraState
-import com.what3words.components.compose.maps.state.W3WMapState
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.map.W3WMapState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapManager: W3WMapManager,
+    locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
 ) {
 
     val state by mapManager.state.collectAsState()
 
-    val permissionState = rememberMultiplePermissionsState(
-        listOf(
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        )
+    W3WMapContent(
+        modifier = modifier,
+        layoutConfig = layoutConfig,
+        mapConfig = mapConfig,
+        mapProvider = mapManager.mapProvider,
+        content = content,
+        locationSource = locationSource,
+        state = state,
+        onMapTypeClicked = {
+            mapManager.setMapType(it)
+            mapManager.orientCamera()
+        },
+        onMapClicked = {
+
+        },
+        onCameraUpdated = {
+            mapManager.updateCameraState(it)
+        },
+        onError = onError
     )
-
-    LaunchedEffect(Unit) {
-        permissionState.launchMultiplePermissionRequest()
-    }
-
-    when {
-        permissionState.allPermissionsGranted -> {
-            W3WMapContent(
-                modifier = modifier,
-                layoutConfig = layoutConfig,
-                mapConfig = mapConfig,
-                mapProvider = mapManager.mapProvider,
-                content = content,
-                state = state,
-                onMapTypeClicked = {
-                    mapManager.setMapType(it)
-                },
-                onMapClicked = {
-
-                },
-                onCameraUpdated = {
-                    mapManager.updateCameraState(it)
-                }
-            )
-        }
-
-        else -> {
-            onError?.invoke(W3WError(message = "Map component needs permission"))
-        }
-    }
 }
 
 
@@ -79,11 +67,13 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     state: W3WMapState,
+    locationSource: W3WLocationSource? = null,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
-    onCameraUpdated: (W3WCameraState<*>) -> Unit
+    onCameraUpdated: (W3WCameraState<*>) -> Unit,
+    onError: ((W3WError) -> Unit)? = null,
 ) {
     W3WMapContent(
         modifier = modifier,
@@ -92,6 +82,7 @@ fun W3WMapComponent(
         mapProvider = mapProvider,
         content = content,
         state = state,
+        locationSource = locationSource,
         onMapClicked = {
             onMapClicked?.invoke(it)
         },
@@ -100,7 +91,8 @@ fun W3WMapComponent(
         },
         onCameraUpdated = {
             onCameraUpdated.invoke(it)
-        }
+        },
+        onError = onError
     )
 }
 
@@ -111,36 +103,88 @@ internal fun W3WMapContent(
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     state: W3WMapState,
     mapProvider: MapProvider,
+    locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onMapClicked: (W3WCoordinates) -> Unit,
-    onCameraUpdated: (W3WCameraState<*>) -> Unit
+    onCameraUpdated: (W3WCameraState<*>) -> Unit,
+    onError: ((W3WError) -> Unit)? = null,
 ) {
-    Box(modifier = modifier) {
-        W3WMapView(
-            modifier = modifier,
-            layoutConfig = layoutConfig,
-            mapConfig = mapConfig,
-            mapProvider = mapProvider,
-            state = state,
-            onMapClicked = onMapClicked,
-            content = content,
-            onCameraUpdated = {
-                onCameraUpdated.invoke(it)
+    MapPermissionsHandler(state = state, onError = onError) {
+        LaunchedEffect(Unit) {
+            if (state.isMyLocationEnabled) {
+                fetchCurrentLocation(
+                    locationSource = locationSource,
+                    state = state,
+                    onError = onError
+                )
             }
-        )
+        }
 
-        W3WMapButtons(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(layoutConfig.contentPadding),
-            onMyLocationClicked = {
-                //TODO
-            },
-            onMapTypeClicked = onMapTypeClicked,
-        )
+        Box(modifier = modifier) {
+            W3WMapView(
+                modifier = modifier,
+                layoutConfig = layoutConfig,
+                mapConfig = mapConfig,
+                mapProvider = mapProvider,
+                state = state,
+                onMapClicked = onMapClicked,
+                content = content,
+                onCameraUpdated = {
+                    onCameraUpdated.invoke(it)
+                }
+            )
+
+            W3WMapButtons(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(layoutConfig.contentPadding),
+                onMyLocationClicked = {
+                    fetchCurrentLocation(
+                        locationSource = locationSource,
+                        state = state,
+                        onError = onError
+                    )
+                },
+                onMapTypeClicked = onMapTypeClicked,
+            )
+        }
     }
 }
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+internal fun MapPermissionsHandler(
+    state: W3WMapState,
+    onError: ((W3WError) -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    if (state.isMyLocationEnabled) {
+        val permissionState = rememberMultiplePermissionsState(
+            listOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        )
+
+        LaunchedEffect(Unit) {
+            permissionState.launchMultiplePermissionRequest()
+        }
+
+        when {
+            permissionState.allPermissionsGranted -> {
+                content()
+            }
+
+            else -> {
+                onError?.invoke(W3WError(message = "Map component needs permission"))
+            }
+        }
+    } else {
+        content()
+    }
+}
+
 
 @Composable
 internal fun W3WMapView(
@@ -175,10 +219,31 @@ internal fun W3WMapView(
                 mapConfig = mapConfig,
                 state = state,
                 onMapClicked = onMapClicked,
-                content = content
+                content = content,
+                onCameraUpdated = {
+                    onCameraUpdated.invoke(it)
+                }
             )
         }
     }
+}
+
+fun fetchCurrentLocation(
+    locationSource: W3WLocationSource?,
+    state: W3WMapState,
+    onError: ((W3WError) -> Unit)? = null
+) {
+    locationSource?.fetchLocation(
+        onLocationFetched = { location ->
+            state.cameraState?.moveToPosition(
+                coordinates = W3WCoordinates(location.latitude, location.longitude),
+                animate = true
+            )
+        },
+        onError = { error ->
+            onError?.invoke(W3WError("Location fetch failed: ${error.message}"))
+        }
+    )
 }
 
 
