@@ -4,6 +4,21 @@ import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
+import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
+import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
+import com.what3words.components.compose.maps.extensions.computeHorizontalLines
+import com.what3words.components.compose.maps.extensions.computeVerticalLines
+import com.what3words.components.compose.maps.models.W3WMapType
+import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WZoomOption
+import com.what3words.components.compose.maps.state.W3WCameraState
+import com.what3words.components.compose.maps.state.W3WGoogleCameraState
+import com.what3words.components.compose.maps.state.W3WMapState
+import com.what3words.components.compose.maps.state.W3WMapboxCameraState
+import com.what3words.components.compose.maps.state.addOrUpdateMarker
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -18,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * A class that manages the state and interactions of a what3words map.
@@ -34,26 +50,39 @@ import kotlinx.coroutines.launch
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    val mapProvider: MapProvider
 ) {
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
-    private val _state = MutableStateFlow(W3WMapState())
+    private val _state: MutableStateFlow<W3WMapState> = MutableStateFlow(W3WMapState())
     val state: StateFlow<W3WMapState> = _state.asStateFlow()
 
-    // Should be combine functions of W3WMap, W3WMapManager
-
     init {
-        _state.update {
-            it.copy(
-                language = language,
-                cameraPosition = W3WMapState.CameraPosition(
-                    zoom = 19f,
-                    W3WCoordinates(10.782147, 106.671892),
-                    50f,
-                    0f,
-                    false
+        if (mapProvider == MapProvider.MAPBOX) {
+            _state.update {
+                it.copy(cameraState = W3WMapboxCameraState(MapViewportState()))
+            }
+        } else if (mapProvider == MapProvider.GOOGLE_MAP) {
+            _state.update {
+                it.copy(
+                    cameraState = W3WGoogleCameraState(
+                        CameraPositionState(
+                            position = CAMERA_POSITION_DEFAULT
+                        )
+                    )
                 )
-            )
+            }
+        }
+    }
+
+    fun updateCameraState(newCameraState: W3WCameraState<*>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            _state.update {
+                it.copy(
+                    cameraState = newCameraState,
+                    gridPolyline = calculateGridPolylines(newCameraState)
+                )
+            }
         }
     }
 
@@ -81,22 +110,14 @@ class W3WMapManager(
     //endregion
 
     //region Map Ui Settings
-    fun getMapType(): W3WMapState.MapType {
+    fun getMapType(): W3WMapType {
         return state.value.mapType
     }
 
-    fun setMapType(mapType: W3WMapState.MapType) {
+    fun setMapType(mapType: W3WMapType) {
         _state.update {
             it.copy(
                 mapType = mapType
-            )
-        }
-    }
-
-    fun setCameraPosition(cameraPosition: W3WMapState.CameraPosition) {
-        _state.update {
-            it.copy(
-                cameraPosition = cameraPosition
             )
         }
     }
@@ -131,23 +152,11 @@ class W3WMapManager(
 
     // region Camera control
     fun orientCamera() {
-        _state.update {
-            it.copy(
-                cameraPosition = it.cameraPosition?.copy(
-                    bearing = 0f,
-                    isAnimated = true,
-                )
-            )
-        }
-
+        // Not implemented
     }
 
-    fun moveToPosition(cameraPosition: W3WMapState.CameraPosition) {
-        _state.update {
-            it.copy(
-                cameraPosition = cameraPosition
-            )
-        }
+    fun moveToPosition(coordinates: W3WCoordinates) {
+        // Not implemented
     }
     //endregion
 
@@ -155,7 +164,6 @@ class W3WMapManager(
     fun getSelectedMarker(): W3WAddress? {
         return state.value.selectedAddress
     }
-
 
     fun unselect() {
         _state.update {
@@ -171,7 +179,7 @@ class W3WMapManager(
     fun addMarkerAtWords(
         words: String,
         markerColor: Color = Color.Red,
-        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
@@ -180,7 +188,7 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
                     _state.value = state.value.addOrUpdateMarker(
-                        marker = W3WMapState.Marker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -195,7 +203,7 @@ class W3WMapManager(
     fun addMarkerAtListWords(
         listWords: List<String>,
         markerColor: Color = Color.Red,
-        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<List<W3WAddress>>? = null,
         onError: Consumer<W3WError>? = null
     ) {
@@ -205,7 +213,7 @@ class W3WMapManager(
     fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: Color = Color.Red,
-        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
@@ -214,7 +222,7 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _state.value = state.value.addOrUpdateMarker(
-                        marker = W3WMapState.Marker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -228,7 +236,7 @@ class W3WMapManager(
 
     fun selectAtCoordinates(
         coordinates: W3WCoordinates,
-        zoomOption: W3WMapState.ZoomOption = W3WMapState.ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
@@ -249,19 +257,30 @@ class W3WMapManager(
         }
     }
 
-    fun onCameraUpdated(cameraPosition: W3WMapState.CameraPosition) {
-        if (cameraPosition != state.value.cameraPosition) {
-            if (cameraPosition.isMoving) {
-                //TODO implement same as  updateMove in Wrapper
+    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): Pair<List<W3WCoordinates>, List<W3WCoordinates>> {
+        return withContext(Dispatchers.IO) {
+            cameraState.gridBound?.let { safeBox ->
+                when (val grid = textDataSource.gridSection(safeBox)) {
+                    is W3WResult.Failure -> {
+                        if (grid.error is BadBoundingBoxTooBigError) {
+                            return@withContext Pair(emptyList(), emptyList())
+                        } else {
+                            throw grid.error
+                        }
+                    }
 
-            } else {
-                //TODO implement same as  updateMap in Wrapper
-                _state.update {
-                    it.copy(
-                        cameraPosition = cameraPosition
-                    )
+                    is W3WResult.Success -> {
+                        val verticalLines = grid.value.lines.computeVerticalLines()
+                        val horizontalLines = grid.value.lines.computeHorizontalLines()
+                        Pair(verticalLines, horizontalLines)
+                    }
                 }
-            }
+            } ?: Pair(emptyList(), emptyList())
         }
+    }
+
+    companion object {
+        @JvmField
+        val CAMERA_POSITION_DEFAULT = CameraPosition(LatLng(51.521251, -0.203586), 19f, 0f, 0f)
     }
 }

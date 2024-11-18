@@ -3,7 +3,6 @@ package com.what3words.components.compose.maps.buttons.mapswitch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,7 +14,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.W3WMapState
+import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.map.components.compose.R
 
 /**
@@ -29,8 +28,8 @@ import com.what3words.map.components.compose.R
 @Composable
 fun W3WMapSwitchButton(
     modifier: Modifier = Modifier,
-    w3wMapType: W3WMapState.MapType = W3WMapState.MapType.NORMAL,
-    onMapTypeChange: (W3WMapState.MapType) -> Unit
+    w3wMapType: W3WMapType = W3WMapType.NORMAL,
+    onMapTypeChange: (W3WMapType) -> Unit
 ) {
     var mapType by remember { mutableStateOf(w3wMapType) }
     IconButton(
@@ -39,9 +38,9 @@ fun W3WMapSwitchButton(
             .size(50.dp),
         onClick = {
             mapType = when (mapType) {
-                W3WMapState.MapType.NORMAL -> W3WMapState.MapType.SATELLITE
-                W3WMapState.MapType.SATELLITE -> W3WMapState.MapType.NORMAL
-                else -> W3WMapState.MapType.NORMAL // Default to NORMAL
+                W3WMapType.NORMAL -> W3WMapType.SATELLITE
+                W3WMapType.SATELLITE -> W3WMapType.NORMAL
+                else -> W3WMapType.NORMAL // Default to NORMAL
             }
             onMapTypeChange(mapType)
         }
@@ -49,8 +48,8 @@ fun W3WMapSwitchButton(
         Image(
             painter = painterResource(
                 id = when (mapType) {
-                    W3WMapState.MapType.NORMAL -> R.drawable.ic_map_satellite
-                    W3WMapState.MapType.SATELLITE -> R.drawable.ic_map_normal
+                    W3WMapType.NORMAL -> R.drawable.ic_map_satellite
+                    W3WMapType.SATELLITE -> R.drawable.ic_map_normal
                     else -> R.drawable.ic_map_satellite
                 }
             ),
@@ -62,11 +61,11 @@ fun W3WMapSwitchButton(
 @Preview
 @Composable
 fun MapNormalPreview() {
-    W3WMapSwitchButton(w3wMapType = W3WMapState.MapType.NORMAL) {}
+    W3WMapSwitchButton(w3wMapType = W3WMapType.NORMAL) {}
 }
 
 @Preview
 @Composable
 fun MapTypeSwitcherPreview() {
-    W3WMapSwitchButton(w3wMapType = W3WMapState.MapType.SATELLITE) {}
+    W3WMapSwitchButton(w3wMapType = W3WMapType.SATELLITE) {}
 }

@@ -16,14 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.W3WMapState
 import com.what3words.components.compose.maps.buttons.mapswitch.W3WMapSwitchButton
+import com.what3words.components.compose.maps.models.W3WMapType
 
 @Composable
 fun W3WMapButtons(
     modifier: Modifier = Modifier,
     onMyLocationClicked: (() -> Unit),
-    onMapTypeClicked: ((W3WMapState.MapType) -> Unit),
+    onMapTypeClicked: ((W3WMapType) -> Unit),
 ) {
     Column(
         modifier = modifier,
