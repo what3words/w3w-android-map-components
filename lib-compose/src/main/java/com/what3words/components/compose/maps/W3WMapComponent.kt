@@ -14,6 +14,8 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
+import com.what3words.components.compose.maps.state.W3WCameraState
+import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 
@@ -24,7 +26,6 @@ fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
-    mapProvider: MapProvider,
     mapManager: W3WMapManager,
     content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
@@ -49,7 +50,7 @@ fun W3WMapComponent(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
-                mapProvider = mapProvider,
+                mapProvider = mapManager.mapProvider,
                 content = content,
                 state = state,
                 onMapTypeClicked = {
@@ -59,8 +60,8 @@ fun W3WMapComponent(
 
                 },
                 onCameraUpdated = {
-                    mapManager.onCameraUpdated(it)
-                },
+                    mapManager.updateCameraState(it)
+                }
             )
         }
 
@@ -81,7 +82,7 @@ fun W3WMapComponent(
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapState.MapType) -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
-    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)? = null
+    onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
     W3WMapContent(
         modifier = modifier,
@@ -90,20 +91,20 @@ fun W3WMapComponent(
         mapProvider = mapProvider,
         content = content,
         state = state,
-        onCameraUpdated = {
-            onCameraUpdated?.invoke(it)
-        },
         onMapClicked = {
             onMapClicked?.invoke(it)
         },
         onMapTypeClicked = {
             onMapTypeClicked?.invoke(it)
         },
+        onCameraUpdated = {
+            onCameraUpdated.invoke(it)
+        }
     )
 }
 
 @Composable
-fun W3WMapContent(
+internal fun W3WMapContent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
@@ -111,8 +112,8 @@ fun W3WMapContent(
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapState.MapType) -> Unit),
-    onMapClicked: ((W3WCoordinates) -> Unit),
-    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
+    onMapClicked: (W3WCoordinates) -> Unit,
+    onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
     Box(modifier = modifier) {
         W3WMapView(
@@ -122,8 +123,10 @@ fun W3WMapContent(
             mapProvider = mapProvider,
             state = state,
             onMapClicked = onMapClicked,
-            onCameraUpdated = onCameraUpdated,
-            content = content
+            content = content,
+            onCameraUpdated = {
+                onCameraUpdated.invoke(it)
+            }
         )
 
         W3WMapButtons(
@@ -139,7 +142,7 @@ fun W3WMapContent(
 }
 
 @Composable
-fun W3WMapView(
+internal fun W3WMapView(
     modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
@@ -147,7 +150,7 @@ fun W3WMapView(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
+    onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
     when (mapProvider) {
         MapProvider.GOOGLE_MAP -> {
@@ -157,8 +160,10 @@ fun W3WMapView(
                 mapConfig = mapConfig,
                 state = state,
                 onMapClicked = onMapClicked,
-                onCameraUpdated = onCameraUpdated,
-                content = content
+                content = content,
+                onCameraUpdated = {
+                    onCameraUpdated.invoke(it)
+                }
             )
         }
 
@@ -169,7 +174,6 @@ fun W3WMapView(
                 mapConfig = mapConfig,
                 state = state,
                 onMapClicked = onMapClicked,
-                onCameraUpdated = onCameraUpdated,
                 content = content
             )
         }

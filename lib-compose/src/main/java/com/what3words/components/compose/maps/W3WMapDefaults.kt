@@ -55,7 +55,7 @@ object W3WMapDefaults {
     fun defaultGridLineConfig(
         isGridEnabled: Boolean = true,
         gridColor: Color? = null,
-        zoomSwitchLevel: Float = 0f
+        zoomSwitchLevel: Float = 19f
     ): GridLineConfig {
         return GridLineConfig(
             isGridEnabled = isGridEnabled,

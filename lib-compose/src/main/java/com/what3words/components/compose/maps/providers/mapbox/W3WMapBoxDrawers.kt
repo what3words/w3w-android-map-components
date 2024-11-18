@@ -22,6 +22,8 @@ import com.what3words.components.compose.maps.W3WMapState
 import com.what3words.components.compose.maps.mapper.toMapBoxCameraOptions
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
 import com.what3words.components.compose.maps.mapper.toW3WCameraPosition
+import com.what3words.components.compose.maps.models.Marker
+import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.launch
@@ -34,7 +36,6 @@ fun W3WMapBox(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onCameraUpdated: ((W3WMapState.CameraPosition) -> Unit)
 ) {
     var mapView: MapView? by remember {
         mutableStateOf(null)
@@ -56,28 +57,6 @@ fun W3WMapBox(
         state.mapType.toMapBoxMapType(state.isDarkMode)
     }
 
-    LaunchedEffect(key1 = Unit) {
-        mapState.apply {
-            launch {
-                cameraChangedEvents.collect {
-                    isCameraMoving = true
-                    onCameraUpdated.invoke(it.cameraState.toW3WCameraPosition(isCameraMoving))
-                }
-            }
-
-            launch {
-                mapIdleEvents.collect {
-                    if(isCameraMoving) {
-                        isCameraMoving = false
-                        mapViewportState.cameraState?.let {
-                            onCameraUpdated.invoke(it.toW3WCameraPosition(isCameraMoving))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     LaunchedEffect(state.isMyLocationEnabled) {
         mapView?.let {
             it.location.updateSettings {
@@ -96,18 +75,6 @@ fun W3WMapBox(
                 pinchScrollEnabled = it
                 doubleTapToZoomInEnabled = it
                 doubleTouchToZoomOutEnabled = it
-            }
-        }
-    }
-
-    LaunchedEffect(state.cameraPosition) {
-        state.cameraPosition?.let {
-            if (it != mapViewportState.cameraState?.toW3WCameraPosition(false)) {
-                if (it.isAnimated) {
-                    mapViewportState.flyTo(it.toMapBoxCameraOptions())
-                } else {
-                    mapViewportState.setCameraOptions(it.toMapBoxCameraOptions())
-                }
             }
         }
     }
@@ -151,7 +118,7 @@ fun W3WMapBoxDrawSelectedAddress(zoomLevel: Float, address: W3WAddress) {
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<W3WMapState.Marker>>) {
+fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<Marker>>) {
     //TODO: Draw select for zoom in: filled square
 
     //TODO: Draw select for zoom out: circle
