@@ -50,7 +50,7 @@ fun W3WGoogleMap(
         )
     }
 
-    val uiSettings = remember(state.isMyLocationButtonEnabled, state.isMapGestureEnable) {
+    val uiSettings = remember(state.isMapGestureEnable) {
         MapUiSettings(
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,

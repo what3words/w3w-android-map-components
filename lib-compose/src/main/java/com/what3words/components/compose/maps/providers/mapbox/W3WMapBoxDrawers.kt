@@ -19,9 +19,7 @@ import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapState
-import com.what3words.components.compose.maps.mapper.toMapBoxCameraOptions
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
-import com.what3words.components.compose.maps.mapper.toW3WCameraPosition
 import com.what3words.components.compose.maps.models.Marker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.core.types.domain.W3WAddress
