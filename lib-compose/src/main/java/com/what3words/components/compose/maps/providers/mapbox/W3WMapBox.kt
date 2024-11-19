@@ -18,7 +18,8 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.W3WMapboxCameraState
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 
 @Composable
@@ -29,12 +30,18 @@ fun W3WMapBox(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit),
+    onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
     var mapView: MapView? by remember {
         mutableStateOf(null)
     }
 
     val mapViewportState = (state.cameraState as W3WMapboxCameraState).cameraState
+
+    LaunchedEffect(mapViewportState) {
+        onCameraUpdated(W3WMapboxCameraState(mapViewportState))
+    }
+
 
     val mapState = rememberMapState()
 

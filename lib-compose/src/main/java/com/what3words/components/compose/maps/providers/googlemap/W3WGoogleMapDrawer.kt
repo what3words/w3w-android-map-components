@@ -32,8 +32,8 @@ fun W3WGoogleMapDrawer(
     if (mapConfig.gridLineConfig.isGridEnabled) {
         state.cameraState?.let {
             W3WGoogleMapDrawGridLines(
-                verticalLines = state.gridPolyline.first,
-                horizontalLines = state.gridPolyline.second,
+                verticalLines = state.gridLines.verticalLines,
+                horizontalLines = state.gridLines.horizontalLines,
                 zoomLevel = it.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel
             )

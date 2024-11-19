@@ -1,7 +1,10 @@
 package com.what3words.components.compose.maps.mapper
 
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.MapType
+import com.what3words.components.compose.maps.models.W3WCameraPosition
+import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.core.types.geometry.W3WCoordinates
 
 fun W3WCoordinates.toGoogleLatLng(): LatLng {
@@ -12,11 +15,20 @@ fun LatLng.toW3WCoordinates(): W3WCoordinates {
     return W3WCoordinates(this.latitude, this.longitude)
 }
 
-fun com.what3words.components.compose.maps.models.W3WMapType.toGoogleMapType(): MapType {
+fun W3WMapType.toGoogleMapType(): MapType {
     return when (this) {
-        com.what3words.components.compose.maps.models.W3WMapType.NORMAL -> MapType.NORMAL
-        com.what3words.components.compose.maps.models.W3WMapType.SATELLITE -> MapType.SATELLITE
-        com.what3words.components.compose.maps.models.W3WMapType.HYBRID -> MapType.HYBRID
-        com.what3words.components.compose.maps.models.W3WMapType.TERRAIN -> MapType.TERRAIN
+        W3WMapType.NORMAL -> MapType.NORMAL
+        W3WMapType.SATELLITE -> MapType.SATELLITE
+        W3WMapType.HYBRID -> MapType.HYBRID
+        W3WMapType.TERRAIN -> MapType.TERRAIN
     }
+}
+
+fun W3WCameraPosition.toGoogleCameraPosition(): CameraPosition {
+    return CameraPosition(
+        this.coordinates.toGoogleLatLng(),
+        this.zoom,
+        this.tilt,
+        this.bearing
+    )
 }

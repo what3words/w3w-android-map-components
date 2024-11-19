@@ -17,9 +17,9 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
-import com.what3words.components.compose.maps.state.W3WCameraState
-import com.what3words.components.compose.maps.state.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.W3WMapState
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers

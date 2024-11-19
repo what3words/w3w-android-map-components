@@ -1,10 +1,10 @@
 package com.what3words.components.compose.maps.state
 
+import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.domain.W3WAddress
-import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
 
 const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
@@ -29,11 +29,7 @@ data class W3WMapState(
 
     val cameraState: W3WCameraState<*>? = null,
 
-    // The pair of vertical and horizontal grid polylines
-    internal val gridPolyline: Pair<List<W3WCoordinates>, List<W3WCoordinates>> = Pair(
-        emptyList(),
-        emptyList()
-    ),
+    internal val gridLines: W3WGridLines = W3WGridLines(),
 )
 
 fun W3WMapState.addOrUpdateMarker(
