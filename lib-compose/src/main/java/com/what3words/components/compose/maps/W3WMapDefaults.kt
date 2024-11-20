@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
 
-
 enum class MapProvider {
     GOOGLE_MAP,
     MAPBOX
@@ -16,10 +15,10 @@ object W3WMapDefaults {
     data class MapConfig(
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         // Grid view
-        val gridLineConfig: GridLineConfig
+        val gridLineConfig: GridLinesConfig
     )
 
-    data class GridLineConfig(
+    data class GridLinesConfig(
         val isGridEnabled: Boolean = true,
         val gridColor: Color? = null,
         val zoomSwitchLevel: Float = 19f
@@ -44,7 +43,7 @@ object W3WMapDefaults {
 
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
-        gridLineConfig: GridLineConfig = defaultGridLineConfig()
+        gridLineConfig: GridLinesConfig = defaultGridLinesConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
@@ -52,12 +51,12 @@ object W3WMapDefaults {
         )
     }
 
-    fun defaultGridLineConfig(
+    fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
         gridColor: Color? = null,
         zoomSwitchLevel: Float = 19f
-    ): GridLineConfig {
-        return GridLineConfig(
+    ): GridLinesConfig {
+        return GridLinesConfig(
             isGridEnabled = isGridEnabled,
             gridColor = gridColor,
             zoomSwitchLevel = zoomSwitchLevel

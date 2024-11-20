@@ -17,9 +17,9 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
-import com.what3words.components.compose.maps.state.W3WCameraState
-import com.what3words.components.compose.maps.state.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.W3WMapState
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +31,18 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+/**
+ * A composable function that displays a What3Words (W3W) map using the Google Maps Platform.
+ *
+ * @param modifier Modifier for styling and layout of the map view.
+ * @param layoutConfig Configuration for the map's layout, such as padding and content alignment.
+ * @param mapConfig Configuration for the map's appearance, such as map type and zoom controls.
+ * @param state The [W3WMapState] object that holds the state of the map.
+ * @param content Optional composable content to be displayed on the map, such as markers or overlays.
+ * @param onMapClicked Callback invoked when the user clicks on the map.
+ * @param onCameraUpdated Callback invoked when the camera position is updated.
+ *
+ */
 @Composable
 fun W3WGoogleMap(
     modifier: Modifier,
@@ -41,6 +53,7 @@ fun W3WGoogleMap(
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
+    // Update the map properties based on map type, isMyLocationEnabled, and dark mode
     val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
         MapProperties(
             mapType = state.mapType.toGoogleMapType(),
@@ -49,6 +62,7 @@ fun W3WGoogleMap(
         )
     }
 
+    // Update the MapUiSettings based on isMapGestureEnable
     val uiSettings = remember(state.isMapGestureEnable) {
         MapUiSettings(
             zoomControlsEnabled = false,

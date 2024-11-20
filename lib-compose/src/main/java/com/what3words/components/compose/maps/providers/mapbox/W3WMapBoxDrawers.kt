@@ -28,7 +28,7 @@ fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawGridLines(gridLineConfig: W3WMapDefaults.GridLineConfig) {
+fun W3WMapBoxDrawGridLines(gridLineConfig: W3WMapDefaults.GridLinesConfig) {
     //TODO: Draw visible grid lines based on zoomLevel
 }
 

@@ -4,21 +4,26 @@ import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.CameraPositionState
+import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraState
+import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
+import com.what3words.components.compose.maps.mapper.toGoogleCameraPosition
+import com.what3words.components.compose.maps.models.W3WCameraPosition
+import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WZoomOption
-import com.what3words.components.compose.maps.state.W3WCameraState
-import com.what3words.components.compose.maps.state.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.W3WMapboxCameraState
 import com.what3words.components.compose.maps.state.addOrUpdateMarker
+import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
+import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -36,51 +41,60 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * A class that manages the state and interactions of a what3words map.
+ * A central component for managing the state and interactions of a What3Words (W3W) map.
  *
- * This class uses a [W3WTextDataSource] to retrieve what3words address data and
- * a [CoroutineDispatcher] to perform operations asynchronously. It exposes a
- * [StateFlow] representing the current state of the map, which can be collected
- * by composable functions to render the map UI.
+ * This class encapsulates data sources, handles asynchronous operations, and exposes the map's state
+ * through a [StateFlow]. It acts as a bridge between your application logic and the W3W map,
+ * providing a convenient way to control the map's behavior and access its data.
  *
- * @param textDataSource The data source used to retrieve what3words address data.
- * @param dispatcher The coroutine dispatcher used for asynchronous operations.
- * Defaults to [Dispatchers.IO].
+ * @param textDataSource An instance of [W3WTextDataSource], used for fetching W3W address information.
+ * @param dispatcher A [CoroutineDispatcher] used for managing coroutines, defaulting to
+ *   [Dispatchers.IO] for background operations.
+ * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
+ * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
+ *   provided, a default [W3WMapState] is used.
+ *
+ * @property mapState A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-    val mapProvider: MapProvider
+    val mapProvider: MapProvider,
+    mapState: W3WMapState = W3WMapState()
 ) {
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
-    private val _state: MutableStateFlow<W3WMapState> = MutableStateFlow(W3WMapState())
-    val state: StateFlow<W3WMapState> = _state.asStateFlow()
+    private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
+    val mapState: StateFlow<W3WMapState> = _mapState.asStateFlow()
 
     init {
         if (mapProvider == MapProvider.MAPBOX) {
-            _state.update {
-                it.copy(cameraState = W3WMapboxCameraState(MapViewportState()))
-            }
-        } else if (mapProvider == MapProvider.GOOGLE_MAP) {
-            _state.update {
+            _mapState.update {
                 it.copy(
-                    cameraState = W3WGoogleCameraState(
-                        CameraPositionState(
-                            position = CAMERA_POSITION_DEFAULT
+                    cameraState = W3WMapboxCameraState(
+                        MapViewportState(
+                            initialCameraState = CameraState(
+                                Point.fromLngLat(
+                                    CAMERA_POSITION_DEFAULT.coordinates.lng,
+                                    CAMERA_POSITION_DEFAULT.coordinates.lat
+                                ),
+                                EdgeInsets(0.0, 0.0, 0.0, 0.0),
+                                CAMERA_POSITION_DEFAULT.zoom.toDouble(),
+                                CAMERA_POSITION_DEFAULT.bearing.toDouble(),
+                                CAMERA_POSITION_DEFAULT.tilt.toDouble(),
+                            )
                         )
                     )
                 )
             }
-        }
-    }
-
-    fun updateCameraState(newCameraState: W3WCameraState<*>) {
-        CoroutineScope(Dispatchers.IO).launch {
-            _state.update {
+        } else if (mapProvider == MapProvider.GOOGLE_MAP) {
+            _mapState.update {
                 it.copy(
-                    cameraState = newCameraState,
-                    gridPolyline = calculateGridPolylines(newCameraState)
+                    cameraState = W3WGoogleCameraState(
+                        CameraPositionState(
+                            position = CAMERA_POSITION_DEFAULT.toGoogleCameraPosition()
+                        )
+                    )
                 )
             }
         }
@@ -97,11 +111,11 @@ class W3WMapManager(
     }
 
     fun isDarkMode(): Boolean {
-        return state.value.isDarkMode
+        return mapState.value.isDarkMode
     }
 
     fun setDarkMode(darkMode: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isDarkMode = darkMode
             )
@@ -111,11 +125,11 @@ class W3WMapManager(
 
     //region Map Ui Settings
     fun getMapType(): W3WMapType {
-        return state.value.mapType
+        return mapState.value.mapType
     }
 
     fun setMapType(mapType: W3WMapType) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 mapType = mapType
             )
@@ -123,7 +137,7 @@ class W3WMapManager(
     }
 
     fun setMapGesturesEnabled(enabled: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isMapGestureEnable = enabled
             )
@@ -133,7 +147,7 @@ class W3WMapManager(
     @SuppressLint("MissingPermission")
     @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
     fun setMyLocationEnabled(enabled: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isMyLocationEnabled = enabled
             )
@@ -142,31 +156,38 @@ class W3WMapManager(
 
     //TODO: Need to confirm on/off button in button layout
     fun setMyLocationButton(enabled: Boolean) {
-        _state.update {
-            it.copy(
-                isMyLocationButtonEnabled = enabled
-            )
-        }
+        //TODO: Update in button state
     }
     //endregion
 
     // region Camera control
     fun orientCamera() {
-        // Not implemented
+        mapState.value.cameraState?.orientCamera()
     }
 
     fun moveToPosition(coordinates: W3WCoordinates) {
-        // Not implemented
+        mapState.value.cameraState?.moveToPosition(coordinates, true)
+    }
+
+    fun updateCameraState(newCameraState: W3WCameraState<*>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            _mapState.update {
+                it.copy(
+                    cameraState = newCameraState,
+                    gridLines = calculateGridPolylines(newCameraState)
+                )
+            }
+        }
     }
     //endregion
 
-    //region Square
+    //region Selected Address
     fun getSelectedMarker(): W3WAddress? {
-        return state.value.selectedAddress
+        return mapState.value.selectedAddress
     }
 
     fun unselect() {
-        _state.update {
+        _mapState.update {
             it.copy(
                 selectedAddress = null
             )
@@ -175,10 +196,10 @@ class W3WMapManager(
 
     //endregion
 
-    //region Marker
+    //region Markers
     fun addMarkerAtWords(
         words: String,
-        markerColor: Color = Color.Red,
+        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
@@ -187,7 +208,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addOrUpdateMarker(
+                    _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
@@ -202,7 +223,7 @@ class W3WMapManager(
 
     fun addMarkerAtListWords(
         listWords: List<String>,
-        markerColor: Color = Color.Red,
+        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<List<W3WAddress>>? = null,
         onError: Consumer<W3WError>? = null
@@ -212,7 +233,7 @@ class W3WMapManager(
 
     fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
-        markerColor: Color = Color.Red,
+        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         onSuccess: Consumer<W3WAddress>? = null,
         onError: Consumer<W3WError>? = null,
@@ -221,7 +242,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addOrUpdateMarker(
+                    _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
@@ -244,7 +265,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.copy(
+                    _mapState.value = mapState.value.copy(
                         selectedAddress = c23wa.value
                     )
                     onSuccess?.accept(c23wa.value)
@@ -257,30 +278,32 @@ class W3WMapManager(
         }
     }
 
-    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): Pair<List<W3WCoordinates>, List<W3WCoordinates>> {
+    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines {
         return withContext(Dispatchers.IO) {
             cameraState.gridBound?.let { safeBox ->
                 when (val grid = textDataSource.gridSection(safeBox)) {
                     is W3WResult.Failure -> {
                         if (grid.error is BadBoundingBoxTooBigError) {
-                            return@withContext Pair(emptyList(), emptyList())
+                            return@withContext W3WGridLines()
                         } else {
                             throw grid.error
                         }
                     }
 
                     is W3WResult.Success -> {
-                        val verticalLines = grid.value.lines.computeVerticalLines()
-                        val horizontalLines = grid.value.lines.computeHorizontalLines()
-                        Pair(verticalLines, horizontalLines)
+                        W3WGridLines(
+                            verticalLines = grid.value.lines.computeVerticalLines(),
+                            horizontalLines = grid.value.lines.computeHorizontalLines()
+                        )
                     }
                 }
-            } ?: Pair(emptyList(), emptyList())
+            } ?: W3WGridLines()
         }
     }
 
     companion object {
-        @JvmField
-        val CAMERA_POSITION_DEFAULT = CameraPosition(LatLng(51.521251, -0.203586), 19f, 0f, 0f)
+        val CAMERA_POSITION_DEFAULT =
+            W3WCameraPosition(W3WCoordinates(51.521251, -0.203586), 19f, 0f, 0f)
+        val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slashesColor = Color.Yellow)
     }
 }

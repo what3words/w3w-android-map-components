@@ -22,6 +22,14 @@ import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
 
+/**
+ * A composable function that draws What3Words component support:
+ * the grid lines, markers, and selected address on a Google Map.
+ *
+ * @param state The [W3WMapState] object that holds the state of the map, including grid lines configuration.
+ * @param mapConfig The [W3WMapDefaults.MapConfig] object that holds the configuration for the map, including styling options.
+ *
+ */
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawer(
@@ -29,11 +37,12 @@ fun W3WGoogleMapDrawer(
     mapConfig: W3WMapDefaults.MapConfig
 ) {
 
+    // Draw grid lines
     if (mapConfig.gridLineConfig.isGridEnabled) {
         state.cameraState?.let {
             W3WGoogleMapDrawGridLines(
-                verticalLines = state.gridPolyline.first,
-                horizontalLines = state.gridPolyline.second,
+                verticalLines = state.gridLines.verticalLines,
+                horizontalLines = state.gridLines.horizontalLines,
                 zoomLevel = it.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel
             )
@@ -46,6 +55,7 @@ fun W3WGoogleMapDrawer(
     //Draw the selected address
     state.selectedAddress?.let { W3WGoogleMapDrawSelectedAddress(mapConfig.gridLineConfig.zoomSwitchLevel, it) }
 }
+
 
 @Composable
 @GoogleMapComposable
