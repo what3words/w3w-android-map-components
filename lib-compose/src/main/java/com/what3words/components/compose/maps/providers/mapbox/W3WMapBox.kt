@@ -22,6 +22,18 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 
+/**
+ * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
+ *
+ * @param modifier Modifier for styling and layout of the map view.
+ * @param layoutConfig Configuration for the map's layout, such as padding and content alignment.
+ * @param mapConfig Configuration for the map's appearance, such as map type and zoom controls.
+ * @param state The [W3WMapState] object that holds the state of the map.
+ * @param content Optional composable content to be displayed on the map, such as markers or overlays.
+ * @param onMapClicked Callback invoked when the user clicks on the map.
+ * @param onCameraUpdated Callback invoked when the camera position is updated.
+ *
+ */
 @Composable
 fun W3WMapBox(
     modifier: Modifier,

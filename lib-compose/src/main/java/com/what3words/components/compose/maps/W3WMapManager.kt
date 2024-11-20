@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
  * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
  *
- * @property state A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
+ * @property mapState A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
@@ -64,12 +64,12 @@ class W3WMapManager(
 ) {
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
-    private val _state: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
-    val state: StateFlow<W3WMapState> = _state.asStateFlow()
+    private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
+    val mapState: StateFlow<W3WMapState> = _mapState.asStateFlow()
 
     init {
         if (mapProvider == MapProvider.MAPBOX) {
-            _state.update {
+            _mapState.update {
                 it.copy(
                     cameraState = W3WMapboxCameraState(
                         MapViewportState(
@@ -88,24 +88,13 @@ class W3WMapManager(
                 )
             }
         } else if (mapProvider == MapProvider.GOOGLE_MAP) {
-            _state.update {
+            _mapState.update {
                 it.copy(
                     cameraState = W3WGoogleCameraState(
                         CameraPositionState(
                             position = CAMERA_POSITION_DEFAULT.toGoogleCameraPosition()
                         )
                     )
-                )
-            }
-        }
-    }
-
-    fun updateCameraState(newCameraState: W3WCameraState<*>) {
-        CoroutineScope(Dispatchers.IO).launch {
-            _state.update {
-                it.copy(
-                    cameraState = newCameraState,
-                    gridLines = calculateGridPolylines(newCameraState)
                 )
             }
         }
@@ -122,11 +111,11 @@ class W3WMapManager(
     }
 
     fun isDarkMode(): Boolean {
-        return state.value.isDarkMode
+        return mapState.value.isDarkMode
     }
 
     fun setDarkMode(darkMode: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isDarkMode = darkMode
             )
@@ -136,11 +125,11 @@ class W3WMapManager(
 
     //region Map Ui Settings
     fun getMapType(): W3WMapType {
-        return state.value.mapType
+        return mapState.value.mapType
     }
 
     fun setMapType(mapType: W3WMapType) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 mapType = mapType
             )
@@ -148,7 +137,7 @@ class W3WMapManager(
     }
 
     fun setMapGesturesEnabled(enabled: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isMapGestureEnable = enabled
             )
@@ -158,7 +147,7 @@ class W3WMapManager(
     @SuppressLint("MissingPermission")
     @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
     fun setMyLocationEnabled(enabled: Boolean) {
-        _state.update {
+        _mapState.update {
             it.copy(
                 isMyLocationEnabled = enabled
             )
@@ -173,21 +162,32 @@ class W3WMapManager(
 
     // region Camera control
     fun orientCamera() {
-        state.value.cameraState?.orientCamera()
+        mapState.value.cameraState?.orientCamera()
     }
 
     fun moveToPosition(coordinates: W3WCoordinates) {
-        state.value.cameraState?.moveToPosition(coordinates, true)
+        mapState.value.cameraState?.moveToPosition(coordinates, true)
+    }
+
+    fun updateCameraState(newCameraState: W3WCameraState<*>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            _mapState.update {
+                it.copy(
+                    cameraState = newCameraState,
+                    gridLines = calculateGridPolylines(newCameraState)
+                )
+            }
+        }
     }
     //endregion
 
-    //region Square
+    //region Selected Address
     fun getSelectedMarker(): W3WAddress? {
-        return state.value.selectedAddress
+        return mapState.value.selectedAddress
     }
 
     fun unselect() {
-        _state.update {
+        _mapState.update {
             it.copy(
                 selectedAddress = null
             )
@@ -196,7 +196,7 @@ class W3WMapManager(
 
     //endregion
 
-    //region Marker
+    //region Markers
     fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
@@ -208,7 +208,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addOrUpdateMarker(
+                    _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
@@ -242,7 +242,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.addOrUpdateMarker(
+                    _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(address = c23wa.value, color = markerColor)
                     )
                     onSuccess?.accept(c23wa.value)
@@ -265,7 +265,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _state.value = state.value.copy(
+                    _mapState.value = mapState.value.copy(
                         selectedAddress = c23wa.value
                     )
                     onSuccess?.accept(c23wa.value)

@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
 
