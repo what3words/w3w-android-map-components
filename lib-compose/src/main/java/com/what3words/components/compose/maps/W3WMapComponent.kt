@@ -16,6 +16,7 @@ import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
+import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.common.W3WError
@@ -50,6 +51,7 @@ fun W3WMapComponent(
 ) {
 
     val mapState by mapManager.mapState.collectAsState()
+    val buttonState by mapManager.buttonState.collectAsState()
 
     W3WMapContent(
         modifier = modifier,
@@ -58,6 +60,7 @@ fun W3WMapComponent(
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
+        buttonState = buttonState,
         onMapTypeClicked = {
             mapManager.setMapType(it)
             mapManager.orientCamera()
@@ -101,6 +104,7 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
+    buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
@@ -116,6 +120,7 @@ fun W3WMapComponent(
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
+        buttonState = buttonState,
         onMapClicked = {
             onMapClicked?.invoke(it)
         },
@@ -155,6 +160,7 @@ internal fun W3WMapContent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
+    buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit),
@@ -192,7 +198,11 @@ internal fun W3WMapContent(
                     .align(Alignment.BottomEnd)
                     .padding(layoutConfig.contentPadding),
                 onMyLocationClicked = onMyLocationClicked,
+                mapConfig = mapConfig,
                 onMapTypeClicked = onMapTypeClicked,
+                isLocationEnabled = mapState.isMyLocationEnabled,
+                accuracyDistance = buttonState.accuracyDistance,
+                isLocationActive = buttonState.isLocationActive,
             )
         }
     }
