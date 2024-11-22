@@ -20,6 +20,9 @@ import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.launch
 
 /**
  * A composable function that displays a What3Words (W3W) map.
@@ -311,20 +314,21 @@ private fun fetchCurrentLocation(
     mapManager: W3WMapManager,
     onError: ((W3WError) -> Unit)? = null
 ) {
-    // Fetch location
-    locationSource?.fetchLocation(
-        onLocationFetched = { location ->
-            // Update camera state
-            mapManager.moveToPosition(
-                coordinates = W3WCoordinates(location.latitude, location.longitude),
-                animate = true
-            )
-            //TODO: Update button state
-        },
-        onError = { error ->
-            onError?.invoke(W3WError("Location fetch failed: ${error.message}"))
+    locationSource?.let {
+        CoroutineScope(IO).launch {
+            try {
+                val location = it.fetchLocation()
+                // Update camera state
+                mapManager.moveToPosition(
+                    coordinates = W3WCoordinates(location.latitude, location.longitude),
+                    animate = true
+                )
+                //TODO: Update button state
+            } catch (e: Exception) {
+                onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
+            }
         }
-    )
+    }
 }
 
 
