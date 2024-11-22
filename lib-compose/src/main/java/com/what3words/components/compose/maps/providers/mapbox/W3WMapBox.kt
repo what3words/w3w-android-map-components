@@ -123,6 +123,10 @@ fun W3WMapBox(
         modifier = modifier,
         mapState = mapState,
         mapViewportState = mapViewportState,
+        onMapClickListener = {
+            onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))
+            true
+        },
         style = {
             GenericStyle(
                 style = mapStyle,

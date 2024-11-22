@@ -81,6 +81,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    implementation(libs.glide)
+
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.compose.material3)

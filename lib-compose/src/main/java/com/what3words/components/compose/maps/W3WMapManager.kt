@@ -189,7 +189,7 @@ class W3WMapManager(
 
     //region Selected Address
     fun getSelectedMarker(): W3WAddress? {
-        return mapState.value.selectedAddress
+        return mapState.value.selectedAddress?.address
     }
 
     fun unselect() {
@@ -272,7 +272,7 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _mapState.value = mapState.value.copy(
-                        selectedAddress = c23wa.value
+                        selectedAddress = W3WMarker(address = c23wa.value, color = MAKER_COLOR_DEFAULT)
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -324,7 +324,6 @@ class W3WMapManager(
     companion object {
         val CAMERA_POSITION_DEFAULT =
             W3WCameraPosition(W3WCoordinates(51.521251, -0.203586), 19f, 0f, 0f)
-        val MAKER_COLOR_DEFAULT =
-            W3WMarkerColor(background = Color.Red, slashesColor = Color.Yellow)
+        val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.Yellow)
     }
 }
