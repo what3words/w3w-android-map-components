@@ -44,6 +44,18 @@ const val METER = "m"
 const val FEET = "ft"
 const val VISIBLE_TIME = 2000L
 
+/**
+ * A composable function to display a "Find My Location" button.
+ *
+ * @param modifier The modifier for the button.
+ * @param accuracyDistance The accuracy of the current location in meters.
+ * @param isLocationEnabled Whether the location permission is enabled or not.
+ * @param isLocationActive Whether my location is active or not.
+ * @param unitMetrics The unit of accuracy distance, default is "m".
+ * @param accuracyMessage The message to display when the accuracy is not good enough, default is "GPS Accuracy (${accuracyDistance}$unitMetrics)".
+ * @param locationButtonConfig The configuration for the button, default is [W3WMapButtonsDefault.defaultLocationButtonConfig].
+ * @param onMyLocationClicked The callback when the button is clicked.
+ */
 @Composable
 fun W3WFindMyLocationButton(
     modifier: Modifier = Modifier,
@@ -210,36 +222,6 @@ private fun A4() {
 @Preview
 @Composable
 private fun A5() {
-    W3WTheme {
-        W3WFindMyLocationButton(
-            modifier = Modifier,
-            onMyLocationClicked = {},
-            accuracyDistance = 70,
-            unitMetrics = METER,
-            isLocationEnabled = true,
-            isLocationActive = true,
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun A6() {
-    W3WTheme {
-        W3WFindMyLocationButton(
-            modifier = Modifier,
-            onMyLocationClicked = {},
-            accuracyDistance = 120,
-            unitMetrics = METER,
-            isLocationEnabled = true,
-            isLocationActive = true,
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun A7() {
     W3WTheme {
         W3WFindMyLocationButton(
             modifier = Modifier,

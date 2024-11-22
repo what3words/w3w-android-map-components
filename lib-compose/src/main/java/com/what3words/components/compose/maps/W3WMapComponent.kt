@@ -91,10 +91,12 @@ fun W3WMapComponent(
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the map type is clicked.
  * @param onMapClicked Callback invoked when the map is clicked.
+ * @param onMyLocationClicked Callback invoked when the my location button is clicked.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs.
  */
@@ -147,9 +149,11 @@ fun W3WMapComponent(
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the user clicks on the map type button.
+ * @param onMyLocationClicked Callback invoked when the user clicks on the my location button.
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
