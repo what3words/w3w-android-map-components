@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.buttons.findmylocation
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
