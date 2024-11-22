@@ -165,16 +165,17 @@ class W3WMapManager(
         mapState.value.cameraState?.orientCamera()
     }
 
-    fun moveToPosition(coordinates: W3WCoordinates) {
-        mapState.value.cameraState?.moveToPosition(coordinates, true)
+    fun moveToPosition(coordinates: W3WCoordinates, animate: Boolean) {
+        mapState.value.cameraState?.moveToPosition(coordinates, animate)
     }
 
     fun updateCameraState(newCameraState: W3WCameraState<*>) {
         CoroutineScope(Dispatchers.IO).launch {
+            val newGridLine = calculateGridPolylines(newCameraState)
             _mapState.update {
                 it.copy(
                     cameraState = newCameraState,
-                    gridLines = calculateGridPolylines(newCameraState)
+                    gridLines = newGridLine
                 )
             }
         }
@@ -304,6 +305,7 @@ class W3WMapManager(
     companion object {
         val CAMERA_POSITION_DEFAULT =
             W3WCameraPosition(W3WCoordinates(51.521251, -0.203586), 19f, 0f, 0f)
-        val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slashesColor = Color.Yellow)
+        val MAKER_COLOR_DEFAULT =
+            W3WMarkerColor(background = Color.Red, slashesColor = Color.Yellow)
     }
 }

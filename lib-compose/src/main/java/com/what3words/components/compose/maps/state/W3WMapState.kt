@@ -41,7 +41,7 @@ data class W3WMapState(
     val listMakers: Map<String, List<W3WMarker>> = emptyMap(),
 
     // Control camera position of map
-    val cameraState: W3WCameraState<*>? = null,
+    internal val cameraState: W3WCameraState<*>? = null,
 
     // data class handling draw grid lines on map
     internal val gridLines: W3WGridLines = W3WGridLines(),
