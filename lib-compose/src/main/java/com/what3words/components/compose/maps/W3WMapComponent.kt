@@ -54,7 +54,6 @@ fun W3WMapComponent(
         mapConfig = mapConfig,
         mapProvider = mapManager.mapProvider,
         content = content,
-        locationSource = locationSource,
         mapState = mapState,
         onMapTypeClicked = {
             mapManager.setMapType(it)
@@ -65,6 +64,13 @@ fun W3WMapComponent(
         },
         onCameraUpdated = {
             mapManager.updateCameraState(it)
+        },
+        onMyLocationClicked = {
+            fetchCurrentLocation(
+                locationSource = locationSource,
+                mapManager = mapManager,
+                onError = onError
+            )
         },
         onError = onError
     )
@@ -79,7 +85,6 @@ fun W3WMapComponent(
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
- * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the map type is clicked.
@@ -93,10 +98,10 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
-    locationSource: W3WLocationSource? = null,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
+    onMyLocationClicked: (() -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
@@ -108,12 +113,14 @@ fun W3WMapComponent(
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
-        locationSource = locationSource,
         onMapClicked = {
             onMapClicked?.invoke(it)
         },
         onMapTypeClicked = {
             onMapTypeClicked?.invoke(it)
+        },
+        onMyLocationClicked = {
+            onMyLocationClicked?.invoke()
         },
         onCameraUpdated = {
             onCameraUpdated.invoke(it)
@@ -133,7 +140,6 @@ fun W3WMapComponent(
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
- * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the user clicks on the map type button.
  * @param onMapClicked Callback invoked when the user clicks on the map.
@@ -147,9 +153,9 @@ internal fun W3WMapContent(
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
     mapProvider: MapProvider,
-    locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit),
+    onMyLocationClicked: () -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
@@ -160,11 +166,7 @@ internal fun W3WMapContent(
         // Fetch current location when launch
         LaunchedEffect(Unit) {
             if (mapState.isMyLocationEnabled) {
-                fetchCurrentLocation(
-                    locationSource = locationSource,
-                    mapState = mapState,
-                    onError = onError
-                )
+                onMyLocationClicked.invoke()
             }
         }
 
@@ -186,13 +188,7 @@ internal fun W3WMapContent(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(layoutConfig.contentPadding),
-                onMyLocationClicked = {
-                    fetchCurrentLocation(
-                        locationSource = locationSource,
-                        mapState = mapState,
-                        onError = onError
-                    )
-                },
+                onMyLocationClicked = onMyLocationClicked,
                 onMapTypeClicked = onMapTypeClicked,
             )
         }
@@ -307,23 +303,22 @@ internal fun W3WMapView(
  * This function is responsible for update camera position and button state based on current location
  *
  * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
- * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
  */
-fun fetchCurrentLocation(
+private fun fetchCurrentLocation(
     locationSource: W3WLocationSource?,
-    mapState: W3WMapState,
+    mapManager: W3WMapManager,
     onError: ((W3WError) -> Unit)? = null
 ) {
     // Fetch location
     locationSource?.fetchLocation(
         onLocationFetched = { location ->
             // Update camera state
-            mapState.cameraState?.moveToPosition(
+            mapManager.moveToPosition(
                 coordinates = W3WCoordinates(location.latitude, location.longitude),
                 animate = true
             )
-
             //TODO: Update button state
         },
         onError = { error ->
