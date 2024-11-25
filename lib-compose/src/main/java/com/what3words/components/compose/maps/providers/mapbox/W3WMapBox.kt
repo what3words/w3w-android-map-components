@@ -6,8 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.mapbox.maps.CameraState
 import com.mapbox.maps.MapView
+import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
@@ -15,12 +18,20 @@ import com.mapbox.maps.extension.compose.style.GenericStyle
 import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.toCameraOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlin.math.abs
 
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
@@ -50,8 +61,32 @@ fun W3WMapBox(
 
     val mapViewportState = (state.cameraState as W3WMapboxCameraState).cameraState
 
+    var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
+
     LaunchedEffect(mapViewportState) {
-        onCameraUpdated(W3WMapboxCameraState(mapViewportState))
+        snapshotFlow { mapViewportState.cameraState }
+            .conflate()
+            .filterNotNull()
+            .onEach { currentCameraState ->
+                val significantChange =
+                    isSignificantChange(currentCameraState, lastProcessedCameraState)
+                if (significantChange) {
+                    delay(300)
+                } else {
+                    delay(500)
+                }
+                mapView?.mapboxMap?.let { mapboxMap ->
+                    updateGridBound(
+                        mapboxMap,
+                        onGridBoundUpdate = { newBound ->
+                            lastProcessedCameraState = currentCameraState
+                            val newCameraState = W3WMapboxCameraState(mapViewportState)
+                            newCameraState.gridBound = newBound
+                            onCameraUpdated(newCameraState)
+                        }
+                    )
+                }
+            }.launchIn(this)
     }
 
 
@@ -104,4 +139,47 @@ fun W3WMapBox(
         W3WMapBoxDrawer(state, mapConfig)
         content?.invoke()
     }
+}
+
+private fun isSignificantChange(
+    newCameraState: CameraState,
+    lastCameraState: CameraState?
+): Boolean {
+    if (lastCameraState == null) {
+        return true
+    }
+
+    val latDiff = abs(newCameraState.center.latitude() - lastCameraState.center.latitude())
+    val lngDiff = abs(newCameraState.center.longitude() - lastCameraState.center.longitude())
+    val zoomDiff = abs(newCameraState.zoom - lastCameraState.zoom)
+
+    return latDiff > 0.01 || lngDiff > 0.01 || zoomDiff > 0.5
+}
+
+private fun updateGridBound(
+    mapboxMap: MapboxMap,
+    onGridBoundUpdate: (W3WRectangle) -> Unit,
+    scale: Float = 6f
+) {
+    val bounds = mapboxMap
+        .coordinateBoundsForCamera(mapboxMap.cameraState.toCameraOptions())
+    val center = bounds.center()
+    val finalNELat =
+        ((scale * (bounds.northeast.latitude() - center.latitude()) + center.latitude()))
+    val finalNELng =
+        ((scale * (bounds.northeast.longitude() - center.longitude()) + center.longitude()))
+    val finalSWLat =
+        ((scale * (bounds.southwest.latitude() - center.latitude()) + center.latitude()))
+    val finalSWLng =
+        ((scale * (bounds.southwest.longitude() - center.longitude()) + center.longitude()))
+
+    val box = W3WRectangle(
+        W3WCoordinates(
+            finalSWLat,
+            finalSWLng
+        ),
+        W3WCoordinates(finalNELat, finalNELng)
+    )
+
+    onGridBoundUpdate.invoke(box)
 }
