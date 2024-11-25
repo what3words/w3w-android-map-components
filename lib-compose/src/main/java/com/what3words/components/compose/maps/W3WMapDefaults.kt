@@ -3,6 +3,7 @@ package com.what3words.components.compose.maps
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
 
@@ -20,8 +21,9 @@ object W3WMapDefaults {
 
     data class GridLinesConfig(
         val isGridEnabled: Boolean = true,
-        val gridColor: Color? = null,
-        val zoomSwitchLevel: Float = 19f
+        val gridColor: Color = Color.LightGray,
+        val zoomSwitchLevel: Float = 19f,
+        val gridLineWidth: Dp = 1.dp
     )
 
     data class LayoutConfig(
@@ -51,9 +53,9 @@ object W3WMapDefaults {
         )
     }
 
-    fun defaultGridLinesConfig(
+    private fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
-        gridColor: Color? = null,
+        gridColor: Color = Color.LightGray,
         zoomSwitchLevel: Float = 19f
     ): GridLinesConfig {
         return GridLinesConfig(

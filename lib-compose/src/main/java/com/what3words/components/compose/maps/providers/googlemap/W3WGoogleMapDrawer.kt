@@ -3,10 +3,7 @@ package com.what3words.components.compose.maps.providers.googlemap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -44,7 +41,7 @@ fun W3WGoogleMapDrawer(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
                 zoomLevel = it.getZoomLevel(),
-                zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel
+                gridLinesConfig = mapConfig.gridLineConfig
             )
         }
     }
@@ -53,7 +50,12 @@ fun W3WGoogleMapDrawer(
     W3WGoogleMapDrawMarkers(mapConfig.gridLineConfig.zoomSwitchLevel, state.listMakers)
 
     //Draw the selected address
-    state.selectedAddress?.let { W3WGoogleMapDrawSelectedAddress(mapConfig.gridLineConfig.zoomSwitchLevel, it) }
+    state.selectedAddress?.let {
+        W3WGoogleMapDrawSelectedAddress(
+            mapConfig.gridLineConfig.zoomSwitchLevel,
+            it
+        )
+    }
 }
 
 
@@ -62,14 +64,33 @@ fun W3WGoogleMapDrawer(
 fun W3WGoogleMapDrawGridLines(
     verticalLines: List<W3WCoordinates>,
     horizontalLines: List<W3WCoordinates>,
-    zoomSwitchLevel: Float,
-    zoomLevel: Float
+    zoomLevel: Float,
+    gridLinesConfig: W3WMapDefaults.GridLinesConfig,
 ) {
-    W3WGoogleMapGrid(
-        verticalLines = verticalLines,
-        horizontalLines = horizontalLines,
-        zoomLevel = zoomLevel,
-        zoomSwitchLevel = zoomSwitchLevel
+    if (zoomLevel < gridLinesConfig.zoomSwitchLevel) {
+        return
+    }
+
+    val horizontalPolylines = horizontalLines.map { coordinate ->
+        LatLng(coordinate.lat, coordinate.lng)
+    }
+
+    val verticalPolylines = verticalLines.map { coordinate ->
+        LatLng(coordinate.lat, coordinate.lng)
+    }
+
+    Polyline(
+        points = horizontalPolylines,
+        color = gridLinesConfig.gridColor,
+        width = gridLinesConfig.gridLineWidth.value,
+        clickable = false
+    )
+
+    Polyline(
+        points = verticalPolylines,
+        color = gridLinesConfig.gridColor,
+        width = gridLinesConfig.gridLineWidth.value,
+        clickable = false
     )
 }
 
@@ -128,44 +149,5 @@ fun W3WGoogleMapDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<W3WMa
                 snippet = marker.snippet,
             )
         }
-    }
-}
-
-@Composable
-@GoogleMapComposable
-private fun W3WGoogleMapGrid(
-    verticalLines: List<W3WCoordinates>,
-    horizontalLines: List<W3WCoordinates>,
-    zoomSwitchLevel: Float,
-    zoomLevel: Float
-) {
-
-    val horizontalPolylines = horizontalLines.map { coordinate ->
-        LatLng(coordinate.lat, coordinate.lng)
-    }
-
-    val verticalPolylines = verticalLines.map { coordinate ->
-        LatLng(coordinate.lat, coordinate.lng)
-    }
-
-    Polyline(
-        points = horizontalPolylines,
-        color = Color.LightGray,
-        width = getGridBorderSizeBasedOnZoomLevel(zoomLevel, zoomSwitchLevel).value,
-        clickable = false
-    )
-
-    Polyline(
-        points = verticalPolylines,
-        color = Color.LightGray,
-        width = getGridBorderSizeBasedOnZoomLevel(zoomLevel, zoomSwitchLevel).value,
-        clickable = false
-    )
-}
-
-private fun getGridBorderSizeBasedOnZoomLevel(zoomLevel: Float, zoomSwitchLevel: Float): Dp {
-    return when {
-        zoomLevel < zoomSwitchLevel -> 0.dp
-        else -> 1.dp
     }
 }
