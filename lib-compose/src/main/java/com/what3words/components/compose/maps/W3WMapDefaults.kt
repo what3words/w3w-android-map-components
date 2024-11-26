@@ -101,7 +101,7 @@ object W3WMapDefaults {
     private fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
         gridColor: Color = Color.LightGray,
-        zoomSwitchLevel: Float = 19f,
+        zoomSwitchLevel: Float = 18f,
         gridLineWidth: Dp = 1.dp,
         gridScale: Float = 6f
     ): GridLinesConfig {
@@ -114,7 +114,7 @@ object W3WMapDefaults {
         )
     }
 
-    fun defaultButtonConfig(
+    private fun defaultButtonConfig(
         isMapSwitchButtonEnabled: Boolean = true,
         isMyLocationButtonEnable: Boolean = true,
         isRecallButtonEnable: Boolean = false
