@@ -15,7 +15,9 @@ object W3WMapDefaults {
     data class MapConfig(
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         // Grid view
-        val gridLineConfig: GridLinesConfig
+        val gridLineConfig: GridLinesConfig,
+        // Buttons
+        val buttonConfig: ButtonConfig
     )
 
     data class GridLinesConfig(
@@ -32,6 +34,12 @@ object W3WMapDefaults {
         val contentPadding: PaddingValues
     )
 
+    data class ButtonConfig(
+        val isMapSwitchButtonEnabled: Boolean,
+        val isMyLocationButtonEnabled: Boolean,
+        val isRecallButtonEnabled: Boolean,
+    )
+
     @Composable
     fun defaultLayoutConfig(
         contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp)
@@ -43,11 +51,13 @@ object W3WMapDefaults {
 
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
-        gridLineConfig: GridLinesConfig = defaultGridLinesConfig()
+        gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
+        buttonConfig: ButtonConfig = defaultButtonConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
-            gridLineConfig = gridLineConfig
+            gridLineConfig = gridLineConfig,
+            buttonConfig = buttonConfig
         )
     }
 
@@ -60,6 +70,18 @@ object W3WMapDefaults {
             isGridEnabled = isGridEnabled,
             gridColor = gridColor,
             zoomSwitchLevel = zoomSwitchLevel
+        )
+    }
+
+    fun defaultButtonConfig(
+        isMapSwitchButtonEnabled: Boolean = true,
+        isMyLocationButtonEnable: Boolean = true,
+        isRecallButtonEnable: Boolean = false
+    ): ButtonConfig {
+        return ButtonConfig(
+            isMapSwitchButtonEnabled = isMapSwitchButtonEnabled,
+            isMyLocationButtonEnabled = isMyLocationButtonEnable,
+            isRecallButtonEnabled = isRecallButtonEnable
         )
     }
 

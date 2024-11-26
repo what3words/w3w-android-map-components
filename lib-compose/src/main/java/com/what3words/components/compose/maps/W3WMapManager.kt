@@ -19,6 +19,7 @@ import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WZoomOption
+import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.addOrUpdateMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
@@ -60,12 +61,16 @@ class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     val mapProvider: MapProvider,
-    mapState: W3WMapState = W3WMapState()
+    mapState: W3WMapState = W3WMapState(),
+    buttonState: W3WButtonsState = W3WButtonsState(),
 ) {
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
     private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
     val mapState: StateFlow<W3WMapState> = _mapState.asStateFlow()
+
+    private val _buttonState: MutableStateFlow<W3WButtonsState> = MutableStateFlow(buttonState)
+    val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
 
     init {
         if (mapProvider == MapProvider.MAPBOX) {
@@ -299,6 +304,20 @@ class W3WMapManager(
                     }
                 }
             } ?: W3WGridLines()
+        }
+    }
+
+    // Button state region
+
+    fun updateAccuracyDistance(distance: Float) {
+        _buttonState.update {
+            it.copy(accuracyDistance = distance)
+        }
+    }
+
+    fun updateIsLocationActive(isActive: Boolean) {
+        _buttonState.update {
+            it.copy(isLocationActive = isActive)
         }
     }
 

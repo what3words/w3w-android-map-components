@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps.buttons.mapswitch
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.IconButton
@@ -19,7 +20,7 @@ import com.what3words.map.components.compose.R
 
 /**
  * A button component for switching between different map types.
- * Only supports [W3WMapState.MapType.NORMAL] and [W3WMapState.MapType.SATELLITE].
+ * Only supports [W3WMapType.NORMAL] and [W3WMapType.SATELLITE].
  *
  * @param modifier The modifier for the button.
  * @param w3wMapType The current map type.
@@ -34,6 +35,7 @@ fun W3WMapSwitchButton(
     var mapType by remember { mutableStateOf(w3wMapType) }
     IconButton(
         modifier = modifier
+            .padding(4.dp)
             .shadow(elevation = 3.dp, shape = CircleShape)
             .size(50.dp),
         onClick = {

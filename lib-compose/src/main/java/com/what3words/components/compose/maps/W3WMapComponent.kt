@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -16,13 +17,16 @@ import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
+import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * A composable function that displays a What3Words (W3W) map.
@@ -50,6 +54,8 @@ fun W3WMapComponent(
 ) {
 
     val mapState by mapManager.mapState.collectAsState()
+    val buttonState by mapManager.buttonState.collectAsState()
+    val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
     W3WMapContent(
         modifier = modifier,
@@ -58,6 +64,7 @@ fun W3WMapComponent(
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
+        buttonState = buttonState,
         onMapTypeClicked = {
             mapManager.setMapType(it)
             mapManager.orientCamera()
@@ -72,7 +79,8 @@ fun W3WMapComponent(
             fetchCurrentLocation(
                 locationSource = locationSource,
                 mapManager = mapManager,
-                onError = onError
+                onError = onError,
+                coroutineScope = coroutineScope
             )
         },
         onError = onError
@@ -88,10 +96,12 @@ fun W3WMapComponent(
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the map type is clicked.
  * @param onMapClicked Callback invoked when the map is clicked.
+ * @param onMyLocationClicked Callback invoked when the my location button is clicked.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs.
  */
@@ -101,6 +111,7 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
+    buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
@@ -116,6 +127,7 @@ fun W3WMapComponent(
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
+        buttonState = buttonState,
         onMapClicked = {
             onMapClicked?.invoke(it)
         },
@@ -142,9 +154,11 @@ fun W3WMapComponent(
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
  * @param onMapTypeClicked Callback invoked when the user clicks on the map type button.
+ * @param onMyLocationClicked Callback invoked when the user clicks on the my location button.
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
@@ -155,6 +169,7 @@ internal fun W3WMapContent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState,
+    buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit),
@@ -192,7 +207,11 @@ internal fun W3WMapContent(
                     .align(Alignment.BottomEnd)
                     .padding(layoutConfig.contentPadding),
                 onMyLocationClicked = onMyLocationClicked,
+                mapConfig = mapConfig,
                 onMapTypeClicked = onMapTypeClicked,
+                isLocationEnabled = mapState.isMyLocationEnabled,
+                accuracyDistance = buttonState.accuracyDistance,
+                isLocationActive = buttonState.isLocationActive,
             )
         }
     }
@@ -312,20 +331,29 @@ internal fun W3WMapView(
 private fun fetchCurrentLocation(
     locationSource: W3WLocationSource?,
     mapManager: W3WMapManager,
+    coroutineScope: CoroutineScope,
     onError: ((W3WError) -> Unit)? = null
 ) {
     locationSource?.let {
-        CoroutineScope(IO).launch {
+        coroutineScope.launch {
             try {
                 val location = it.fetchLocation()
                 // Update camera state
-                mapManager.moveToPosition(
-                    coordinates = W3WCoordinates(location.latitude, location.longitude),
-                    animate = true
-                )
-                //TODO: Update button state
+                withContext(Main) {
+                    mapManager.moveToPosition(
+                        coordinates = W3WCoordinates(location.latitude, location.longitude),
+                        animate = true
+                    )
+                }
+
+                if (location.hasAccuracy()) {
+                    mapManager.updateAccuracyDistance(location.accuracy)
+                }
             } catch (e: Exception) {
                 onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
+            }
+            it.isActive.collect { isActive ->
+                mapManager.updateIsLocationActive(isActive)
             }
         }
     }
