@@ -337,9 +337,14 @@ private fun fetchCurrentLocation(
                     coordinates = W3WCoordinates(location.latitude, location.longitude),
                     animate = true
                 )
-                //TODO: Update button state
+                if (location.hasAccuracy()) {
+                    mapManager.updateAccuracyDistance(location.accuracy)
+                }
             } catch (e: Exception) {
                 onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
+            }
+            it.isActive.collect { isActive ->
+                mapManager.updateIsLocationActive(isActive)
             }
         }
     }
