@@ -91,7 +91,7 @@ fun W3WGoogleMap(
                     delay(500)
                 }
                 projection?.let {
-                    updateGridBound(projection) { newBound ->
+                    updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->
                         lastProcessedPosition = position
                         val newCameraState = W3WGoogleCameraState(cameraPositionState)
                         newCameraState.gridBound = newBound
@@ -129,10 +129,12 @@ private fun isSignificantChange(
 
 private suspend fun updateGridBound(
     projection: Projection,
+    gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     onGridBoundUpdate: (W3WRectangle) -> Unit
 ) {
     withContext(Dispatchers.IO) {
-        val lastScaledBounds = scaleBounds(projection.visibleRegion.latLngBounds, projection)
+        val lastScaledBounds =
+            scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
         val box = W3WRectangle(
             W3WCoordinates(
                 lastScaledBounds.southwest.latitude,
@@ -153,8 +155,9 @@ private suspend fun updateGridBound(
 private fun scaleBounds(
     bounds: LatLngBounds,
     projection: Projection,
-    scale: Float = 6f
+    gridLinesConfig: W3WMapDefaults.GridLinesConfig
 ): LatLngBounds {
+    val scale = gridLinesConfig.gridScale
     try {
         val center = bounds.center
         val centerPoint: Point = projection.toScreenLocation(center)

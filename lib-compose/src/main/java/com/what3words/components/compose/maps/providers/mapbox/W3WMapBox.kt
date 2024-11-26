@@ -78,6 +78,7 @@ fun W3WMapBox(
                 mapView?.mapboxMap?.let { mapboxMap ->
                     updateGridBound(
                         mapboxMap,
+                        mapConfig.gridLineConfig,
                         onGridBoundUpdate = { newBound ->
                             lastProcessedCameraState = currentCameraState
                             val newCameraState = W3WMapboxCameraState(mapViewportState)
@@ -158,9 +159,10 @@ private fun isSignificantChange(
 
 private fun updateGridBound(
     mapboxMap: MapboxMap,
+    gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     onGridBoundUpdate: (W3WRectangle) -> Unit,
-    scale: Float = 6f
 ) {
+    val scale = gridLinesConfig.gridScale
     val bounds = mapboxMap
         .coordinateBoundsForCamera(mapboxMap.cameraState.toCameraOptions())
     val center = bounds.center()
