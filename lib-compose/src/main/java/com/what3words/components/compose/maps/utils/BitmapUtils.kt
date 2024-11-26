@@ -29,7 +29,7 @@ fun getMarkerBitmap(
                     color = colorMarker.background.toArgb()
                 }
             ),
-            DrawPath(context.getString(R.string.path_marker_splash),
+            DrawPath(context.getString(R.string.path_marker_slashes),
                 Paint().apply {
                     color = colorMarker.slash.toArgb()
                 }
@@ -63,7 +63,7 @@ fun getPinBitmap(
                     color = colorMarker.background.toArgb()
                 }
             ),
-            DrawPath(context.getString(R.string.path_pin_splash),
+            DrawPath(context.getString(R.string.path_pin_slashes),
                 Paint().apply {
                     color = colorMarker.slash.toArgb()
                 }
