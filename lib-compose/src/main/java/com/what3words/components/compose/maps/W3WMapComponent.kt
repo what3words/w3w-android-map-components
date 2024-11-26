@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -22,8 +23,10 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * A composable function that displays a What3Words (W3W) map.
@@ -52,6 +55,7 @@ fun W3WMapComponent(
 
     val mapState by mapManager.mapState.collectAsState()
     val buttonState by mapManager.buttonState.collectAsState()
+    val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
     W3WMapContent(
         modifier = modifier,
@@ -75,7 +79,8 @@ fun W3WMapComponent(
             fetchCurrentLocation(
                 locationSource = locationSource,
                 mapManager = mapManager,
-                onError = onError
+                onError = onError,
+                coroutineScope = coroutineScope
             )
         },
         onError = onError
@@ -326,17 +331,21 @@ internal fun W3WMapView(
 private fun fetchCurrentLocation(
     locationSource: W3WLocationSource?,
     mapManager: W3WMapManager,
+    coroutineScope: CoroutineScope,
     onError: ((W3WError) -> Unit)? = null
 ) {
     locationSource?.let {
-        CoroutineScope(IO).launch {
+        coroutineScope.launch {
             try {
                 val location = it.fetchLocation()
                 // Update camera state
-                mapManager.moveToPosition(
-                    coordinates = W3WCoordinates(location.latitude, location.longitude),
-                    animate = true
-                )
+                withContext(Main) {
+                    mapManager.moveToPosition(
+                        coordinates = W3WCoordinates(location.latitude, location.longitude),
+                        animate = true
+                    )
+                }
+
                 if (location.hasAccuracy()) {
                     mapManager.updateAccuracyDistance(location.accuracy)
                 }
