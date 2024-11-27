@@ -2,14 +2,15 @@ package com.what3words.components.compose.maps.providers.mapbox
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 
 
@@ -67,15 +68,30 @@ fun W3WMapBoxDrawGridLines(
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawSelectedAddress(zoomLevel: Float, address: W3WAddress) {
+fun W3WMapBoxDrawSelectedAddress(zoomLevel: Float, selectedMarker: W3WMarker) {
     //TODO: Draw select for zoom in: grid, square
 
     //TODO: Draw select for zoom out: pin (maker)
+    val context = LocalContext.current
+
+    selectedMarker.address.center?.let { coordinate ->
+//        val marker = remember {
+//            getMarkerBitmap(context, selectedMarker.color)?.let { bitMap ->
+//                IconImage(
+//                    bitMap
+//                )
+//            }
+//        }
+//        PointAnnotation(point = Point.fromLngLat(coordinate.lng, coordinate.lat)) {
+//            iconImage = marker
+//        }
+    }
+
 }
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, List<W3WMarker>>) {
+fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, W3WListMarker>) {
     //TODO: Draw select for zoom in: filled square
 
     //TODO: Draw select for zoom out: circle
