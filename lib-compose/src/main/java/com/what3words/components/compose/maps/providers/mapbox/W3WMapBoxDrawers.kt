@@ -1,18 +1,34 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapboxMapComposable
+import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.geometry.W3WCoordinates
 
 
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
-    //Draw the grid lines by zoom in state
-    W3WMapBoxDrawGridLines(mapConfig.gridLineConfig)
+
+    if (mapConfig.gridLineConfig.isGridEnabled) {
+        state.cameraState?.let {
+            if (it.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel) {
+                W3WMapBoxDrawGridLines(
+                    verticalLines = state.gridLines.verticalLines,
+                    horizontalLines = state.gridLines.horizontalLines,
+                    gridColor = mapConfig.gridLineConfig.gridColor,
+                    gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
+                )
+            }
+        }
+    }
 
     //Draw the markers
     W3WMapBoxDrawMarkers(mapConfig.gridLineConfig.zoomSwitchLevel, state.listMakers)
@@ -28,8 +44,25 @@ fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawGridLines(gridLineConfig: W3WMapDefaults.GridLinesConfig) {
-    //TODO: Draw visible grid lines based on zoomLevel
+fun W3WMapBoxDrawGridLines(
+    verticalLines: List<W3WCoordinates>,
+    horizontalLines: List<W3WCoordinates>,
+    gridColor: Color,
+    gridLineWidth: Dp,
+) {
+    PolylineAnnotation(
+        points = verticalLines.map { Point.fromLngLat(it.lng, it.lat) }
+    ) {
+        lineColor = gridColor
+        lineWidth = gridLineWidth.value.toDouble()
+    }
+
+    PolylineAnnotation(
+        points = horizontalLines.map { Point.fromLngLat(it.lng, it.lat) }
+    ) {
+        lineColor = gridColor
+        lineWidth = gridLineWidth.value.toDouble()
+    }
 }
 
 @Composable
