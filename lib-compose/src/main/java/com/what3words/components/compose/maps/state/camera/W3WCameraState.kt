@@ -46,4 +46,11 @@ interface W3WCameraState<T> {
      * @param animate Whether to animate the camera movement.
      */
     fun setCameraPosition(cameraPosition: W3WCameraPosition, animate: Boolean)
+
+    /**
+     * Moves the camera to the current location.
+     *
+     * @param coordinates The W3W coordinates to move the camera to.
+     */
+     fun moveToMyLocation(coordinates: W3WCoordinates)
 }

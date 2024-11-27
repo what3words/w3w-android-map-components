@@ -14,6 +14,7 @@ import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
@@ -50,8 +51,8 @@ fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawGridLines(
-    verticalLines: List<W3WCoordinates>,
-    horizontalLines: List<W3WCoordinates>,
+    verticalLines: List<W3WLatLng>,
+    horizontalLines: List<W3WLatLng>,
     gridColor: Color,
     gridLineWidth: Dp,
 ) {
@@ -103,7 +104,7 @@ private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
     val density = LocalDensity.current.density
 
     val marker = rememberIconImage(
-        key = selectedMarker.address.words,
+        key = selectedMarker.words,
         painter = BitmapPainter(
             getMarkerBitmap(context, density, selectedMarker.color!!).asImageBitmap()
         )
@@ -111,8 +112,8 @@ private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
 
     PointAnnotation(
         point = Point.fromLngLat(
-            selectedMarker.address.center!!.lng,
-            selectedMarker.address.center!!.lat
+            selectedMarker.latLng.lng,
+            selectedMarker.latLng.lat
         )
     ) {
         iconImage = marker
@@ -127,7 +128,7 @@ private fun DrawZoomInSelectedMarker(
     zoomSwitchLevel: Float
 ) {
     val context = LocalContext.current
-    selectedMarker.address.square?.let { square ->
+    selectedMarker.square?.let { square ->
         PolylineAnnotation(
             points = listOf(
                 Point.fromLngLat(square.southwest.lng, square.northeast.lat),

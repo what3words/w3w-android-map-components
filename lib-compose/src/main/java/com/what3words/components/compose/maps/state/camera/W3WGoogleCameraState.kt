@@ -16,6 +16,10 @@ import kotlinx.coroutines.launch
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
 
+    companion object{
+        const val MY_LOCATION_ZOOM = 21f
+    }
+
     override var gridBound: W3WRectangle? = null
 
     override fun orientCamera() {
@@ -46,6 +50,17 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
 
     override fun setCameraPosition(cameraPosition: W3WCameraPosition, animate: Boolean) {
         updateCameraPosition(cameraPosition.toGoogleCameraPosition(), animate)
+    }
+
+    override fun moveToMyLocation(coordinates: W3WCoordinates) {
+        updateCameraPosition(
+            CameraPosition(
+                LatLng(coordinates.lat, coordinates.lng),
+                MY_LOCATION_ZOOM,
+                cameraState.position.tilt,
+                cameraState.position.bearing
+            ), true
+        )
     }
 
     private fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {

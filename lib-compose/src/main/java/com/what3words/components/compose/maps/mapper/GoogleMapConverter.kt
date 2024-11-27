@@ -4,15 +4,11 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.MapType
 import com.what3words.components.compose.maps.models.W3WCameraPosition
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapType
-import com.what3words.core.types.geometry.W3WCoordinates
 
-fun W3WCoordinates.toGoogleLatLng(): LatLng {
+fun W3WLatLng.toGoogleLatLng(): LatLng {
     return LatLng(this.lat, this.lng)
-}
-
-fun LatLng.toW3WCoordinates(): W3WCoordinates {
-    return W3WCoordinates(this.latitude, this.longitude)
 }
 
 fun W3WMapType.toGoogleMapType(): MapType {
@@ -26,7 +22,7 @@ fun W3WMapType.toGoogleMapType(): MapType {
 
 fun W3WCameraPosition.toGoogleCameraPosition(): CameraPosition {
     return CameraPosition(
-        this.coordinates.toGoogleLatLng(),
+        this.latLng.toGoogleLatLng(),
         this.zoom,
         this.tilt,
         this.bearing

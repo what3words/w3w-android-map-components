@@ -17,6 +17,7 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
@@ -50,6 +51,7 @@ fun W3WGoogleMap(
     mapConfig: W3WMapDefaults.MapConfig,
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
+    onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
@@ -111,7 +113,7 @@ fun W3WGoogleMap(
             onMapClicked.invoke(W3WCoordinates(it.latitude, it.longitude))
         },
     ) {
-        W3WGoogleMapDrawer(state = state, mapConfig)
+        W3WGoogleMapDrawer(state = state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
 }

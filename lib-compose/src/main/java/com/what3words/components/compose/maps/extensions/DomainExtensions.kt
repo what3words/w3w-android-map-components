@@ -2,6 +2,8 @@ package com.what3words.components.compose.maps.extensions
 
 import com.google.maps.android.collections.PolylineManager
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
+import com.what3words.components.compose.maps.mapper.toW3WLatLong
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WLine
 import com.what3words.core.types.geometry.W3WRectangle
@@ -52,9 +54,9 @@ fun Long.toCoordinates(): W3WCoordinates {
  * |     |     |
  * 2-----3     6 ..
  */
-internal fun List<W3WLine>.computeVerticalLines(): List<W3WCoordinates> {
+internal fun List<W3WLine>.computeVerticalLines(): List<W3WLatLng> {
     val computedVerticalLines =
-        mutableListOf<W3WCoordinates>()
+        mutableListOf<W3WLatLng>()
 
     // all vertical lines
     val verticalLines = mutableListOf<W3WLine>()
@@ -64,11 +66,11 @@ internal fun List<W3WLine>.computeVerticalLines(): List<W3WCoordinates> {
     while (verticalLines.isNotEmpty()) {
         verticalLines.maxByOrNull { it.start.lat }?.let { topLeftGrid ->
             if (t % 2 == 0) {
-                computedVerticalLines.add(topLeftGrid.start)
-                computedVerticalLines.add(topLeftGrid.end)
+                computedVerticalLines.add(topLeftGrid.start.toW3WLatLong())
+                computedVerticalLines.add(topLeftGrid.end.toW3WLatLong())
             } else {
-                computedVerticalLines.add(topLeftGrid.end)
-                computedVerticalLines.add(topLeftGrid.start)
+                computedVerticalLines.add(topLeftGrid.end.toW3WLatLong())
+                computedVerticalLines.add(topLeftGrid.start.toW3WLatLong())
             }
             verticalLines.remove(topLeftGrid)
         }
@@ -92,9 +94,9 @@ internal fun List<W3WLine>.computeVerticalLines(): List<W3WCoordinates> {
  * |
  * E-----F
  */
-internal fun List<W3WLine>.computeHorizontalLines(): List<W3WCoordinates> {
+internal fun List<W3WLine>.computeHorizontalLines(): List<W3WLatLng> {
     val computedHorizontalLines =
-        mutableListOf<W3WCoordinates>()
+        mutableListOf<W3WLatLng>()
 
     // all horizontal lines
     val horizontalLines = mutableListOf<W3WLine>()
@@ -104,11 +106,11 @@ internal fun List<W3WLine>.computeHorizontalLines(): List<W3WCoordinates> {
     while (horizontalLines.isNotEmpty()) {
         horizontalLines.minByOrNull { it.start.lng }?.let { topLeftGrid ->
             if (t % 2 == 0) {
-                computedHorizontalLines.add(topLeftGrid.start)
-                computedHorizontalLines.add(topLeftGrid.end)
+                computedHorizontalLines.add(topLeftGrid.start.toW3WLatLong())
+                computedHorizontalLines.add(topLeftGrid.end.toW3WLatLong())
             } else {
-                computedHorizontalLines.add(topLeftGrid.end)
-                computedHorizontalLines.add(topLeftGrid.start)
+                computedHorizontalLines.add(topLeftGrid.end.toW3WLatLong())
+                computedHorizontalLines.add(topLeftGrid.start.toW3WLatLong())
             }
             horizontalLines.remove(topLeftGrid)
             t += 1

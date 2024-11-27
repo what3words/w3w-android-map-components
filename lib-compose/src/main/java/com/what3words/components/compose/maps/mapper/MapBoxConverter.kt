@@ -19,7 +19,7 @@ fun W3WCameraPosition.toMapBoxCameraOptions(): CameraOptions {
     return CameraOptions.Builder()
         .pitch(this.tilt.toDouble())
         .bearing(this.bearing.toDouble())
-        .center(Point.fromLngLat(this.coordinates.lng, this.coordinates.lat))
+        .center(Point.fromLngLat(this.latLng.lng, this.latLng.lat))
         .zoom(this.zoom.toDouble())
         .build()
 }

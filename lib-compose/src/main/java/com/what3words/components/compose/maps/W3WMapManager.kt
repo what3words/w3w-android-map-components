@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
-import androidx.compose.ui.graphics.Color
 import androidx.core.util.Consumer
 import com.google.maps.android.compose.CameraPositionState
 import com.mapbox.geojson.Point
@@ -10,10 +9,14 @@ import com.mapbox.maps.CameraState
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
+import com.what3words.components.compose.maps.W3WMapDefaults.CAMERA_POSITION_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.mapper.toGoogleCameraPosition
-import com.what3words.components.compose.maps.models.W3WCameraPosition
+import com.what3words.components.compose.maps.mapper.toW3WLatLong
+import com.what3words.components.compose.maps.mapper.toW3WSquare
 import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -80,8 +83,8 @@ class W3WMapManager(
                         MapViewportState(
                             initialCameraState = CameraState(
                                 Point.fromLngLat(
-                                    CAMERA_POSITION_DEFAULT.coordinates.lng,
-                                    CAMERA_POSITION_DEFAULT.coordinates.lat
+                                    CAMERA_POSITION_DEFAULT.latLng.lng,
+                                    CAMERA_POSITION_DEFAULT.latLng.lat
                                 ),
                                 EdgeInsets(0.0, 0.0, 0.0, 0.0),
                                 CAMERA_POSITION_DEFAULT.zoom.toDouble(),
@@ -174,6 +177,10 @@ class W3WMapManager(
         mapState.value.cameraState?.moveToPosition(coordinates, animate)
     }
 
+    fun moveToMyLocation(coordinates: W3WCoordinates) {
+        mapState.value.cameraState?.moveToMyLocation(coordinates)
+    }
+
     fun updateCameraState(newCameraState: W3WCameraState<*>) {
         CoroutineScope(Dispatchers.IO).launch {
             val newGridLine = calculateGridPolylines(newCameraState)
@@ -188,8 +195,14 @@ class W3WMapManager(
     //endregion
 
     //region Selected Address
-    fun getSelectedMarker(): W3WAddress? {
-        return mapState.value.selectedAddress?.address
+    fun setSelectedMarker(marker: W3WMarker) {
+        _mapState.value = mapState.value.copy(
+            selectedAddress = marker
+        )
+    }
+
+    fun getSelectedMarker(): W3WMarker? {
+        return mapState.value.selectedAddress
     }
 
     fun unselect() {
@@ -215,7 +228,12 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertToCoordinates(words)) {
                 is W3WResult.Success -> {
                     _mapState.value = mapState.value.addOrUpdateMarker(
-                        marker = W3WMarker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(
+                            words = c23wa.value.words,
+                            square = c23wa.value.square?.toW3WSquare(),
+                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                            color = markerColor
+                        )
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -249,7 +267,12 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _mapState.value = mapState.value.addOrUpdateMarker(
-                        marker = W3WMarker(address = c23wa.value, color = markerColor)
+                        marker = W3WMarker(
+                            words = c23wa.value.words,
+                            square = c23wa.value.square?.toW3WSquare(),
+                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                            color = markerColor
+                        )
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -272,7 +295,12 @@ class W3WMapManager(
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
                     _mapState.value = mapState.value.copy(
-                        selectedAddress = W3WMarker(address = c23wa.value, color = MAKER_COLOR_DEFAULT)
+                        selectedAddress = W3WMarker(
+                            words = c23wa.value.words,
+                            square = c23wa.value.square?.toW3WSquare(),
+                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                            color = MAKER_COLOR_DEFAULT
+                        )
                     )
                     onSuccess?.accept(c23wa.value)
                 }
@@ -319,11 +347,5 @@ class W3WMapManager(
         _buttonState.update {
             it.copy(isLocationActive = isActive)
         }
-    }
-
-    companion object {
-        val CAMERA_POSITION_DEFAULT =
-            W3WCameraPosition(W3WCoordinates(51.521251, -0.203586), 19f, 0f, 0f)
-        val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.Yellow)
     }
 }

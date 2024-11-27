@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -15,6 +17,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
 import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapType
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
 import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
 import com.what3words.components.compose.maps.state.W3WButtonsState
@@ -57,6 +60,14 @@ fun W3WMapComponent(
     val buttonState by mapManager.buttonState.collectAsState()
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
+    val onMarkerClicked = remember(mapManager) {
+        { marker: W3WMarker ->
+            mapManager.setSelectedMarker(marker)
+        }
+    }
+
+    val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
+
     W3WMapContent(
         modifier = modifier,
         layoutConfig = layoutConfig,
@@ -83,6 +94,7 @@ fun W3WMapComponent(
                 coroutineScope = coroutineScope
             )
         },
+        onMarkerClicked = currentOnMarkerClicked,
         onError = onError
     )
 }
@@ -114,6 +126,7 @@ fun W3WMapComponent(
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
+    onMarkerClicked: ((W3WMarker) -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMyLocationClicked: (() -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
@@ -139,6 +152,9 @@ fun W3WMapComponent(
         },
         onCameraUpdated = {
             onCameraUpdated.invoke(it)
+        },
+        onMarkerClicked = {
+            onMarkerClicked?.invoke(it)
         },
         onError = onError
     )
@@ -172,6 +188,7 @@ internal fun W3WMapContent(
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
     content: (@Composable () -> Unit)? = null,
+    onMarkerClicked: ((W3WMarker) -> Unit),
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onMyLocationClicked: () -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
@@ -195,6 +212,7 @@ internal fun W3WMapContent(
                 mapConfig = mapConfig,
                 mapProvider = mapProvider,
                 mapState = mapState,
+                onMarkerClicked = onMarkerClicked,
                 onMapClicked = onMapClicked,
                 content = content,
                 onCameraUpdated = {
@@ -287,6 +305,7 @@ internal fun W3WMapView(
     mapProvider: MapProvider,
     mapState: W3WMapState,
     content: (@Composable () -> Unit)? = null,
+    onMarkerClicked: ((W3WMarker) -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
@@ -298,6 +317,7 @@ internal fun W3WMapView(
                 mapConfig = mapConfig,
                 state = mapState,
                 onMapClicked = onMapClicked,
+                onMarkerClicked = onMarkerClicked,
                 content = content,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
@@ -340,10 +360,7 @@ private fun fetchCurrentLocation(
                 val location = it.fetchLocation()
                 // Update camera state
                 withContext(Main) {
-                    mapManager.moveToPosition(
-                        coordinates = W3WCoordinates(location.latitude, location.longitude),
-                        animate = true
-                    )
+                    mapManager.moveToMyLocation(W3WCoordinates(location.latitude, location.longitude))
                 }
 
                 if (location.hasAccuracy()) {
