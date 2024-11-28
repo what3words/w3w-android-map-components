@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -16,9 +17,9 @@ import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.utils.getGridSelectedBorderSizeBasedOnZoomLevel
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.map.components.compose.R
 
 
 @Composable
@@ -139,8 +140,26 @@ private fun DrawZoomInSelectedMarker(
         ) {
             lineColor = Color.Black
             lineWidth =
-                zoomLevel.getGridSelectedBorderSizeBasedOnZoomLevel(context, zoomSwitchLevel)
-                    .toDouble()
+                getGridSelectedBorderSizeBasedOnZoomLevel(context, zoomLevel, zoomSwitchLevel)
         }
+    }
+}
+
+private fun getGridSelectedBorderSizeBasedOnZoomLevel(
+    context: Context,
+    zoomLevel: Float,
+    zoomSwitchLevel: Float
+): Double {
+    return when {
+        zoomLevel < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
+            .toDouble()
+
+        zoomLevel >= zoomSwitchLevel && zoomLevel < 19f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_1px)
+            .toDouble()
+
+        zoomLevel in 19f..20f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_1_5px)
+            .toDouble()
+
+        else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_2px).toDouble()
     }
 }
