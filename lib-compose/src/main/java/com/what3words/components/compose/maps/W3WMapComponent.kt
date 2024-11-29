@@ -23,6 +23,8 @@ import com.what3words.components.compose.maps.providers.mapbox.W3WMapBox
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
+import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
@@ -360,7 +362,19 @@ private fun fetchCurrentLocation(
                 val location = it.fetchLocation()
                 // Update camera state
                 withContext(Main) {
-                    mapManager.moveToMyLocation(W3WCoordinates(location.latitude, location.longitude))
+                    mapManager.moveToPosition(
+                        coordinates = W3WCoordinates(location.latitude,location.longitude),
+                        zoom = when (mapManager.mapProvider) {
+                            MapProvider.GOOGLE_MAP -> {
+                                W3WGoogleCameraState.MY_LOCATION_ZOOM
+                            }
+
+                            MapProvider.MAPBOX -> {
+                                W3WMapboxCameraState.MY_LOCATION_ZOOM.toFloat()
+                            }
+                        },
+                        animate = true
+                    )
                 }
 
                 if (location.hasAccuracy()) {

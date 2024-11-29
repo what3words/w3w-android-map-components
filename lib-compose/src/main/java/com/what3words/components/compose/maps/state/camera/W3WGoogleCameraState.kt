@@ -4,8 +4,6 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.CameraPositionState
-import com.what3words.components.compose.maps.mapper.toGoogleCameraPosition
-import com.what3words.components.compose.maps.models.W3WCameraPosition
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.CoroutineScope
@@ -33,23 +31,25 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         )
     }
 
-    override fun moveToPosition(coordinates: W3WCoordinates, animate: Boolean) {
+    override fun moveToPosition(
+        coordinates: W3WCoordinates,
+        zoom: Float?,
+        bearing: Float?,
+        tilt: Float?,
+        animate: Boolean
+    ) {
         updateCameraPosition(
             CameraPosition(
                 LatLng(coordinates.lat, coordinates.lng),
-                cameraState.position.zoom,
-                cameraState.position.tilt,
-                cameraState.position.bearing
+                zoom?:cameraState.position.zoom,
+                bearing?:cameraState.position.tilt,
+                tilt?:cameraState.position.bearing
             ), animate
         )
     }
 
     override fun getZoomLevel(): Float {
         return cameraState.position.zoom
-    }
-
-    override fun setCameraPosition(cameraPosition: W3WCameraPosition, animate: Boolean) {
-        updateCameraPosition(cameraPosition.toGoogleCameraPosition(), animate)
     }
 
     override fun moveToMyLocation(coordinates: W3WCoordinates) {

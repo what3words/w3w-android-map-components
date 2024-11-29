@@ -29,7 +29,6 @@ import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.isExistInOtherList
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPin
-import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableMap
 

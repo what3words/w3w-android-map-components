@@ -3,18 +3,18 @@ package com.what3words.components.compose.maps
 import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
 import androidx.core.util.Consumer
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraState
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
-import com.what3words.components.compose.maps.W3WMapDefaults.CAMERA_POSITION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
-import com.what3words.components.compose.maps.mapper.toGoogleCameraPosition
+import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WLatLong
 import com.what3words.components.compose.maps.mapper.toW3WSquare
 import com.what3words.components.compose.maps.models.W3WGridLines
@@ -83,13 +83,13 @@ class W3WMapManager(
                         MapViewportState(
                             initialCameraState = CameraState(
                                 Point.fromLngLat(
-                                    CAMERA_POSITION_DEFAULT.latLng.lng,
-                                    CAMERA_POSITION_DEFAULT.latLng.lat
+                                    LOCATION_DEFAULT.lng,
+                                    LOCATION_DEFAULT.lat
                                 ),
                                 EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                                CAMERA_POSITION_DEFAULT.zoom.toDouble(),
-                                CAMERA_POSITION_DEFAULT.bearing.toDouble(),
-                                CAMERA_POSITION_DEFAULT.tilt.toDouble(),
+                                W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                                0.0,
+                                0.0
                             )
                         )
                     )
@@ -100,7 +100,12 @@ class W3WMapManager(
                 it.copy(
                     cameraState = W3WGoogleCameraState(
                         CameraPositionState(
-                            position = CAMERA_POSITION_DEFAULT.toGoogleCameraPosition()
+                            position = CameraPosition(
+                                LOCATION_DEFAULT.toGoogleLatLng(),
+                                W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                                0f,
+                                0f
+                            )
                         )
                     )
                 )
@@ -173,12 +178,20 @@ class W3WMapManager(
         mapState.value.cameraState?.orientCamera()
     }
 
-    fun moveToPosition(coordinates: W3WCoordinates, animate: Boolean) {
-        mapState.value.cameraState?.moveToPosition(coordinates, animate)
-    }
-
-    fun moveToMyLocation(coordinates: W3WCoordinates) {
-        mapState.value.cameraState?.moveToMyLocation(coordinates)
+    fun moveToPosition(
+        coordinates: W3WCoordinates,
+        zoom: Float? = null,
+        bearing: Float? = null,
+        tilt: Float? = null,
+        animate: Boolean = false,
+    ) {
+        mapState.value.cameraState?.moveToPosition(
+            coordinates = coordinates,
+            zoom,
+            bearing,
+            tilt,
+            animate
+        )
     }
 
     fun updateCameraState(newCameraState: W3WCameraState<*>) {

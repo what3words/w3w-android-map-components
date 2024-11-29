@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
-import com.what3words.components.compose.maps.models.W3WCameraPosition
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 
@@ -23,7 +22,6 @@ enum class MapProvider {
  */
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
-    val CAMERA_POSITION_DEFAULT = W3WCameraPosition(LOCATION_DEFAULT, 19f, 0f, 0f)
     val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
     val MUlTI_MAKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
 
