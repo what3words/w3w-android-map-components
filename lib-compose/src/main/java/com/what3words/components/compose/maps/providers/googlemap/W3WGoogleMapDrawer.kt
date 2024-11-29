@@ -26,10 +26,10 @@ import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.isExistInOtherList
-import com.what3words.components.compose.maps.utils.getGridSelectedBorderSizeBasedOnZoomLevel
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPin
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.map.components.compose.R
 
 /**
  * A composable function that draws What3Words component support:
@@ -192,7 +192,11 @@ private fun DrawZoomInSelectedMarker(
                 )
             ),
             color = Color.Black,
-            width = zoomLevel.getGridSelectedBorderSizeBasedOnZoomLevel(context, zoomSwitchLevel),
+            width = getGridSelectedBorderSizeBasedOnZoomLevel(
+                context,
+                zoomLevel,
+                zoomSwitchLevel,
+            ),
             clickable = false,
             zIndex = 5f
         )
@@ -272,4 +276,17 @@ fun rememberMarkerIcons(
     }
 
     return icons
+}
+
+private fun getGridSelectedBorderSizeBasedOnZoomLevel(
+    context: Context,
+    zoomLevel: Float,
+    zoomSwitchLevel: Float
+): Float {
+    return when {
+        zoomLevel < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
+        zoomLevel >= zoomSwitchLevel && zoomLevel < 19f -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_1dp)
+        zoomLevel in 19f..20f -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_1_5dp)
+        else -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_2dp)
+    }
 }
