@@ -28,7 +28,6 @@ import com.mapbox.maps.extension.style.sources.updateImage
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
@@ -117,7 +116,7 @@ fun W3WMapBoxDrawSelectedAddress(
 fun W3WMapBoxDrawSavedAddress(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMakers: Map<String, W3WListMarker>
+    listMakers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutSavedMarkers(listMakers)
@@ -207,7 +206,7 @@ private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
     val marker = rememberIconImage(
         key = selectedMarker.words,
         painter = BitmapPainter(
-            getMarkerBitmap(context, density, selectedMarker.color!!).asImageBitmap()
+            getMarkerBitmap(context, density, selectedMarker.color).asImageBitmap()
         )
     )
 

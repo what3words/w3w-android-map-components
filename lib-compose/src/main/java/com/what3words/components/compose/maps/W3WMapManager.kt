@@ -37,12 +37,12 @@ import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -252,8 +252,9 @@ class W3WMapManager(
                 is W3WResult.Success -> {
                     val marker = W3WMarker(
                         words = c23wa.value.words,
-                        square = c23wa.value.square?.toW3WSquare(),
+                        square = c23wa.value.square!!.toW3WSquare(),
                         latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                        color = listColor
                     )
                     markers.add(marker)
                     successfulAddresses.add(c23wa.value)  // Add successful address
@@ -284,7 +285,7 @@ class W3WMapManager(
             is W3WResult.Success -> {
                 val marker = W3WMarker(
                     words = result.value.words,
-                    square = result.value.square?.toW3WSquare(),
+                    square = result.value.square!!.toW3WSquare(),
                     latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                     color = markerColor
                 )
@@ -362,12 +363,13 @@ class W3WMapManager(
     // Method used to test add/remove drawn markers on map. To be removed
     fun removeMarkerAtWords(words: String) {
         _mapState.update { currentState ->
+            // Filter out markers with the specified words
             val updatedListMakers = currentState.listMakers.mapValues { (_, listMarker) ->
-                listMarker.copy(markers = listMarker.markers.filter { it.words != words }
-                    .toImmutableList())
-            }.filter { (_, listMarker) -> listMarker.markers.isNotEmpty() }.toImmutableMap()
+                listMarker.filter { it.words != words }.toImmutableList()
+            }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
 
-            currentState.copy(listMakers = updatedListMakers)
+            // Return the updated state with the cleaned list
+            currentState.copy(listMakers = updatedListMakers.toImmutableMap())
         }
     }
 

@@ -19,7 +19,6 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WLatLng
@@ -50,8 +49,8 @@ fun W3WGoogleMapDrawer(
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     // Check if selectedMarker exists in the saved list
-    val markerStatus = remember(state.savedListMakers, state.selectedAddress) {
-        state.selectedAddress?.let { isMarkerInSavedList(state.savedListMakers, it) }
+    val markerStatus = remember(state.listMakers, state.selectedAddress) {
+        state.selectedAddress?.let { isMarkerInSavedList(state.listMakers, it) }
     }
 
     state.cameraState?.let { cameraState ->
@@ -81,7 +80,7 @@ fun W3WGoogleMapDrawer(
             zoomLevel = cameraState.getZoomLevel(),
             zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
             selectedMarker = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress else null,
-            savedListMakers = state.savedListMakers,
+            listMarkers = state.listMakers,
             onMarkerClicked = onMarkerClicked
         )
     }
@@ -165,7 +164,7 @@ private fun DrawZoomOutSelectedMarker(
             getMarkerBitmap(
                 context,
                 density,
-                if (isMarkerInSavedList) MUlTI_MAKERS_COLOR_DEFAULT else selectedMarker.color?: MAKER_COLOR_DEFAULT
+                if (isMarkerInSavedList) MUlTI_MAKERS_COLOR_DEFAULT else selectedMarker.color
             )
         )
     }
@@ -184,7 +183,7 @@ private fun DrawZoomInSelectedMarker(
     zoomSwitchLevel: Float
 ) {
     val context = LocalContext.current
-    selectedMarker.square?.let { square ->
+    selectedMarker.square.let { square ->
         Polyline(
             points = listOf(
                 LatLng(
@@ -227,18 +226,18 @@ fun W3WGoogleMapDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedMarker: W3WMarker? = null,
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
             selectedMarker = selectedMarker,
-            savedListMakers = savedListMakers,
+            listMarkers = listMarkers,
             onMarkerClicked = onMarkerClicked
         )
     } else {
         DrawZoomInMarkers(
-            savedListMakers = savedListMakers,
+            listMarkers = listMarkers,
             onMarkerClicked = onMarkerClicked
         )
     }
@@ -246,7 +245,7 @@ fun W3WGoogleMapDrawMarkers(
 
 @Composable
 fun DrawZoomInMarkers(
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: ((W3WMarker) -> Unit)? = null,
 ) {
     //TODO: GroundOverlay for list markers bitmap square
@@ -255,23 +254,23 @@ fun DrawZoomInMarkers(
 @Composable
 fun DrawZoomOutMarkers(
     selectedMarker: W3WMarker? = null,
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val icons = rememberMarkerIcons(savedListMakers, context, density)
+    val icons = rememberMarkerIcons(listMarkers, context, density)
 
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    savedListMakers.forEach { (_, markerList) ->
+    listMarkers.forEach { (_, markerList) ->
         markerList.forEach { marker ->
-            key(marker.words) {
-                val icon = icons[marker.words]
+            key(marker.id) {
+                val icon = icons[marker.id]
                 Marker(
                     state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
                     icon = icon,
-                    visible = selectedMarker != marker,
+                    visible = selectedMarker?.let {  it.id != marker.id}?:true,
                     onClick = {
                         currentOnMarkerClicked(marker)
                         true
@@ -286,33 +285,33 @@ fun DrawZoomOutMarkers(
 
 @Composable
 fun rememberMarkerIcons(
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     context: Context,
     density: Float
-): Map<String, BitmapDescriptor?> {
+): Map<Long, BitmapDescriptor?> {
     // Use rememberUpdatedState to hold the latest value of listMakers without triggering recomposition
-    val latestListMakers = rememberUpdatedState(savedListMakers)
+    val latestListMakers = rememberUpdatedState(listMarkers)
 
     // Remember the icon map so that it persists across recompositions
-    val icons = remember { mutableStateMapOf<String, BitmapDescriptor?>() }
+    val icons = remember { mutableStateMapOf<Long, BitmapDescriptor?>() }
 
     // Use LaunchedEffect with listMakers as a key to load icons only when listMakers change
-    LaunchedEffect(key1 = latestListMakers.value.size) {
+    LaunchedEffect(key1 = listMarkers) {
         // Iterate over the listMakers and generate icons if not already cached
-        savedListMakers.forEach { (listId, markerList) ->
+        listMarkers.forEach { (listId, markerList) ->
             markerList.forEach { marker ->
                 // Check if the icon for this marker already exists
-                if (icons[marker.words] == null) {
+                if (icons[marker.id] == null) {
                     // Determine the marker's color based on conditions
-                    val color = if (isExistInOtherList(listId, marker, latestListMakers.value)) {
+                    val color = if (isExistInOtherList(listId, marker, listMarkers)) {
                         MUlTI_MAKERS_COLOR_DEFAULT
                     } else {
-                        marker.color ?: MAKER_COLOR_DEFAULT
+                        marker.color
                     }
 
                     // Generate the icon and store it in the icons map
                     val iconBitmap = getPinBitmap(context, density = density, colorMarker = color)
-                    icons[marker.words] = iconBitmap.let {
+                    icons[marker.id] = iconBitmap.let {
                         BitmapDescriptorFactory.fromBitmap(it)
                     }
                 }
