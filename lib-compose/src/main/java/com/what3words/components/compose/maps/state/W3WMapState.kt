@@ -101,25 +101,24 @@ fun W3WMapState.addMarker(
 fun isExistInOtherList(
     listId: String,  // The current listId
     marker: W3WMarker,  // The marker to check
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ): Boolean {
-
     // Check if the marker exists in any other list besides the one with listId
-    return savedListMakers.filter { (key, listMarker) ->
+    return listMarkers.filter { (key, listMarker) ->
         // Skip the current listId
         key != listId && listMarker.any { it.id == marker.id }
     }.isNotEmpty()
 }
 
 fun isMarkerInSavedList(
-    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     marker: W3WMarker): MarkerStatus {
 
     // Count how many lists contain the marker
     var foundMarker: W3WMarker? = null
 
     // Iterate over the saved lists
-    for (list in savedListMakers.values) {
+    for (list in listMarkers.values) {
         // Check if the marker exists in the current list
         list.firstOrNull { it.id == marker.id }?.let {
             if (foundMarker != null) {

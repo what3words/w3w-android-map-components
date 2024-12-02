@@ -4,14 +4,11 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMapComposable
@@ -70,7 +67,7 @@ fun W3WGoogleMapDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedMarker = state.selectedAddress,
-                isMarkerInSavedList = markerStatus == MarkerStatus.InMultipleList,
+                isMarkerInMultipleList = markerStatus == MarkerStatus.InMultipleList,
             )
         }
 
@@ -128,10 +125,10 @@ fun W3WGoogleMapDrawSelectedAddress(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedMarker: W3WMarker,
-    isMarkerInSavedList: Boolean
+    isMarkerInMultipleList: Boolean
 ) {
     if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSelectedMarker(selectedMarker,isMarkerInSavedList)
+        DrawZoomOutSelectedMarker(selectedMarker,isMarkerInMultipleList)
     } else {
         DrawZoomInSelectedMarker(
             zoomLevel = zoomLevel,
@@ -159,7 +156,7 @@ private fun DrawZoomOutSelectedMarker(
         markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val icon = remember(selectedMarker.color) {
+    val icon = remember(selectedMarker.color, isMarkerInSavedList) {
         BitmapDescriptorFactory.fromBitmap(
             getMarkerBitmap(
                 context,
@@ -244,7 +241,7 @@ fun W3WGoogleMapDrawMarkers(
 }
 
 @Composable
-fun DrawZoomInMarkers(
+private fun DrawZoomInMarkers(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: ((W3WMarker) -> Unit)? = null,
 ) {
@@ -252,74 +249,42 @@ fun DrawZoomInMarkers(
 }
 
 @Composable
-fun DrawZoomOutMarkers(
+private fun DrawZoomOutMarkers(
     selectedMarker: W3WMarker? = null,
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val icons = rememberMarkerIcons(listMarkers, context, density)
 
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    listMarkers.forEach { (_, markerList) ->
+    listMarkers.forEach { (listId, markerList) ->
         markerList.forEach { marker ->
-            key(marker.id) {
-                val icon = icons[marker.id]
-                Marker(
-                    state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
-                    icon = icon,
-                    visible = selectedMarker?.let {  it.id != marker.id}?:true,
-                    onClick = {
-                        currentOnMarkerClicked(marker)
-                        true
-                    },
-                    title = marker.title,
-                    snippet = marker.snippet
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun rememberMarkerIcons(
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    context: Context,
-    density: Float
-): Map<Long, BitmapDescriptor?> {
-    // Use rememberUpdatedState to hold the latest value of listMakers without triggering recomposition
-    val latestListMakers = rememberUpdatedState(listMarkers)
-
-    // Remember the icon map so that it persists across recompositions
-    val icons = remember { mutableStateMapOf<Long, BitmapDescriptor?>() }
-
-    // Use LaunchedEffect with listMakers as a key to load icons only when listMakers change
-    LaunchedEffect(key1 = listMarkers) {
-        // Iterate over the listMakers and generate icons if not already cached
-        listMarkers.forEach { (listId, markerList) ->
-            markerList.forEach { marker ->
-                // Check if the icon for this marker already exists
-                if (icons[marker.id] == null) {
-                    // Determine the marker's color based on conditions
-                    val color = if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MAKERS_COLOR_DEFAULT
-                    } else {
-                        marker.color
-                    }
-
-                    // Generate the icon and store it in the icons map
-                    val iconBitmap = getPinBitmap(context, density = density, colorMarker = color)
-                    icons[marker.id] = iconBitmap.let {
-                        BitmapDescriptorFactory.fromBitmap(it)
-                    }
+            val icon = remember(marker, listId) {
+                val color = if (isExistInOtherList(listId, marker, listMarkers)) {
+                    MUlTI_MAKERS_COLOR_DEFAULT
+                } else {
+                    marker.color
                 }
+
+                BitmapDescriptorFactory.fromBitmap(getPinBitmap(context, density = density, colorMarker = color))
             }
+
+            Marker(
+                state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
+                icon = icon,
+                visible = selectedMarker?.id != marker.id,
+                onClick = {
+                    currentOnMarkerClicked(marker)
+                    true
+                },
+                title = marker.title,
+                snippet = marker.snippet
+            )
+
         }
     }
-
-    return icons
 }
 
 private fun getGridSelectedBorderSizeBasedOnZoomLevel(

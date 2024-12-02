@@ -1,13 +1,8 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Bitmap
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
@@ -127,16 +122,18 @@ fun W3WMapBoxDrawSavedAddress(
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomOutSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+fun DrawZoomOutSavedMarkers(
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMakers.forEach {
-        it.value.markers.forEach { marker ->
+    listMarkers.forEach { (_, markerList) ->
+        markerList.forEach { marker ->
             val icon = rememberIconImage(
                 key = marker.words,
                 painter = BitmapPainter(
-                    getPinBitmap(context, density, marker.color!!).asImageBitmap()
+                    getPinBitmap(context, density, marker.color).asImageBitmap()
                 )
             )
 
@@ -154,17 +151,14 @@ fun DrawZoomOutSavedMarkers(listMakers: Map<String, W3WListMarker>) {
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+fun DrawZoomInSavedMarkers(
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMakers.forEach { markers ->
-        markers.value.markers.forEach { marker ->
-            val id = String.format(
-                ID_SAVED_ADDRESS_IMAGE_SOURCE,
-                marker.words
-            )
-
+    listMarkers.forEach { (_, markerList) ->
+        markerList.forEach { marker ->
             val square = marker.square
 
             val bitmap = getFillGridMarkerBitmap(
@@ -174,12 +168,12 @@ fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
             )
 
             MapEffect(Unit) {
-                val imageSource: ImageSource = it.mapboxMap.getSourceAs(id)!!
+                val imageSource: ImageSource = it.mapboxMap.getSourceAs(marker.id.toString())!!
                 imageSource.updateImage(bitmap)
             }
 
             RasterLayer(
-                sourceState = rememberImageSourceState(sourceId = id) {
+                sourceState = rememberImageSourceState(sourceId = marker.id.toString()) {
                     coordinates = PointListValue(
                         Point.fromLngLat(square.southwest.lng, square.northeast.lat),
                         Point.fromLngLat(square.northeast.lng, square.northeast.lat),
@@ -190,11 +184,6 @@ fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
             )
         }
     }
-}
-
-@Composable
-private fun rememberImageBitmap(bitmap: Bitmap): ImageBitmap {
-    return remember(bitmap) { bitmap.asImageBitmap() }
 }
 
 @Composable
