@@ -37,12 +37,14 @@ import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
