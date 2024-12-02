@@ -2,6 +2,8 @@ package com.what3words.components.compose.maps.providers.mapbox
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Bitmap
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
