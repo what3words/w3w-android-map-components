@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test)
+    implementation(libs.kotlinx.collections.immutable)
 
     implementation(libs.glide)
 

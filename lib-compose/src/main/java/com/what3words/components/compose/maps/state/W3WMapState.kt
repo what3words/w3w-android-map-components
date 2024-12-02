@@ -1,11 +1,18 @@
 package com.what3words.components.compose.maps.state
 
+import androidx.compose.runtime.Immutable
 import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.types.language.W3WRFC5646Language
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 
 const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
 
@@ -25,6 +32,7 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  * @property cameraState The current state of the map's camera. Defaults to `null`.
  * @property gridLines [W3WGridLines] data class handling draw grid line on map
  */
+@Immutable
 data class W3WMapState(
     val language: W3WRFC5646Language = W3WRFC5646Language.EN_GB,
 
@@ -38,7 +46,7 @@ data class W3WMapState(
 
     val selectedAddress: W3WMarker? = null,
 
-    val listMakers: Map<String, W3WListMarker> = emptyMap(),
+    val listMakers: ImmutableMap<String, W3WListMarker> = persistentMapOf(),
 
     // Control camera position of map
     internal val cameraState: W3WCameraState<*>? = null,
@@ -47,9 +55,10 @@ data class W3WMapState(
     internal val gridLines: W3WGridLines = W3WGridLines(),
 )
 
+@Immutable
 data class W3WListMarker(
     val listColor: W3WMarkerColor? = null,
-    val markers: List<W3WMarker> = emptyList()
+    val markers: ImmutableList<W3WMarker> = persistentListOf()
 )
 
 fun W3WMapState.addOrUpdateMarker(
@@ -64,7 +73,7 @@ fun W3WMapState.addOrUpdateMarker(
     val currentList = listMakers[key]?.markers?.toMutableList() ?: mutableListOf()
 
     // Check if the marker already exists in the list by its address
-    val existingMarkerIndex = currentList.indexOfFirst { it.address == marker.address }
+    val existingMarkerIndex = currentList.indexOfFirst { it == marker }
 
     if (existingMarkerIndex != -1) {
         // Marker exists, update it in-place
@@ -75,12 +84,12 @@ fun W3WMapState.addOrUpdateMarker(
     }
 
     // Create or update the W3WListMarker in place
-    val updatedList = W3WListMarker(markers = currentList)
+    val updatedList = W3WListMarker(markers = currentList.toImmutableList())
 
     // Use a mutable map to update the list in-place
     return copy(listMakers = listMakers.toMutableMap().apply {
         this[key] = updatedList
-    })
+    }.toImmutableMap())
 }
 
 fun W3WMapState.addOrUpdateMarker(
@@ -97,7 +106,7 @@ fun W3WMapState.addOrUpdateMarker(
     // Iterate over the list of new markers to add or update
     markers.forEach { marker ->
         // Check if the marker already exists in the list by its address
-        val existingMarkerIndex = currentList.indexOfFirst { it.address == marker.address }
+        val existingMarkerIndex = currentList.indexOfFirst { it == marker }
 
         if (existingMarkerIndex != -1) {
             // If the marker exists, update it in place (preserving the rest of the list)
@@ -111,13 +120,13 @@ fun W3WMapState.addOrUpdateMarker(
     // Create a new W3WListMarker with the updated list of markers
     val updatedListMarker = W3WListMarker(
         listColor = listColor ?: listMakers[key]?.listColor,  // Use the provided listColor, or keep the existing one
-        markers = currentList
+        markers = currentList.toImmutableList()
     )
 
     // Return a new W3WMapState with the updated list of markers
     return copy(listMakers = listMakers.toMutableMap().apply {
         this[key] = updatedListMarker // Update the list in the map
-    })
+    }.toImmutableMap())
 }
 
 fun isExistInOtherList(
@@ -128,7 +137,7 @@ fun isExistInOtherList(
     // Check if the marker exists in any other list besides the one with listId
     return listMakers.filter { (key, listMarker) ->
         // Skip the current listId
-        key != listId && listMarker.markers.any { it.address.words == marker.address.words }
+        key != listId && listMarker.markers.any { it == marker }
     }.isNotEmpty()
 }
 
@@ -151,10 +160,10 @@ fun W3WMapState.setSelectedAddress(
 }
 
 
-fun W3WMapState.removeMarkersByList(listId: String): W3WMapState {
-    return copy(listMakers = listMakers - listId)
-}
-
-fun W3WMapState.removeAllMarkers(): W3WMapState {
-    return copy(listMakers = emptyMap())
-}
+//fun W3WMapState.removeMarkersByList(listId: String): W3WMapState {
+//    return copy(listMakers = listMakers - listId)
+//}
+//
+//fun W3WMapState.removeAllMarkers(): W3WMapState {
+//    return copy(listMakers = emptyMap())
+//}

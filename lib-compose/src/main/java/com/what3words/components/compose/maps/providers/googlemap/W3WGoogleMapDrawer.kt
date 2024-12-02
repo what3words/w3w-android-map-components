@@ -4,32 +4,33 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMapComposable
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
+import com.what3words.components.compose.maps.mapper.toGoogleLatLng
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.isExistInOtherList
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPin
-import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
+import kotlinx.collections.immutable.ImmutableMap
 
 /**
  * A composable function that draws What3Words component support:
@@ -43,7 +44,8 @@ import com.what3words.map.components.compose.R
 @GoogleMapComposable
 fun W3WGoogleMapDrawer(
     state: W3WMapState,
-    mapConfig: W3WMapDefaults.MapConfig
+    mapConfig: W3WMapDefaults.MapConfig,
+    onMarkerClicked: (W3WMarker) -> Unit
 ) {
     state.cameraState?.let { cameraState ->
         if (mapConfig.gridLineConfig.isGridEnabled) {
@@ -64,22 +66,24 @@ fun W3WGoogleMapDrawer(
                 selectedMarker = state.selectedAddress
             )
         }
+
+
+        //Draw the markers
+        W3WGoogleMapDrawMarkers(
+            zoomLevel = cameraState.getZoomLevel(),
+            zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
+            listMakers = state.listMakers,
+            onMarkerClicked = onMarkerClicked
+        )
     }
-
-    //Draw the markers
-//    W3WGoogleMapDrawMarkers(
-//        cameraState = state.cameraState?.cameraState as CameraPositionState,
-//        state.listMakers
-//    )
-
 }
 
 
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawGridLines(
-    verticalLines: List<W3WCoordinates>,
-    horizontalLines: List<W3WCoordinates>,
+    verticalLines: List<W3WLatLng>,
+    horizontalLines: List<W3WLatLng>,
     zoomLevel: Float,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
 ) {
@@ -132,25 +136,19 @@ fun W3WGoogleMapDrawSelectedAddress(
 @GoogleMapComposable
 private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
     val context = LocalContext.current
+    val density = LocalDensity.current.density
+
     val markerState =
         rememberMarkerState(
-            position = LatLng(
-                selectedMarker.address.center!!.lat,
-                selectedMarker.address.center!!.lng
-            )
+            position = selectedMarker.latLng.toGoogleLatLng()
         )
-    LaunchedEffect(selectedMarker.address) {
-        markerState.position =
-            LatLng(selectedMarker.address.center!!.lat, selectedMarker.address.center!!.lng)
+
+    LaunchedEffect(selectedMarker.latLng) {
+        markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val density = LocalDensity.current.density
-    var icon by remember { mutableStateOf<BitmapDescriptor?>(null) }
-
-    LaunchedEffect(key1 = Unit) {
-        icon = selectedMarker.color?.let {
-            BitmapDescriptorFactory.fromBitmap(getMarkerBitmap(context, density, it))
-        }
+    val icon = remember(selectedMarker.color) {
+        BitmapDescriptorFactory.fromBitmap(getMarkerBitmap(context, density, selectedMarker.color?: MAKER_COLOR_DEFAULT))
     }
 
     Marker(
@@ -167,7 +165,7 @@ private fun DrawZoomInSelectedMarker(
     zoomSwitchLevel: Float
 ) {
     val context = LocalContext.current
-    selectedMarker.address.square?.let { square ->
+    selectedMarker.square?.let { square ->
         Polyline(
             points = listOf(
                 LatLng(
@@ -207,41 +205,61 @@ private fun DrawZoomInSelectedMarker(
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawMarkers(
-    cameraState: CameraPositionState,
-    listMakers: Map<String, W3WListMarker>,
-    onMarkerClicked: ((W3WMarker) -> Unit)? = null,
+    zoomLevel: Float,
+    zoomSwitchLevel: Float,
+    listMakers: ImmutableMap<String, W3WListMarker>,
+    onMarkerClicked: (W3WMarker) -> Unit
 ) {
-    val context = LocalContext.current
-    val density = LocalDensity.current.density
-
-    val icons = rememberMarkerIcons(listMakers, context, density)
-    val zoomLevel = remember {
-        mutableFloatStateOf(cameraState.position.zoom)
-    }
-
-    LaunchedEffect(key1 = cameraState.position.zoom) {
-        zoomLevel.floatValue = cameraState.position.zoom
-    }
-
-    listMakers.forEach { (_, listMarker) ->
-        listMarker.markers.forEach { marker ->
-            val icon = icons[marker.address.words]
-            val position = LatLng(marker.address.center!!.lat, marker.address.center!!.lng)
-
-            Marker(
-                state = rememberMarkerState(position = position),
-                icon = icon,
-                onClick = {
-                    onMarkerClicked?.invoke(marker)
-                    true
-                },
-                title = marker.title,
-                snippet = marker.snippet
-            )
-        }
+    if (zoomLevel < zoomSwitchLevel) {
+        DrawZoomOutMarkers(
+            listMakers = listMakers,
+            onMarkerClicked = onMarkerClicked
+        )
+    } else {
+        DrawZoomInMarkers(
+            listMakers = listMakers,
+            onMarkerClicked = onMarkerClicked
+        )
     }
 }
 
+@Composable
+fun DrawZoomInMarkers(
+    listMakers: ImmutableMap<String, W3WListMarker>,
+    onMarkerClicked: ((W3WMarker) -> Unit)? = null,
+) {
+    //TODO: GroundOverlay for list markers bitmap square
+}
+
+@Composable
+fun DrawZoomOutMarkers(
+    listMakers: ImmutableMap<String, W3WListMarker>,
+    onMarkerClicked: (W3WMarker) -> Unit
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current.density
+    val icons = rememberMarkerIcons(listMakers, context, density)
+
+    val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
+
+    listMakers.forEach { (_, listMarker) ->
+        listMarker.markers.forEach { marker ->
+            key(marker.words) {
+                val icon = icons[marker.words]
+                Marker(
+                    state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
+                    icon = icon,
+                    onClick = {
+                        currentOnMarkerClicked(marker)
+                        true
+                    },
+                    title = marker.title,
+                    snippet = marker.snippet
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun rememberMarkerIcons(
@@ -249,25 +267,29 @@ fun rememberMarkerIcons(
     context: Context,
     density: Float
 ): Map<String, BitmapDescriptor?> {
+    // Use rememberUpdatedState to hold the latest value of listMakers without triggering recomposition
+    val latestListMakers = rememberUpdatedState(listMakers)
+
+    // Remember the icon map so that it persists across recompositions
     val icons = remember { mutableStateMapOf<String, BitmapDescriptor?>() }
 
-    // LaunchedEffect with a stable key (listMakers)
-    LaunchedEffect(key1 = listMakers) {
-        listMakers.forEach { (listId, listMarker) ->
+    // Use LaunchedEffect with listMakers as a key to load icons only when listMakers change
+    LaunchedEffect(key1 = latestListMakers.value.size) {
+        // Iterate over the listMakers and generate icons if not already cached
+        latestListMakers.value.forEach { (listId, listMarker) ->
             listMarker.markers.forEach { marker ->
-                val color = if (isExistInOtherList(listId, marker, listMakers)) {
-                    W3WMarkerColor(Color.Blue, Color.White)
-                } else {
-                    listMarker.listColor ?: marker.color ?: W3WMarkerColor(
-                        Color.Red,
-                        Color.White
-                    )
-                }
+                // Check if the icon for this marker already exists
+                if (icons[marker.words] == null) {
+                    // Determine the marker's color based on conditions
+                    val color = if (isExistInOtherList(listId, marker, latestListMakers.value)) {
+                        MUlTI_MAKERS_COLOR_DEFAULT
+                    } else {
+                        listMarker.listColor ?: marker.color ?: MAKER_COLOR_DEFAULT
+                    }
 
-                // Load the icon for the marker if not already loaded
-                if (icons[marker.address.words] == null) {
+                    // Generate the icon and store it in the icons map
                     val iconBitmap = getPin(context, color = color, density = density)
-                    icons[marker.address.words] = iconBitmap?.let {
+                    icons[marker.words] = iconBitmap?.let {
                         BitmapDescriptorFactory.fromBitmap(it)
                     }
                 }
