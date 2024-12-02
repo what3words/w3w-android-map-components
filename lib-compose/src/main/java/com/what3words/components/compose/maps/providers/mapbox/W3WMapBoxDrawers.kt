@@ -1,24 +1,36 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import com.mapbox.geojson.Point
+import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
+import com.mapbox.maps.extension.compose.style.PointListValue
+import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayer
+import com.mapbox.maps.extension.compose.style.sources.generated.rememberImageSourceState
+import com.mapbox.maps.extension.style.sources.generated.ImageSource
+import com.mapbox.maps.extension.style.sources.getSourceAs
+import com.mapbox.maps.extension.style.sources.updateImage
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
+import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
+import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.map.components.compose.R
 
 
@@ -42,6 +54,14 @@ fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedMarker = state.selectedAddress
+            )
+        }
+
+        if (state.listMakers.isNotEmpty()) {
+            W3WMapBoxDrawSavedAddress(
+                cameraState.getZoomLevel(),
+                mapConfig.gridLineConfig.zoomSwitchLevel,
+                state.listMakers
             )
         }
     }
@@ -90,10 +110,88 @@ fun W3WMapBoxDrawSelectedAddress(
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawMarkers(zoomLevel: Float, listMakers: Map<String, W3WListMarker>) {
-    //TODO: Draw select for zoom in: filled square
+fun W3WMapBoxDrawSavedAddress(
+    zoomLevel: Float,
+    zoomSwitchLevel: Float,
+    listMakers: Map<String, W3WListMarker>
+) {
+    if (zoomLevel < zoomSwitchLevel) {
+        DrawZoomOutSavedMarkers(listMakers)
+    } else {
+        DrawZoomInSavedMarkers(listMakers)
+    }
+}
 
-    //TODO: Draw select for zoom out: circle
+@Composable
+@MapboxMapComposable
+fun DrawZoomOutSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+    val context = LocalContext.current
+    val density = LocalDensity.current.density
+
+    listMakers.forEach {
+        it.value.markers.forEach { marker ->
+            val icon = rememberIconImage(
+                key = marker.words,
+                painter = BitmapPainter(
+                    getPinBitmap(context, density, marker.color!!).asImageBitmap()
+                )
+            )
+
+            PointAnnotation(
+                point = Point.fromLngLat(
+                    marker.latLng.lng,
+                    marker.latLng.lat
+                )
+            ) {
+                iconImage = icon
+            }
+        }
+    }
+}
+
+@Composable
+@MapboxMapComposable
+fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+    val context = LocalContext.current
+    val density = LocalDensity.current.density
+
+    listMakers.forEach { markers ->
+        markers.value.markers.forEach { marker ->
+            val id = String.format(
+                ID_SAVED_ADDRESS_IMAGE_SOURCE,
+                marker.words
+            )
+
+            val square = marker.square
+
+            val bitmap = getFillGridMarkerBitmap(
+                context,
+                density,
+                marker.color
+            )
+
+            MapEffect(Unit) {
+                val imageSource: ImageSource = it.mapboxMap.getSourceAs(id)!!
+                imageSource.updateImage(bitmap)
+            }
+
+            RasterLayer(
+                sourceState = rememberImageSourceState(sourceId = id) {
+                    coordinates = PointListValue(
+                        Point.fromLngLat(square.southwest.lng, square.northeast.lat),
+                        Point.fromLngLat(square.northeast.lng, square.northeast.lat),
+                        Point.fromLngLat(square.northeast.lng, square.southwest.lat),
+                        Point.fromLngLat(square.southwest.lng, square.southwest.lat),
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun rememberImageBitmap(bitmap: Bitmap): ImageBitmap {
+    return remember(bitmap) { bitmap.asImageBitmap() }
 }
 
 @Composable
@@ -163,3 +261,5 @@ private fun getGridSelectedBorderSizeBasedOnZoomLevel(
         else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_2px).toDouble()
     }
 }
+
+private const val ID_SAVED_ADDRESS_IMAGE_SOURCE = "image_source-saved-address-%s"

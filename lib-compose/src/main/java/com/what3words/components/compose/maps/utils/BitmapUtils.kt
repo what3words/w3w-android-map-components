@@ -41,6 +41,33 @@ fun getMarkerBitmap(
     )
 }
 
+fun getFillGridMarkerBitmap(
+    context: Context,
+    scale: Float,
+    colorMarker: W3WMarkerColor,
+    size: Int = 32,
+): Bitmap {
+
+    return getBitMapFromPathData(
+        listOf(
+            DrawPath(context.getString(R.string.path_fill_grid_marker_background),
+                Paint().apply {
+                    color = colorMarker.background.toArgb()
+                }
+            ),
+            DrawPath(context.getString(R.string.path_fill_grid_marker_slashes),
+                Paint().apply {
+                    color = colorMarker.slash.toArgb()
+                }
+            )
+        ),
+        size,
+        size,
+        scale
+    )
+
+}
+
 fun getPinBitmap(
     context: Context,
     scale: Float,

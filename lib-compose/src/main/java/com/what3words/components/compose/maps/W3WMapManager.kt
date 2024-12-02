@@ -9,6 +9,7 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraState
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
+import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxError
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
@@ -34,6 +35,8 @@ import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.language.W3WRFC5646Language
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -243,7 +246,7 @@ class W3WMapManager(
                     _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(
                             words = c23wa.value.words,
-                            square = c23wa.value.square?.toW3WSquare(),
+                            square = c23wa.value.square!!.toW3WSquare(),
                             latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                             color = markerColor
                         )
@@ -282,7 +285,7 @@ class W3WMapManager(
                     _mapState.value = mapState.value.addOrUpdateMarker(
                         marker = W3WMarker(
                             words = c23wa.value.words,
-                            square = c23wa.value.square?.toW3WSquare(),
+                            square = c23wa.value.square!!.toW3WSquare(),
                             latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                             color = markerColor
                         )
@@ -310,7 +313,7 @@ class W3WMapManager(
                     _mapState.value = mapState.value.copy(
                         selectedAddress = W3WMarker(
                             words = c23wa.value.words,
-                            square = c23wa.value.square?.toW3WSquare(),
+                            square = c23wa.value.square!!.toW3WSquare(),
                             latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                             color = MAKER_COLOR_DEFAULT
                         )
@@ -325,12 +328,24 @@ class W3WMapManager(
         }
     }
 
+    // Method used to test add/remove drawn markers on map. To be removed
+    fun removeMarkerAtWords(words: String) {
+        _mapState.update { currentState ->
+            val updatedListMakers = currentState.listMakers.mapValues { (_, listMarker) ->
+                listMarker.copy(markers = listMarker.markers.filter { it.words != words }
+                    .toImmutableList())
+            }.filter { (_, listMarker) -> listMarker.markers.isNotEmpty() }.toImmutableMap()
+
+            currentState.copy(listMakers = updatedListMakers)
+        }
+    }
+
     private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines {
         return withContext(Dispatchers.IO) {
             cameraState.gridBound?.let { safeBox ->
                 when (val grid = textDataSource.gridSection(safeBox)) {
                     is W3WResult.Failure -> {
-                        if (grid.error is BadBoundingBoxTooBigError) {
+                        if (grid.error is BadBoundingBoxTooBigError || grid.error is BadBoundingBoxError) {
                             return@withContext W3WGridLines()
                         } else {
                             throw grid.error
