@@ -1,7 +1,6 @@
 [versions]
 #Android
 accompanistPermissions = "0.34.0"
-glide = "4.15.1"
 kotlinxCollectionsImmutable = "0.3.5"
 minSdk = "24"
 compileSdk = "34"
@@ -53,7 +52,6 @@ dokka = "1.5.0"
 [libraries]
 #Kotlin
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
-glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }

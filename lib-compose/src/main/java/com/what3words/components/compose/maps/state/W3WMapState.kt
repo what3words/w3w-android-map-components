@@ -28,7 +28,7 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  * @property isMapGestureEnable Whether map gestures are enabled. Defaults to `true`.
  * @property isMyLocationEnabled Whether the "My Location" feature is enabled. Defaults to `true`.
  * @property selectedAddress The currently selected W3W address. Defaults to `null`.
- * @property listMakers A map of marker lists, keyed by their identifier. Defaults to an empty map.
+ * @property savedListMakers A map of marker lists, keyed by their identifier. Defaults to an empty map.
  * @property cameraState The current state of the map's camera. Defaults to `null`.
  * @property gridLines [W3WGridLines] data class handling draw grid line on map
  */
@@ -46,7 +46,7 @@ data class W3WMapState(
 
     val selectedAddress: W3WMarker? = null,
 
-    val listMakers: ImmutableMap<String, W3WListMarker> = persistentMapOf(),
+    val savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>> = persistentMapOf(),
 
     // Control camera position of map
     internal val cameraState: W3WCameraState<*>? = null,
@@ -55,115 +55,88 @@ data class W3WMapState(
     internal val gridLines: W3WGridLines = W3WGridLines(),
 )
 
-@Immutable
-data class W3WListMarker(
-    val listColor: W3WMarkerColor? = null,
-    val markers: ImmutableList<W3WMarker> = persistentListOf()
-)
+fun W3WMapState.addListMarker(
+    listId: String,
+    listColor: W3WMarkerColor,
+    markers: ImmutableList<W3WMarker>
+): W3WMapState {
+    // Create a new list of markers with updated colors
+    val updatedMarkers = markers.map { it.copy(color = listColor) }
 
-fun W3WMapState.addOrUpdateMarker(
+    // Add or update the list of markers for the given listId
+    val updatedSavedListMakers = savedListMakers + (listId to updatedMarkers.toImmutableList())
+
+    // Return a new state with the updated map
+    return copy(savedListMakers = updatedSavedListMakers.toImmutableMap())
+}
+
+
+fun W3WMapState.addMarker(
     listId: String? = null,  // Optional list identifier
     marker: W3WMarker,       // Marker to add or update
-    listColor: W3WMarkerColor? = null
 ): W3WMapState {
     // Determine the listId: use provided listId or a default
     val key = listId ?: LIST_DEFAULT_ID
 
     // Get or create the current list of markers (using MutableList for in-place updates)
-    val currentList = listMakers[key]?.markers?.toMutableList() ?: mutableListOf()
+    val currentList = savedListMakers[key] ?: persistentListOf()
 
-    // Check if the marker already exists in the list by its address
-    val existingMarkerIndex = currentList.indexOfFirst { it == marker }
-
-    if (existingMarkerIndex != -1) {
-        // Marker exists, update it in-place
-        currentList[existingMarkerIndex] = marker
+    // Create a new list by either updating or adding the marker
+    val updatedList = if (marker in currentList) {
+        // Replace the existing marker
+        currentList.map { if (it.id == marker.id) marker else it }
     } else {
-        // Marker doesn't exist, add it
-        currentList.add(marker)
+        // Marker doesn't exist, add it to the list
+        currentList + marker
     }
 
-    // Create or update the W3WListMarker in place
-    val updatedList = W3WListMarker(markers = currentList.toImmutableList())
+    // Create a new map with the updated list for the key, ensuring it's an ImmutableMap
+    val updatedMap = savedListMakers + (key to updatedList.toImmutableList())
 
-    // Use a mutable map to update the list in-place
-    return copy(listMakers = listMakers.toMutableMap().apply {
-        this[key] = updatedList
-    }.toImmutableMap())
+    // Return a new map with the updated list for the key
+    return copy(savedListMakers = updatedMap.toImmutableMap())
 }
 
-fun W3WMapState.addOrUpdateMarker(
-    listId: String? = null,  // Optional list identifier
-    markers: List<W3WMarker>, // Markers to add or update
-    listColor: W3WMarkerColor? = null  // Optional list color
-): W3WMapState {
-    // Determine the listId: use provided listId or a default one
-    val key = listId ?: LIST_DEFAULT_ID
-
-    // Get the current list of markers or create a new empty list if not found
-    val currentList = listMakers[key]?.markers?.toMutableList() ?: mutableListOf()
-
-    // Iterate over the list of new markers to add or update
-    markers.forEach { marker ->
-        // Check if the marker already exists in the list by its address
-        val existingMarkerIndex = currentList.indexOfFirst { it == marker }
-
-        if (existingMarkerIndex != -1) {
-            // If the marker exists, update it in place (preserving the rest of the list)
-            currentList[existingMarkerIndex] = marker
-        } else {
-            // If the marker doesn't exist, add it to the list
-            currentList.add(marker)
-        }
-    }
-
-    // Create a new W3WListMarker with the updated list of markers
-    val updatedListMarker = W3WListMarker(
-        listColor = listColor ?: listMakers[key]?.listColor,  // Use the provided listColor, or keep the existing one
-        markers = currentList.toImmutableList()
-    )
-
-    // Return a new W3WMapState with the updated list of markers
-    return copy(listMakers = listMakers.toMutableMap().apply {
-        this[key] = updatedListMarker // Update the list in the map
-    }.toImmutableMap())
-}
 
 fun isExistInOtherList(
     listId: String,  // The current listId
     marker: W3WMarker,  // The marker to check
-    listMakers: Map<String, W3WListMarker>
+    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ): Boolean {
+
     // Check if the marker exists in any other list besides the one with listId
-    return listMakers.filter { (key, listMarker) ->
+    return savedListMakers.filter { (key, listMarker) ->
         // Skip the current listId
-        key != listId && listMarker.markers.any { it == marker }
+        key != listId && listMarker.any { it.words == marker.words }
     }.isNotEmpty()
 }
 
-fun W3WMapState.setSelectedAddress(
-    marker: W3WMarker
-): W3WMapState {
-//    val listExist = getListIdsByMarker(marker)
-//    return when(listExist.size) {
-//        0 -> copy(selectedAddress = marker)
-//        1 -> copy(selectedAddress = getMarkersByListId(listExist.))
-//        else -> {
-//            copy(selectedAddress = marker, listMakers = listMakers - listExist)
-//        }
-//    }
+fun isMarkerInSavedList(
+    savedListMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    marker: W3WMarker): MarkerStatus {
 
-    // case 1: not exist return marker
-    // case 2: exists in multiple list
+    // Count how many lists contain the marker
+    var foundMarker: W3WMarker? = null
 
-    return copy(selectedAddress = marker)
+    // Iterate over the saved lists
+    for (list in savedListMakers.values) {
+        // Check if the marker exists in the current list
+        list.firstOrNull { it.id == marker.id }?.let {
+            if (foundMarker != null) {
+                // Marker found in multiple lists, immediately return Multiple
+                return MarkerStatus.InMultipleList
+            }
+            // If it's the first time we find the marker, store it
+            foundMarker = it
+        }
+    }
+
+    // If we found the marker in exactly one list, return Single; otherwise, return None
+    return foundMarker?.let { MarkerStatus.InSingleList(it) } ?: MarkerStatus.NotSaved
 }
 
-
-//fun W3WMapState.removeMarkersByList(listId: String): W3WMapState {
-//    return copy(listMakers = listMakers - listId)
-//}
-//
-//fun W3WMapState.removeAllMarkers(): W3WMapState {
-//    return copy(listMakers = emptyMap())
-//}
+sealed class MarkerStatus {
+    object NotSaved : MarkerStatus() // Marker doesn't exist in any list
+    data class InSingleList(val marker: W3WMarker) : MarkerStatus() // Marker exists in exactly one list
+    object InMultipleList : MarkerStatus() // Marker exists in multiple lists
+}
