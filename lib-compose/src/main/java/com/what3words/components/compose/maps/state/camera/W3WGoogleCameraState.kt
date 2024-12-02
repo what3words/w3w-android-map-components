@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
 
-    companion object{
-        const val MY_LOCATION_ZOOM = 21f
+    companion object {
+        const val MY_LOCATION_ZOOM = 19f
     }
 
     override var gridBound: W3WRectangle? = null
@@ -41,9 +41,9 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         updateCameraPosition(
             CameraPosition(
                 LatLng(coordinates.lat, coordinates.lng),
-                zoom?:cameraState.position.zoom,
-                bearing?:cameraState.position.tilt,
-                tilt?:cameraState.position.bearing
+                zoom ?: cameraState.position.zoom,
+                bearing ?: cameraState.position.tilt,
+                tilt ?: cameraState.position.bearing
             ), animate
         )
     }

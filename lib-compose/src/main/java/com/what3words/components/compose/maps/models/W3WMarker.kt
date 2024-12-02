@@ -5,8 +5,8 @@ import androidx.compose.ui.graphics.Color
 data class W3WMarker(
     val words: String,
     val latLng: W3WLatLng,
-    val square: W3WSquare? = null,
-    val color: W3WMarkerColor? = null,
+    val square: W3WSquare,
+    val color: W3WMarkerColor,
     val title: String? = null,
     val snippet: String? = null
 )

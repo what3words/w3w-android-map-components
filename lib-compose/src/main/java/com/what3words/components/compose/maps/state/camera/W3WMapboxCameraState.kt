@@ -11,7 +11,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     W3WCameraState<MapViewportState> {
 
     companion object{
-        const val MY_LOCATION_ZOOM = MAX_ZOOM
+        const val MY_LOCATION_ZOOM = 19.0
     }
 
     override var gridBound: W3WRectangle? = null
