@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps.state.camera
 
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.MapConstants.MAX_ZOOM
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle

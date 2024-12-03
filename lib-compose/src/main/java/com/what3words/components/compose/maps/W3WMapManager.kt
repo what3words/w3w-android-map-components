@@ -25,7 +25,8 @@ import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WZoomOption
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.addOrUpdateMarker
+import com.what3words.components.compose.maps.state.addListMarker
+import com.what3words.components.compose.maps.state.addMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
@@ -40,6 +41,9 @@ import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -232,43 +236,64 @@ class W3WMapManager(
     //endregion
 
     //region Markers
-    fun addMarkerAtWords(
+    suspend fun addMarkerAtListWords(
+        listName: String,
+        listWords: List<String>,
+        listColor: W3WMarkerColor,
+    ):List<W3WResult<W3WAddress>> = withContext(IO) {
+        // Create a list of deferred results to process the words concurrently
+        val deferredResults = listWords.map { word ->
+            async {
+                textDataSource.convertToCoordinates(word)
+            }
+        }
+
+        // Wait for all results to be processed
+        val results = deferredResults.awaitAll()
+
+        // Create markers for all successful results
+        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
+            val address = result.value
+            W3WMarker(
+                words = address.words,
+                square = address.square!!.toW3WSquare(),
+                latLng = address.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                color = listColor
+            )
+        }
+
+        // Update the map with the markers
+        _mapState.value = mapState.value.addListMarker(
+            listName = listName,
+            markers = markers.toImmutableList(),
+            listColor = listColor
+        )
+
+        // Return the complete list of results
+        return@withContext results
+    }
+
+    suspend fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        onSuccess: Consumer<W3WAddress>? = null,
-        onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
-    ) {
-        CoroutineScope(dispatcher).launch {
-            when (val c23wa = textDataSource.convertToCoordinates(words)) {
-                is W3WResult.Success -> {
-                    _mapState.value = mapState.value.addOrUpdateMarker(
-                        marker = W3WMarker(
-                            words = c23wa.value.words,
-                            square = c23wa.value.square!!.toW3WSquare(),
-                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                            color = markerColor
-                        )
-                    )
-                    onSuccess?.accept(c23wa.value)
-                }
+    ):W3WResult<W3WAddress> = withContext(IO) {
+        val result = textDataSource.convertToCoordinates(words)
 
-                is W3WResult.Failure -> {
-                    onError?.accept(c23wa.error)
-                }
-            }
+        if(result is W3WResult.Success) {
+            val marker = W3WMarker(
+                words = result.value.words,
+                square = result.value.square!!.toW3WSquare(),
+                latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                color = markerColor
+            )
+
+            _mapState.value = mapState.value.addMarker(
+                marker = marker)
         }
-    }
 
-    fun addMarkerAtListWords(
-        listWords: List<String>,
-        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        onSuccess: Consumer<List<W3WAddress>>? = null,
-        onError: Consumer<W3WError>? = null
-    ) {
-
+        return@withContext result
     }
 
     fun addMarkerAtCoordinates(
@@ -282,7 +307,7 @@ class W3WMapManager(
         CoroutineScope(dispatcher).launch {
             when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
                 is W3WResult.Success -> {
-                    _mapState.value = mapState.value.addOrUpdateMarker(
+                    _mapState.value = mapState.value.addMarker(
                         marker = W3WMarker(
                             words = c23wa.value.words,
                             square = c23wa.value.square!!.toW3WSquare(),
@@ -331,12 +356,13 @@ class W3WMapManager(
     // Method used to test add/remove drawn markers on map. To be removed
     fun removeMarkerAtWords(words: String) {
         _mapState.update { currentState ->
+            // Filter out markers with the specified words
             val updatedListMakers = currentState.listMakers.mapValues { (_, listMarker) ->
-                listMarker.copy(markers = listMarker.markers.filter { it.words != words }
-                    .toImmutableList())
-            }.filter { (_, listMarker) -> listMarker.markers.isNotEmpty() }.toImmutableMap()
+                listMarker.filter { it.words != words }.toImmutableList()
+            }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
 
-            currentState.copy(listMakers = updatedListMakers)
+            // Return the updated state with the cleaned list
+            currentState.copy(listMakers = updatedListMakers.toImmutableMap())
         }
     }
 
@@ -376,4 +402,9 @@ class W3WMapManager(
             it.copy(isLocationActive = isActive)
         }
     }
+}
+
+sealed class W3WMapResult {
+    data class Success(val address: W3WAddress) : W3WMapResult()
+    data class Failure(val error: W3WError) : W3WMapResult()
 }

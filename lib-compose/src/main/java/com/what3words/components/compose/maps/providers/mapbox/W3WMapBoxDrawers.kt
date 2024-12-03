@@ -1,11 +1,8 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
@@ -26,18 +23,18 @@ import com.mapbox.maps.extension.style.sources.updateImage
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.state.W3WListMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.map.components.compose.R
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 
 
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
-
     state.cameraState?.let { cameraState ->
         if (mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel) {
             W3WMapBoxDrawGridLines(
@@ -98,9 +95,9 @@ fun W3WMapBoxDrawSelectedAddress(
     selectedMarker: W3WMarker
 ) {
     if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSelectedMarker(selectedMarker)
+        DrawZoomOutSelectedAddress(selectedMarker)
     } else {
-        DrawZoomInSelectedMarker(
+        DrawZoomInSelectedAddress(
             zoomLevel = zoomLevel,
             zoomSwitchLevel = zoomSwitchLevel,
             selectedMarker = selectedMarker
@@ -113,7 +110,7 @@ fun W3WMapBoxDrawSelectedAddress(
 fun W3WMapBoxDrawSavedAddress(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMakers: Map<String, W3WListMarker>
+    listMakers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutSavedMarkers(listMakers)
@@ -124,16 +121,18 @@ fun W3WMapBoxDrawSavedAddress(
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomOutSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+private fun DrawZoomOutSavedMarkers(
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMakers.forEach {
-        it.value.markers.forEach { marker ->
+    listMarkers.forEach { (_, markerList) ->
+        markerList.forEach { marker ->
             val icon = rememberIconImage(
                 key = marker.words,
                 painter = BitmapPainter(
-                    getPinBitmap(context, density, marker.color!!).asImageBitmap()
+                    getPinBitmap(context, density, marker.color).asImageBitmap()
                 )
             )
 
@@ -151,17 +150,14 @@ fun DrawZoomOutSavedMarkers(listMakers: Map<String, W3WListMarker>) {
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
+private fun DrawZoomInSavedMarkers(
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMakers.forEach { markers ->
-        markers.value.markers.forEach { marker ->
-            val id = String.format(
-                ID_SAVED_ADDRESS_IMAGE_SOURCE,
-                marker.words
-            )
-
+    listMarkers.forEach { (_, markerList) ->
+        markerList.forEach { marker ->
             val square = marker.square
 
             val bitmap = getFillGridMarkerBitmap(
@@ -171,12 +167,12 @@ fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
             )
 
             MapEffect(Unit) {
-                val imageSource: ImageSource = it.mapboxMap.getSourceAs(id)!!
+                val imageSource: ImageSource = it.mapboxMap.getSourceAs(marker.id.toString())!!
                 imageSource.updateImage(bitmap)
             }
 
             RasterLayer(
-                sourceState = rememberImageSourceState(sourceId = id) {
+                sourceState = rememberImageSourceState(sourceId = marker.id.toString()) {
                     coordinates = PointListValue(
                         Point.fromLngLat(square.southwest.lng, square.northeast.lat),
                         Point.fromLngLat(square.northeast.lng, square.northeast.lat),
@@ -190,20 +186,15 @@ fun DrawZoomInSavedMarkers(listMakers: Map<String, W3WListMarker>) {
 }
 
 @Composable
-private fun rememberImageBitmap(bitmap: Bitmap): ImageBitmap {
-    return remember(bitmap) { bitmap.asImageBitmap() }
-}
-
-@Composable
 @MapboxMapComposable
-private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
+private fun DrawZoomOutSelectedAddress(selectedMarker: W3WMarker) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
     val marker = rememberIconImage(
         key = selectedMarker.words,
         painter = BitmapPainter(
-            getMarkerBitmap(context, density, selectedMarker.color!!).asImageBitmap()
+            getMarkerBitmap(context, density, selectedMarker.color).asImageBitmap()
         )
     )
 
@@ -219,7 +210,7 @@ private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
 
 @Composable
 @MapboxMapComposable
-private fun DrawZoomInSelectedMarker(
+private fun DrawZoomInSelectedAddress(
     selectedMarker: W3WMarker,
     zoomLevel: Float,
     zoomSwitchLevel: Float
