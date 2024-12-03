@@ -55,7 +55,7 @@ fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
         }
 
         if (state.listMakers.isNotEmpty()) {
-            W3WMapBoxDrawSavedAddress(
+            W3WMapBoxDrawMarkers(
                 cameraState.getZoomLevel(),
                 mapConfig.gridLineConfig.zoomSwitchLevel,
                 state.listMakers
@@ -107,15 +107,15 @@ fun W3WMapBoxDrawSelectedAddress(
 
 @Composable
 @MapboxMapComposable
-fun W3WMapBoxDrawSavedAddress(
+fun W3WMapBoxDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     listMakers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ) {
     if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSavedMarkers(listMakers)
+        DrawZoomOutMarkers(listMakers)
     } else {
-        DrawZoomInSavedMarkers(listMakers)
+        DrawZoomInMarkers(listMakers)
     }
 }
 
@@ -216,7 +216,7 @@ private fun DrawZoomInSelectedAddress(
     zoomSwitchLevel: Float
 ) {
     val context = LocalContext.current
-    selectedMarker.square?.let { square ->
+    selectedMarker.square.let { square ->
         PolylineAnnotation(
             points = listOf(
                 Point.fromLngLat(square.southwest.lng, square.northeast.lat),
