@@ -66,8 +66,9 @@ fun W3WGoogleMapDrawer(
             W3WGoogleMapDrawSelectedAddress(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress,
-                isMarkerInMultipleList = markerStatus == MarkerStatus.InMultipleList,
+                selectedMarker = state.selectedAddress.copy(
+                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MAKERS_COLOR_DEFAULT else state.selectedAddress.color
+                ),
             )
         }
 
@@ -76,7 +77,7 @@ fun W3WGoogleMapDrawer(
         W3WGoogleMapDrawMarkers(
             zoomLevel = cameraState.getZoomLevel(),
             zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-            selectedMarker = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress else null,
+            selectedMarkerID = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
             listMarkers = state.listMakers,
             onMarkerClicked = onMarkerClicked
         )
@@ -124,13 +125,12 @@ fun W3WGoogleMapDrawGridLines(
 fun W3WGoogleMapDrawSelectedAddress(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    selectedMarker: W3WMarker,
-    isMarkerInMultipleList: Boolean
+    selectedMarker: W3WMarker
 ) {
     if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSelectedMarker(selectedMarker,isMarkerInMultipleList)
+        DrawZoomOutSelectedAddress(selectedMarker)
     } else {
-        DrawZoomInSelectedMarker(
+        DrawZoomInSelectedAddress(
             zoomLevel = zoomLevel,
             zoomSwitchLevel = zoomSwitchLevel,
             selectedMarker = selectedMarker
@@ -140,9 +140,8 @@ fun W3WGoogleMapDrawSelectedAddress(
 
 @Composable
 @GoogleMapComposable
-private fun DrawZoomOutSelectedMarker(
+private fun DrawZoomOutSelectedAddress(
     selectedMarker: W3WMarker,
-    isMarkerInSavedList: Boolean
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -156,12 +155,12 @@ private fun DrawZoomOutSelectedMarker(
         markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val icon = remember(selectedMarker.color, isMarkerInSavedList) {
+    val icon = remember(selectedMarker.color) {
         BitmapDescriptorFactory.fromBitmap(
             getMarkerBitmap(
                 context,
                 density,
-                if (isMarkerInSavedList) MUlTI_MAKERS_COLOR_DEFAULT else selectedMarker.color
+                selectedMarker.color
             )
         )
     }
@@ -174,7 +173,7 @@ private fun DrawZoomOutSelectedMarker(
 
 @Composable
 @GoogleMapComposable
-private fun DrawZoomInSelectedMarker(
+private fun DrawZoomInSelectedAddress(
     selectedMarker: W3WMarker,
     zoomLevel: Float,
     zoomSwitchLevel: Float
@@ -222,13 +221,13 @@ private fun DrawZoomInSelectedMarker(
 fun W3WGoogleMapDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    selectedMarker: W3WMarker? = null,
+    selectedMarkerID: Long? = null,
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
-            selectedMarker = selectedMarker,
+            selectedMarkerID = selectedMarkerID,
             listMarkers = listMarkers,
             onMarkerClicked = onMarkerClicked
         )
@@ -250,7 +249,7 @@ private fun DrawZoomInMarkers(
 
 @Composable
 private fun DrawZoomOutMarkers(
-    selectedMarker: W3WMarker? = null,
+    selectedMarkerID: Long? = null,
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
@@ -274,7 +273,7 @@ private fun DrawZoomOutMarkers(
             Marker(
                 state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
                 icon = icon,
-                visible = selectedMarker?.id != marker.id,
+                visible = selectedMarkerID != marker.id,
                 onClick = {
                     currentOnMarkerClicked(marker)
                     true

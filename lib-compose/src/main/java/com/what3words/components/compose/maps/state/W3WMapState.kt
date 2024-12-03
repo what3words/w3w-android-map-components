@@ -125,7 +125,7 @@ fun isMarkerInSavedList(
                 // Marker found in multiple lists, immediately return Multiple
                 return MarkerStatus.InMultipleList
             }
-            // If it's the first time we find the marker, store it
+
             foundMarker = it
         }
     }

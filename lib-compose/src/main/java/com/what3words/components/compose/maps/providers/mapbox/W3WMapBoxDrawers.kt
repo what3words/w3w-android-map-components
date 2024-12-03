@@ -35,7 +35,6 @@ import kotlinx.collections.immutable.ImmutableMap
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawer(state: W3WMapState, mapConfig: W3WMapDefaults.MapConfig) {
-
     state.cameraState?.let { cameraState ->
         if (mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel) {
             W3WMapBoxDrawGridLines(
@@ -96,9 +95,9 @@ fun W3WMapBoxDrawSelectedAddress(
     selectedMarker: W3WMarker
 ) {
     if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSelectedMarker(selectedMarker)
+        DrawZoomOutSelectedAddress(selectedMarker)
     } else {
-        DrawZoomInSelectedMarker(
+        DrawZoomInSelectedAddress(
             zoomLevel = zoomLevel,
             zoomSwitchLevel = zoomSwitchLevel,
             selectedMarker = selectedMarker
@@ -122,7 +121,7 @@ fun W3WMapBoxDrawSavedAddress(
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomOutSavedMarkers(
+private fun DrawZoomOutSavedMarkers(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
 ) {
     val context = LocalContext.current
@@ -151,7 +150,7 @@ fun DrawZoomOutSavedMarkers(
 
 @Composable
 @MapboxMapComposable
-fun DrawZoomInSavedMarkers(
+private fun DrawZoomInSavedMarkers(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
 ) {
     val context = LocalContext.current
@@ -188,7 +187,7 @@ fun DrawZoomInSavedMarkers(
 
 @Composable
 @MapboxMapComposable
-private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
+private fun DrawZoomOutSelectedAddress(selectedMarker: W3WMarker) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
@@ -211,7 +210,7 @@ private fun DrawZoomOutSelectedMarker(selectedMarker: W3WMarker) {
 
 @Composable
 @MapboxMapComposable
-private fun DrawZoomInSelectedMarker(
+private fun DrawZoomInSelectedAddress(
     selectedMarker: W3WMarker,
     zoomLevel: Float,
     zoomSwitchLevel: Float
