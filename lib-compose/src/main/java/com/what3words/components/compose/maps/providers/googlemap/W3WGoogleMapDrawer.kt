@@ -76,14 +76,16 @@ fun W3WGoogleMapDrawer(
         }
 
 
-        //Draw the markers
-        W3WGoogleMapDrawMarkers(
-            zoomLevel = cameraState.getZoomLevel(),
-            zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-            selectedMarkerID = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
-            listMarkers = state.listMakers,
-            onMarkerClicked = onMarkerClicked
-        )
+        if(state.listMakers.isNotEmpty()) {
+            //Draw the markers
+            W3WGoogleMapDrawMarkers(
+                zoomLevel = cameraState.getZoomLevel(),
+                zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
+                selectedMarkerID = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
+                listMarkers = state.listMakers,
+                onMarkerClicked = onMarkerClicked
+            )
+        }
     }
 }
 
