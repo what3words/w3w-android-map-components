@@ -12,7 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.GoogleMapComposable
+import com.google.maps.android.compose.GroundOverlay
+import com.google.maps.android.compose.GroundOverlayPosition
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
@@ -25,6 +28,7 @@ import com.what3words.components.compose.maps.state.MarkerStatus
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.isExistInOtherList
 import com.what3words.components.compose.maps.state.isMarkerInSavedList
+import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.map.components.compose.R
@@ -64,6 +68,17 @@ fun W3WGoogleMapDrawer(
             )
         }
 
+        if (state.listMakers.isNotEmpty()) {
+            //Draw the markers
+            W3WGoogleMapDrawMarkers(
+                zoomLevel = cameraState.getZoomLevel(),
+                zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
+                selectedMarkerID = if (markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
+                listMarkers = state.listMakers,
+                onMarkerClicked = onMarkerClicked
+            )
+        }
+
         if (state.selectedAddress != null) {
             //Draw the selected address
             W3WGoogleMapDrawSelectedAddress(
@@ -72,18 +87,6 @@ fun W3WGoogleMapDrawer(
                 selectedMarker = state.selectedAddress.copy(
                     color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MAKERS_COLOR_DEFAULT else state.selectedAddress.color
                 ),
-            )
-        }
-
-
-        if(state.listMakers.isNotEmpty()) {
-            //Draw the markers
-            W3WGoogleMapDrawMarkers(
-                zoomLevel = cameraState.getZoomLevel(),
-                zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarkerID = if(markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
-                listMarkers = state.listMakers,
-                onMarkerClicked = onMarkerClicked
             )
         }
     }
@@ -249,7 +252,34 @@ private fun DrawZoomInMarkers(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     onMarkerClicked: ((W3WMarker) -> Unit)? = null,
 ) {
-    //TODO: GroundOverlay for list markers bitmap square
+    val context = LocalContext.current
+    val density = LocalDensity.current.density
+
+    listMarkers.forEach { markers ->
+        markers.value.forEach { marker ->
+            val bitmap = BitmapDescriptorFactory.fromBitmap(
+                getFillGridMarkerBitmap(
+                    context,
+                    density,
+                    marker.color
+                )
+            )
+            val square = marker.square
+
+            GroundOverlay(
+                position = GroundOverlayPosition.create(
+                    LatLngBounds(
+                        LatLng(
+                            square.southwest.lat,
+                            square.southwest.lng
+                        ),
+                        LatLng(square.northeast.lat, square.northeast.lng)
+                    )
+                ),
+                image = bitmap,
+            )
+        }
+    }
 }
 
 @Composable
@@ -272,7 +302,13 @@ private fun DrawZoomOutMarkers(
                     marker.color
                 }
 
-                BitmapDescriptorFactory.fromBitmap(getPinBitmap(context, density = density, colorMarker = color))
+                BitmapDescriptorFactory.fromBitmap(
+                    getPinBitmap(
+                        context,
+                        density = density,
+                        colorMarker = color
+                    )
+                )
             }
 
             Marker(
