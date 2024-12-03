@@ -56,15 +56,15 @@ data class W3WMapState(
 )
 
 fun W3WMapState.addListMarker(
-    listId: String,
+    listName: String,
     listColor: W3WMarkerColor,
     markers: ImmutableList<W3WMarker>
 ): W3WMapState {
     // Create a new list of markers with updated colors
     val updatedMarkers = markers.map { it.copy(color = listColor) }
 
-    // Add or update the list of markers for the given listId
-    val updatedSavedListMakers = listMakers + (listId to updatedMarkers.toImmutableList())
+    // Add or update the list of markers for the given listName
+    val updatedSavedListMakers = listMakers + (listName to updatedMarkers.toImmutableList())
 
     // Return a new state with the updated map
     return copy(listMakers = updatedSavedListMakers.toImmutableMap())
@@ -72,11 +72,11 @@ fun W3WMapState.addListMarker(
 
 
 fun W3WMapState.addMarker(
-    listId: String? = null,  // Optional list identifier
+    listName: String? = null,  // Optional list identifier
     marker: W3WMarker,       // Marker to add or update
 ): W3WMapState {
-    // Determine the listId: use provided listId or a default
-    val key = listId ?: LIST_DEFAULT_ID
+    // Determine the listName: use provided listName or a default
+    val key = listName ?: LIST_DEFAULT_ID
 
     // Get or create the current list of markers (using MutableList for in-place updates)
     val currentList = listMakers[key] ?: persistentListOf()
@@ -99,14 +99,14 @@ fun W3WMapState.addMarker(
 
 
 fun isExistInOtherList(
-    listId: String,  // The current listId
+    listName: String,  // The current listName
     marker: W3WMarker,  // The marker to check
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ): Boolean {
-    // Check if the marker exists in any other list besides the one with listId
+    // Check if the marker exists in any other list besides the one with listName
     return listMarkers.filter { (key, listMarker) ->
-        // Skip the current listId
-        key != listId && listMarker.any { it.id == marker.id }
+        // Skip the current listName
+        key != listName && listMarker.any { it.id == marker.id }
     }.isNotEmpty()
 }
 

@@ -42,6 +42,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -235,75 +237,63 @@ class W3WMapManager(
 
     //region Markers
     suspend fun addMarkerAtListWords(
-        listId: String,
+        listName: String,
         listWords: List<String>,
         listColor: W3WMarkerColor,
-        onSuccess: ((List<W3WAddress>) -> Unit)? = null,
-        onError: ((List<W3WError>) -> Unit)? = null,
-    ) = withContext(IO) {
-
-        val successfulAddresses = mutableListOf<W3WAddress>()
-        val errors = mutableListOf<W3WError>()
-        val markers = mutableListOf<W3WMarker>()
-
-        listWords.forEach { word ->
-            when (val c23wa = textDataSource.convertToCoordinates(word)) {
-                is W3WResult.Success -> {
-                    val marker = W3WMarker(
-                        words = c23wa.value.words,
-                        square = c23wa.value.square!!.toW3WSquare(),
-                        latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                        color = listColor
-                    )
-                    markers.add(marker)
-                    successfulAddresses.add(c23wa.value)
-                }
-
-                is W3WResult.Failure -> {
-                    errors.add(c23wa.error)
-                }
+    ):List<W3WResult<W3WAddress>> = withContext(IO) {
+        // Create a list of deferred results to process the words concurrently
+        val deferredResults = listWords.map { word ->
+            async {
+                textDataSource.convertToCoordinates(word)
             }
         }
 
+        // Wait for all results to be processed
+        val results = deferredResults.awaitAll()
+
+        // Create markers for all successful results
+        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
+            val address = result.value
+            W3WMarker(
+                words = address.words,
+                square = address.square!!.toW3WSquare(),
+                latLng = address.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                color = listColor
+            )
+        }
+
+        // Update the map with the markers
         _mapState.value = mapState.value.addListMarker(
-            listId = listId,
+            listName = listName,
             markers = markers.toImmutableList(),
             listColor = listColor
         )
 
-        // Invoke success and error callbacks
-        onSuccess?.invoke(successfulAddresses)
-        onError?.invoke(errors)
+        // Return the complete list of results
+        return@withContext results
     }
 
     suspend fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        onSuccess: ((W3WAddress) -> Unit)? = null,
-        onError: ((W3WError) -> Unit)? = null,
         zoomLevel: Float? = null
-    ) = withContext(IO) {
-        when (val result = textDataSource.convertToCoordinates(words)) {
-            is W3WResult.Success -> {
-                val marker = W3WMarker(
-                    words = result.value.words,
-                    square = result.value.square!!.toW3WSquare(),
-                    latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                    color = markerColor
-                )
+    ):W3WResult<W3WAddress> = withContext(IO) {
+        val result = textDataSource.convertToCoordinates(words)
 
-                _mapState.value = mapState.value.addMarker(
-                    marker = marker)
+        if(result is W3WResult.Success) {
+            val marker = W3WMarker(
+                words = result.value.words,
+                square = result.value.square!!.toW3WSquare(),
+                latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                color = markerColor
+            )
 
-                onSuccess?.invoke(result.value)
-
-            }
-
-            is W3WResult.Failure -> {
-                onError?.invoke(result.error)
-            }
+            _mapState.value = mapState.value.addMarker(
+                marker = marker)
         }
+
+        return@withContext result
     }
 
     fun addMarkerAtCoordinates(
@@ -412,4 +402,9 @@ class W3WMapManager(
             it.copy(isLocationActive = isActive)
         }
     }
+}
+
+sealed class W3WMapResult {
+    data class Success(val address: W3WAddress) : W3WMapResult()
+    data class Failure(val error: W3WError) : W3WMapResult()
 }

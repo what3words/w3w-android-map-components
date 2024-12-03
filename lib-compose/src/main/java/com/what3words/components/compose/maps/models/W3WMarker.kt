@@ -10,7 +10,7 @@ data class W3WMarker(
     val title: String? = null,
     val snippet: String? = null
 ) {
-    val id: Long = generateUniqueId()
+    val id: Long by lazy { generateUniqueId() }
 
     private fun generateUniqueId(): Long {
         if (this.latLng.lat < -90 || this.latLng.lat > 90) {

@@ -3,6 +3,7 @@ package com.what3words.components.compose.maps.providers.googlemap
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -46,8 +47,10 @@ fun W3WGoogleMapDrawer(
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     // Check if selectedMarker exists in the saved list
-    val markerStatus = remember(state.listMakers, state.selectedAddress) {
-        state.selectedAddress?.let { isMarkerInSavedList(state.listMakers, it) }
+    val markerStatus by remember(state.listMakers, state.selectedAddress) {
+        derivedStateOf {
+            state.selectedAddress?.let { isMarkerInSavedList(state.listMakers, it) }
+        }
     }
 
     state.cameraState?.let { cameraState ->
