@@ -18,6 +18,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
@@ -51,7 +52,8 @@ fun W3WGoogleMap(
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
-    onCameraUpdated: (W3WCameraState<*>) -> Unit
+    onCameraUpdated: (W3WCameraState<*>) -> Unit,
+    onMapProjectionUpdated: (W3WMapProjection) -> Unit
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
     val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
@@ -85,6 +87,9 @@ fun W3WGoogleMap(
             .conflate()
             .onEach { (position, projection) ->
                 projection?.let {
+                    if (mapConfig.buttonConfig.isRecallButtonEnabled) {
+                        onMapProjectionUpdated(W3WGoogleMapProjection(it))
+                    }
                     updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->
                         lastProcessedPosition = position
                         val newCameraState = W3WGoogleCameraState(cameraPositionState)
