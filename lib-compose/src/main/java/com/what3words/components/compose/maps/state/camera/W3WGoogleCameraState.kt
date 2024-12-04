@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.compose.runtime.Immutable
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -10,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-
+@Immutable
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
 

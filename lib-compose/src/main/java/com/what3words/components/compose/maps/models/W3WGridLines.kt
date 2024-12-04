@@ -1,5 +1,9 @@
 package com.what3words.components.compose.maps.models
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+
 /**
  * Data class representing the grid lines displayed on a What3Words (W3W) map.
  *
@@ -9,7 +13,8 @@ package com.what3words.components.compose.maps.models
  * @property verticalLines A list of [W3WLatLng] representing the vertical grid lines. Defaults to an empty list.
  * @property horizontalLines A list of [W3WLatLng] representing the horizontal grid lines. Defaults to an empty list.
  */
+@Immutable
 data class W3WGridLines(
-    val verticalLines: List<W3WLatLng> = emptyList(),
-    val horizontalLines: List<W3WLatLng> = emptyList()
+    val verticalLines: ImmutableList<W3WLatLng> = persistentListOf(),
+    val horizontalLines: ImmutableList<W3WLatLng> = persistentListOf()
 )

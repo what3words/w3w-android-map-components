@@ -2,6 +2,7 @@ package com.what3words.components.compose.maps
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ object W3WMapDefaults {
      * @property darkModeCustomJsonStyle The custom JSON style for dark mode.
      * @property gridLineConfig The configuration for grid lines on the map.
      */
+    @Immutable
     data class MapConfig(
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         // Grid view
@@ -50,6 +52,7 @@ object W3WMapDefaults {
      * compared to the visible camera bounds. A value of 1.0 matches the visible area, while larger
      * values (e.g., 2.0) make the grid cover an area twice the size of the visible bounds.
      */
+    @Immutable
     data class GridLinesConfig(
         val isGridEnabled: Boolean,
         val gridColor: Color,
@@ -63,6 +66,7 @@ object W3WMapDefaults {
      *
      * @property contentPadding The padding values for the map content.
      */
+    @Immutable
     data class LayoutConfig(
         val contentPadding: PaddingValues
     )
@@ -72,10 +76,12 @@ object W3WMapDefaults {
      *
      * @property contentPadding The padding values for the button layout.
      */
+    @Immutable
     data class ButtonsLayoutConfig(
         val contentPadding: PaddingValues
     )
 
+    @Immutable
     data class ButtonConfig(
         val isMapSwitchButtonEnabled: Boolean,
         val isMyLocationButtonEnabled: Boolean,

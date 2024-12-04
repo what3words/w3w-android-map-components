@@ -1,7 +1,9 @@
 package com.what3words.components.compose.maps.models
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
+@Immutable
 data class W3WMarker(
     val words: String,
     val latLng: W3WLatLng,
@@ -25,6 +27,7 @@ data class W3WMarker(
     }
 }
 
+@Immutable
 data class W3WMarkerColor(
     val background: Color,
     val slash: Color

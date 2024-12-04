@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.compose.runtime.Immutable
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 
@@ -12,6 +13,7 @@ import com.what3words.core.types.geometry.W3WRectangle
  * @property gridBound The bounding rectangle of the grid lines displayed on the map.
  *
  */
+@Immutable
 interface W3WCameraState<T> {
 
     val cameraState: T
@@ -49,5 +51,5 @@ interface W3WCameraState<T> {
      *
      * @param coordinates The W3W coordinates to move the camera to.
      */
-     fun moveToMyLocation(coordinates: W3WCoordinates)
+    fun moveToMyLocation(coordinates: W3WCoordinates)
 }
