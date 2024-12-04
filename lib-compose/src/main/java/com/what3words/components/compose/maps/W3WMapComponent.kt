@@ -1,21 +1,30 @@
 package com.what3words.components.compose.maps
 
 import android.Manifest
+import android.graphics.PointF
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WLocationSource
+import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.providers.googlemap.W3WGoogleMap
@@ -100,6 +109,11 @@ fun W3WMapComponent(
                 coroutineScope = coroutineScope
             )
         },
+        onMapProjectionUpdated = mapManager::setMapProjection,
+        onMapViewPortProvided = mapManager::setMapViewPort,
+        onRecallClicked = {
+            mapState.selectedAddress?.address?.center?.let { mapManager.moveToPosition(it, true) }
+        },
         onMarkerClicked = currentOnMarkerClicked,
         onError = onError
     )
@@ -136,8 +150,11 @@ fun W3WMapComponent(
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMyLocationClicked: (() -> Unit)? = null,
     onMapClicked: ((W3WCoordinates) -> Unit)? = null,
+    onRecallClicked: (() -> Unit)? = null,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
+    onMapProjectionProvided: ((W3WMapProjection) -> Unit)? = null,
+    onMapViewPortProvided: ((W3WGridScreenCell) -> Unit)? = null,
 ) {
     W3WMapContent(
         modifier = modifier,
@@ -162,7 +179,16 @@ fun W3WMapComponent(
         onMarkerClicked = {
             onMarkerClicked?.invoke(it)
         },
-        onError = onError
+        onError = onError,
+        onMapProjectionUpdated = {
+            onMapProjectionProvided?.invoke(it)
+        },
+        onMapViewPortProvided = {
+            onMapViewPortProvided?.invoke(it)
+        },
+        onRecallClicked = {
+            onRecallClicked?.invoke()
+        }
     )
 }
 
@@ -197,21 +223,46 @@ internal fun W3WMapContent(
     onMarkerClicked: ((W3WMarker) -> Unit),
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onMyLocationClicked: () -> Unit,
+    onRecallClicked: () -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
+    onMapProjectionUpdated: (W3WMapProjection) -> Unit,
+    onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
 ) {
     // Handles check location permissions, if isMyLocationEnabled enable
     MapPermissionsHandler(mapState = mapState, onError = onError) {
+
+        var bounds by remember { mutableStateOf<Rect?>(null) }
 
         // Fetch current location when launch
         LaunchedEffect(Unit) {
             if (mapState.isMyLocationEnabled) {
                 onMyLocationClicked.invoke()
             }
+            bounds?.let {
+                val leftTop = PointF(it.left, it.top)
+                val rightTop = PointF(it.right, it.top)
+                val rightBottom = PointF(it.right, it.bottom)
+                val leftBottom = PointF(it.left, it.bottom)
+                onMapViewPortProvided.invoke(W3WGridScreenCell(leftTop, rightTop, rightBottom, leftBottom))
+
+                Log.d("Test==>", "=============================")
+                Log.d("Test==>", "Left-Top: $leftTop")
+                Log.d("Test==>", "Right-Top: $rightTop")
+                Log.d("Test==>", "Left-Bottom: $leftBottom")
+                Log.d("Test==>", "Right-Bottom: $rightBottom")
+                Log.d("Test==>", "=============================")
+            }
         }
 
-        Box(modifier = modifier) {
+        Box(modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                if (bounds == null) {
+                    bounds = coordinates.boundsInParent()
+                }
+            }
+        ) {
             W3WMapView(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
@@ -223,7 +274,8 @@ internal fun W3WMapContent(
                 content = content,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
-                }
+                },
+                onMapProjectionUpdated = onMapProjectionUpdated
             )
 
             W3WMapButtons(
@@ -233,9 +285,11 @@ internal fun W3WMapContent(
                 onMyLocationClicked = onMyLocationClicked,
                 mapConfig = mapConfig,
                 onMapTypeClicked = onMapTypeClicked,
+                onRecallClicked = onRecallClicked,
                 isLocationEnabled = mapState.isMyLocationEnabled,
                 accuracyDistance = buttonState.accuracyDistance,
                 isLocationActive = buttonState.isLocationActive,
+                isRecallButtonVisible = buttonState.isRecallButtonVisible,
             )
         }
     }
@@ -313,7 +367,8 @@ internal fun W3WMapView(
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: ((W3WMarker) -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
-    onCameraUpdated: (W3WCameraState<*>) -> Unit
+    onCameraUpdated: (W3WCameraState<*>) -> Unit,
+    onMapProjectionUpdated: (W3WMapProjection) -> Unit,
 ) {
     when (mapProvider) {
         MapProvider.GOOGLE_MAP -> {
@@ -327,7 +382,8 @@ internal fun W3WMapView(
                 onMarkerClicked = onMarkerClicked,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
-                }
+                },
+                onMapProjectionUpdated = onMapProjectionUpdated
             )
         }
 
@@ -342,7 +398,8 @@ internal fun W3WMapView(
                 onMarkerClicked = onMarkerClicked,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
-                }
+                },
+                onMapProjectionUpdated = onMapProjectionUpdated
             )
         }
     }

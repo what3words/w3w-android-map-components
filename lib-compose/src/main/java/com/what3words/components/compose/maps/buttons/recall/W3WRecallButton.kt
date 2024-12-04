@@ -29,9 +29,9 @@ import kotlin.random.Random
 @Composable
 fun W3WRecallButton(
     modifier: Modifier = Modifier,
-    rotation: Float,
-    backgroundColor: Color,
-    arrowColor: Color,
+    rotation: Float = 0F,
+    backgroundColor: Color = Color(0xFFE11F26),
+    arrowColor: Color = Color.White,
     onRecallButtonClick: () -> Unit
 ) {
 
@@ -42,13 +42,13 @@ fun W3WRecallButton(
         label = "Rotation animation"
     )
 
-    LaunchedEffect(rotation) {
-        // animate the rotation every second
-        while (true) {
-            currentRotation = Random.nextFloat() * 360f // rotate by 10 degrees
-            delay(1000) // wait for 1 second
-        }
-    }
+//    LaunchedEffect(rotation) {
+//        // animate the rotation every second
+//        while (true) {
+//            currentRotation = Random.nextFloat() * 360f // rotate by 10 degrees
+//            delay(1000) // wait for 1 second
+//        }
+//    }
 
     IconButton(
         onClick = { onRecallButtonClick() },

@@ -1,6 +1,8 @@
 package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
+import android.graphics.PointF
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
@@ -18,6 +20,8 @@ import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WLatLong
 import com.what3words.components.compose.maps.mapper.toW3WSquare
 import com.what3words.components.compose.maps.models.W3WGridLines
+import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
@@ -224,6 +228,10 @@ class W3WMapManager(
             )
         }
         gridCalculationFlow.value = newCameraState
+        // TODO: Check if recall button used or not
+        _buttonState.update {
+            it.copy(isRecallButtonVisible = shouldShowRecallButton())
+        }
     }
 
     //endregion
@@ -349,6 +357,7 @@ class W3WMapManager(
                     )
                 )
             }
+            shouldShowRecallButton()
         }
 
         return@withContext c23wa
@@ -410,6 +419,55 @@ class W3WMapManager(
         _buttonState.update {
             it.copy(isLocationActive = isActive)
         }
+    }
+
+    fun setMapProjection(mapProjection: W3WMapProjection) {
+        _buttonState.update {
+            it.copy(mapProjection = mapProjection)
+        }
+    }
+
+    fun setMapViewPort(mapViewPort: W3WGridScreenCell) {
+        _buttonState.update {
+            it.copy(
+                mapViewPort = mapViewPort,
+                recallButtonViewPort = W3WGridScreenCell(
+                    PointF(mapViewPort.v1.x, 0f),
+                    PointF(mapViewPort.v2.x, 0f),
+                    mapViewPort.v3,
+                    mapViewPort.v4
+                )
+            )
+        }
+        Log.d("Test==>", "recallViewPort: ${buttonState.value.recallButtonViewPort}")
+    }
+
+    private suspend fun updateSelectedScreenLocation() {
+        // Only run on main thread due to Mapbox requirements, otherwise it will crash
+        withContext(Dispatchers.Main) {
+            val selectedAddress = mapState.value.selectedAddress?.address?.center
+            val selectedScreenLocation = selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
+            Log.d("Test==>", "projection: ${buttonState.value.mapProjection}")
+            Log.d("Test==>", "updateSelectedScreenLocation: $selectedScreenLocation")
+            _buttonState.update {
+                it.copy(selectedScreenLocation = selectedScreenLocation)
+            }
+        }
+    }
+
+    private suspend fun shouldShowRecallButton(): Boolean {
+        updateSelectedScreenLocation()
+        val selectedScreenLocation = buttonState.value.selectedScreenLocation
+        val recallButtonViewport = buttonState.value.recallButtonViewPort
+        val mapProjection = buttonState.value.mapProjection
+        Log.d("Test==>", "recallButtonViewPort: $recallButtonViewport")
+        val shouldShowRecallButton = mapProjection?.let {
+            selectedScreenLocation?.let {
+                recallButtonViewport?.containsPoint(it) == false
+            }
+        } ?: false
+        Log.d("Test==>", "shouldShowRecallButton: $shouldShowRecallButton")
+        return shouldShowRecallButton
     }
 }
 
