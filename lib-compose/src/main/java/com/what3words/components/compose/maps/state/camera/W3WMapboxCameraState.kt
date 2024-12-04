@@ -1,15 +1,17 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.compose.runtime.Immutable
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 
+@Immutable
 class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     W3WCameraState<MapViewportState> {
 
-    companion object{
+    companion object {
         const val MY_LOCATION_ZOOM = 19.0
     }
 
@@ -34,10 +36,10 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         animate: Boolean
     ) {
         val cameraOptions = CameraOptions.Builder()
-            .pitch(tilt?.toDouble()?:cameraState.cameraState?.pitch)
-            .bearing(bearing?.toDouble()?:cameraState.cameraState?.bearing)
+            .pitch(tilt?.toDouble() ?: cameraState.cameraState?.pitch)
+            .bearing(bearing?.toDouble() ?: cameraState.cameraState?.bearing)
             .center(Point.fromLngLat(coordinates.lng, coordinates.lat))
-            .zoom(zoom?.toDouble()?:cameraState.cameraState?.zoom)
+            .zoom(zoom?.toDouble() ?: cameraState.cameraState?.zoom)
             .build()
 
         updateCameraPosition(cameraOptions, animate)

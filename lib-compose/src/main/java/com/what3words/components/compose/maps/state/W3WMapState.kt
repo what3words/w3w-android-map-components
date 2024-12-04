@@ -6,7 +6,6 @@ import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
-import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
@@ -22,7 +21,6 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  * This class holds various properties that define the configuration and current
  * status of the map, such as language, map type, dark mode, gestures,
  * selected address, markers, camera state, and grid lines.
- * @property language The language used for displaying W3W addresses. Defaults to `W3WRFC5646Language.EN_GB`.
  * @property mapType The type of map displayed. Defaults to `W3WMapType.NORMAL`.
  * @property isDarkMode Whether dark mode is enabled for the map. Defaults to `false`.
  * @property isMapGestureEnable Whether map gestures are enabled. Defaults to `true`.
@@ -34,7 +32,6 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  */
 @Immutable
 data class W3WMapState(
-    val language: W3WRFC5646Language = W3WRFC5646Language.EN_GB,
 
     val mapType: W3WMapType = W3WMapType.NORMAL,
 
@@ -55,7 +52,7 @@ data class W3WMapState(
     internal val gridLines: W3WGridLines = W3WGridLines(),
 )
 
-fun W3WMapState.addListMarker(
+internal fun W3WMapState.addListMarker(
     listName: String,
     listColor: W3WMarkerColor,
     markers: ImmutableList<W3WMarker>
@@ -71,7 +68,7 @@ fun W3WMapState.addListMarker(
 }
 
 
-fun W3WMapState.addMarker(
+internal fun W3WMapState.addMarker(
     listName: String? = null,  // Optional list identifier
     marker: W3WMarker,       // Marker to add or update
 ): W3WMapState {
@@ -98,7 +95,7 @@ fun W3WMapState.addMarker(
 }
 
 
-fun isExistInOtherList(
+internal fun isExistInOtherList(
     listName: String,  // The current listName
     marker: W3WMarker,  // The marker to check
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>
@@ -110,9 +107,10 @@ fun isExistInOtherList(
     }.isNotEmpty()
 }
 
-fun isMarkerInSavedList(
+internal fun isMarkerInSavedList(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    marker: W3WMarker): MarkerStatus {
+    marker: W3WMarker
+): MarkerStatus {
 
     // Count how many lists contain the marker
     var foundMarker: W3WMarker? = null
@@ -134,8 +132,11 @@ fun isMarkerInSavedList(
     return foundMarker?.let { MarkerStatus.InSingleList(it) } ?: MarkerStatus.NotSaved
 }
 
+@Immutable
 sealed class MarkerStatus {
     object NotSaved : MarkerStatus() // Marker doesn't exist in any list
-    data class InSingleList(val marker: W3WMarker) : MarkerStatus() // Marker exists in exactly one list
+    data class InSingleList(val marker: W3WMarker) :
+        MarkerStatus() // Marker exists in exactly one list
+
     object InMultipleList : MarkerStatus() // Marker exists in multiple lists
 }

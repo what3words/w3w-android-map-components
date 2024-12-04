@@ -83,10 +83,14 @@ fun W3WMapComponent(
             mapManager.orientCamera()
         },
         onMapClicked = {
-            mapManager.selectAtCoordinates(it)
+            coroutineScope.launch {
+                mapManager.selectAtCoordinates(it)
+            }
         },
         onCameraUpdated = {
-            mapManager.updateCameraState(it)
+            coroutineScope.launch {
+                mapManager.updateCameraState(it)
+            }
         },
         onMyLocationClicked = {
             fetchCurrentLocation(
