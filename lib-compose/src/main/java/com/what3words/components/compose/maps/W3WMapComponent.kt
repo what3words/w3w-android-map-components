@@ -322,9 +322,9 @@ internal fun W3WMapView(
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
                 state = mapState,
+                content = content,
                 onMapClicked = onMapClicked,
                 onMarkerClicked = onMarkerClicked,
-                content = content,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
                 }
@@ -337,8 +337,9 @@ internal fun W3WMapView(
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
                 state = mapState,
-                onMapClicked = onMapClicked,
                 content = content,
+                onMapClicked = onMapClicked,
+                onMarkerClicked = onMarkerClicked,
                 onCameraUpdated = {
                     onCameraUpdated.invoke(it)
                 }

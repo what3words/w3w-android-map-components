@@ -19,7 +19,6 @@ import com.google.maps.android.compose.GroundOverlayPosition
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
-import com.mapbox.maps.extension.compose.annotation.rememberIconImage
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -242,8 +241,7 @@ fun W3WGoogleMapDrawMarkers(
         )
     } else {
         DrawZoomInMarkers(
-            listMarkers = listMarkers,
-            onMarkerClicked = onMarkerClicked
+            listMarkers = listMarkers
         )
     }
 }
@@ -251,20 +249,26 @@ fun W3WGoogleMapDrawMarkers(
 @Composable
 private fun DrawZoomInMarkers(
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    onMarkerClicked: ((W3WMarker) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMarkers.forEach { markers ->
-        markers.value.forEach { marker ->
-            val bitmap = BitmapDescriptorFactory.fromBitmap(
-                getFillGridMarkerBitmap(
-                    context,
-                    density,
-                    marker.color
-                )
-            )
+    listMarkers.forEach { (listId, markers) ->
+        markers.forEach { marker ->
+            val color by remember(marker, listId, listMarkers) {
+                derivedStateOf {
+                    if (isExistInOtherList(listId, marker, listMarkers)) {
+                        MUlTI_MAKERS_COLOR_DEFAULT
+                    } else {
+                        marker.color
+                    }
+                }
+            }
+
+            val bitmap = remember(marker.id, color) {
+                BitmapDescriptorFactory.fromBitmap(getFillGridMarkerBitmap(context, density, color))
+            }
+
             val square = marker.square
 
             GroundOverlay(
@@ -294,8 +298,8 @@ private fun DrawZoomOutMarkers(
 
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    listMarkers.forEach { (listId, markerList) ->
-        markerList.forEach { marker ->
+    listMarkers.forEach { (listId, markers) ->
+        markers.forEach { marker ->
             val color by remember(marker, listId, listMarkers) {
                 derivedStateOf {
                     if (isExistInOtherList(listId, marker, listMarkers)) {

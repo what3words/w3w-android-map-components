@@ -21,6 +21,7 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
@@ -52,6 +53,7 @@ fun W3WMapBox(
     mapConfig: W3WMapDefaults.MapConfig,
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
+    onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit
 ) {
@@ -141,7 +143,7 @@ fun W3WMapBox(
             }
         }
 
-        W3WMapBoxDrawer(state, mapConfig)
+        W3WMapBoxDrawer(state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
 }
