@@ -19,6 +19,7 @@ import com.google.maps.android.compose.GroundOverlayPosition
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
+import com.mapbox.maps.extension.compose.annotation.rememberIconImage
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -229,9 +230,9 @@ private fun DrawZoomInSelectedAddress(
 fun W3WGoogleMapDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    selectedMarkerID: Long? = null,
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    onMarkerClicked: (W3WMarker) -> Unit
+    selectedMarkerID: Long? = null,
+    onMarkerClicked: (W3WMarker) -> Unit,
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
@@ -284,8 +285,8 @@ private fun DrawZoomInMarkers(
 
 @Composable
 private fun DrawZoomOutMarkers(
-    selectedMarkerID: Long? = null,
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    selectedMarkerID: Long? = null,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
@@ -295,20 +296,18 @@ private fun DrawZoomOutMarkers(
 
     listMarkers.forEach { (listId, markerList) ->
         markerList.forEach { marker ->
-            val icon = remember(marker, listId) {
-                val color = if (isExistInOtherList(listId, marker, listMarkers)) {
-                    MUlTI_MAKERS_COLOR_DEFAULT
-                } else {
-                    marker.color
+            val color by remember(marker, listId, listMarkers) {
+                derivedStateOf {
+                    if (isExistInOtherList(listId, marker, listMarkers)) {
+                        MUlTI_MAKERS_COLOR_DEFAULT
+                    } else {
+                        marker.color
+                    }
                 }
+            }
 
-                BitmapDescriptorFactory.fromBitmap(
-                    getPinBitmap(
-                        context,
-                        density = density,
-                        colorMarker = color
-                    )
-                )
+            val icon = remember(marker.id, color) {
+                BitmapDescriptorFactory.fromBitmap(getPinBitmap(context, density, color))
             }
 
             Marker(
