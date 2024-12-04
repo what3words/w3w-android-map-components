@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
-import androidx.core.util.Consumer
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
 import com.mapbox.geojson.Point
@@ -39,7 +38,6 @@ import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.async
@@ -48,7 +46,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -69,7 +66,7 @@ import kotlinx.coroutines.withContext
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val dispatcher: CoroutineDispatcher = IO,
     val mapProvider: MapProvider,
     mapState: W3WMapState = W3WMapState(),
     buttonState: W3WButtonsState = W3WButtonsState(),
@@ -201,15 +198,13 @@ class W3WMapManager(
         )
     }
 
-    fun updateCameraState(newCameraState: W3WCameraState<*>) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val newGridLine = calculateGridPolylines(newCameraState)
-            _mapState.update {
-                it.copy(
-                    cameraState = newCameraState,
-                    gridLines = newGridLine
-                )
-            }
+    suspend fun updateCameraState(newCameraState: W3WCameraState<*>) = withContext(IO) {
+        val newGridLine = calculateGridPolylines(newCameraState)
+        _mapState.update {
+            it.copy(
+                cameraState = newCameraState,
+                gridLines = newGridLine
+            )
         }
     }
     //endregion
@@ -240,7 +235,7 @@ class W3WMapManager(
         listName: String,
         listWords: List<String>,
         listColor: W3WMarkerColor,
-    ):List<W3WResult<W3WAddress>> = withContext(IO) {
+    ): List<W3WResult<W3WAddress>> = withContext(IO) {
         // Create a list of deferred results to process the words concurrently
         val deferredResults = listWords.map { word ->
             async {
@@ -257,7 +252,7 @@ class W3WMapManager(
             W3WMarker(
                 words = address.words,
                 square = address.square!!.toW3WSquare(),
-                latLng = address.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                latLng = address.center!!.toW3WLatLong(),
                 color = listColor
             )
         }
@@ -278,10 +273,10 @@ class W3WMapManager(
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
-    ):W3WResult<W3WAddress> = withContext(IO) {
+    ): W3WResult<W3WAddress> = withContext(IO) {
         val result = textDataSource.convertToCoordinates(words)
 
-        if(result is W3WResult.Success) {
+        if (result is W3WResult.Success) {
             val marker = W3WMarker(
                 words = result.value.words,
                 square = result.value.square!!.toW3WSquare(),
@@ -290,67 +285,54 @@ class W3WMapManager(
             )
 
             _mapState.value = mapState.value.addMarker(
-                marker = marker)
+                marker = marker
+            )
         }
 
         return@withContext result
     }
 
-    fun addMarkerAtCoordinates(
+    suspend fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        onSuccess: Consumer<W3WAddress>? = null,
-        onError: Consumer<W3WError>? = null,
         zoomLevel: Float? = null
-    ) {
-        CoroutineScope(dispatcher).launch {
-            when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
-                is W3WResult.Success -> {
-                    _mapState.value = mapState.value.addMarker(
-                        marker = W3WMarker(
-                            words = c23wa.value.words,
-                            square = c23wa.value.square!!.toW3WSquare(),
-                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                            color = markerColor
-                        )
-                    )
-                    onSuccess?.accept(c23wa.value)
-                }
+    ): W3WResult<W3WAddress> = withContext(IO) {
+        val c23wa = textDataSource.convertTo3wa(coordinates, language)
 
-                is W3WResult.Failure -> {
-                    onError?.accept(c23wa.error)
-                }
-            }
+        if (c23wa is W3WResult.Success) {
+            _mapState.value = mapState.value.addMarker(
+                marker = W3WMarker(
+                    words = c23wa.value.words,
+                    square = c23wa.value.square!!.toW3WSquare(),
+                    latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                    color = markerColor
+                )
+            )
         }
+
+        return@withContext c23wa
     }
 
-    fun selectAtCoordinates(
+    suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        onSuccess: Consumer<W3WAddress>? = null,
-        onError: Consumer<W3WError>? = null,
-        zoomLevel: Float? = null
-    ) {
-        CoroutineScope(dispatcher).launch {
-            when (val c23wa = textDataSource.convertTo3wa(coordinates, language)) {
-                is W3WResult.Success -> {
-                    _mapState.value = mapState.value.copy(
-                        selectedAddress = W3WMarker(
-                            words = c23wa.value.words,
-                            square = c23wa.value.square!!.toW3WSquare(),
-                            latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                            color = MAKER_COLOR_DEFAULT
-                        )
-                    )
-                    onSuccess?.accept(c23wa.value)
-                }
+    ): W3WResult<W3WAddress> = withContext(IO) {
+        val c23wa = textDataSource.convertTo3wa(coordinates, language)
 
-                is W3WResult.Failure -> {
-                    onError?.accept(c23wa.error)
-                }
+        if (c23wa is W3WResult.Success) {
+            _mapState.update {
+                it.copy(
+                    selectedAddress = W3WMarker(
+                        words = c23wa.value.words,
+                        square = c23wa.value.square!!.toW3WSquare(),
+                        latLng = c23wa.value.center!!.toW3WLatLong(),
+                        color = MAKER_COLOR_DEFAULT
+                    )
+                )
             }
         }
+
+        return@withContext c23wa
     }
 
     // Method used to test add/remove drawn markers on map. To be removed
@@ -367,7 +349,7 @@ class W3WMapManager(
     }
 
     private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines {
-        return withContext(Dispatchers.IO) {
+        return withContext(IO) {
             cameraState.gridBound?.let { safeBox ->
                 when (val grid = textDataSource.gridSection(safeBox)) {
                     is W3WResult.Failure -> {
@@ -380,8 +362,10 @@ class W3WMapManager(
 
                     is W3WResult.Success -> {
                         W3WGridLines(
-                            verticalLines = grid.value.lines.computeVerticalLines(),
+                            verticalLines = grid.value.lines.computeVerticalLines()
+                                .toImmutableList(),
                             horizontalLines = grid.value.lines.computeHorizontalLines()
+                                .toImmutableList()
                         )
                     }
                 }
