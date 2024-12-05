@@ -125,10 +125,10 @@ object W3WMapDefaults {
         )
     }
 
-    fun defaultButtonConfig(
+    private fun defaultButtonConfig(
         isMapSwitchButtonEnabled: Boolean = true,
         isMyLocationButtonEnable: Boolean = true,
-        isRecallButtonEnable: Boolean = false
+        isRecallButtonEnable: Boolean = true
     ): ButtonConfig {
         return ButtonConfig(
             isMapSwitchButtonEnabled = isMapSwitchButtonEnabled,

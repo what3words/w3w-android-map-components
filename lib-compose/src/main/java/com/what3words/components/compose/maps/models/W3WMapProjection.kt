@@ -1,7 +1,6 @@
 package com.what3words.components.compose.maps.models
 
 import android.graphics.PointF
-import com.what3words.core.types.geometry.W3WCoordinates
 
 
 /**
@@ -11,18 +10,18 @@ import com.what3words.core.types.geometry.W3WCoordinates
 interface W3WMapProjection {
 
     /**
-     * Converts a [W3WCoordinates] to a screen location.
-     * @param coordinates the coordinates to convert
+     * Converts a [W3WLatLng] to a screen location.
+     * @param w3wLatLng the coordinates to convert
      * @return the screen location corresponding to the given coordinates
      */
-    fun toScreenLocation(coordinates: W3WCoordinates): PointF
+    fun toScreenLocation(w3wLatLng: W3WLatLng): PointF
 
 
     /**
-     * Converts a screen location to a [W3WCoordinates].
+     * Converts a screen location to a [W3WLatLng].
      * @param point the screen location to convert
      * @return the coordinates corresponding to the given screen location
      */
-    fun fromScreenLocation(point: PointF): W3WCoordinates
+    fun fromScreenLocation(point: PointF): W3WLatLng
 
 }

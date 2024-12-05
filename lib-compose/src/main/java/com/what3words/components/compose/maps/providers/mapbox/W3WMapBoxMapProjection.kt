@@ -4,20 +4,20 @@ import android.graphics.PointF
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.ScreenCoordinate
 import com.what3words.components.compose.maps.mapper.toMapBoxPoint
-import com.what3words.components.compose.maps.mapper.toW3WCoordinates
+import com.what3words.components.compose.maps.mapper.toW3WLatLng
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
-import com.what3words.core.types.geometry.W3WCoordinates
 
 class W3WMapBoxMapProjection(private val map: MapboxMap) : W3WMapProjection {
 
-    override fun toScreenLocation(coordinates: W3WCoordinates): PointF {
-        val point = map.pixelForCoordinate(coordinates.toMapBoxPoint())
+    override fun toScreenLocation(w3wLatLng: W3WLatLng): PointF {
+        val point = map.pixelForCoordinate(w3wLatLng.toMapBoxPoint())
         return PointF(point.x.toFloat(), point.y.toFloat())
     }
 
-    override fun fromScreenLocation(point: PointF): W3WCoordinates {
+    override fun fromScreenLocation(point: PointF): W3WLatLng {
         val screenCoordinate = ScreenCoordinate(point.x.toDouble(), point.y.toDouble())
         val mapboxPoint = map.coordinateForPixel(screenCoordinate)
-        return mapboxPoint.toW3WCoordinates()
+        return mapboxPoint.toW3WLatLng()
     }
 }

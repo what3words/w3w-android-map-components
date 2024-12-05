@@ -12,8 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -112,7 +112,12 @@ fun W3WMapComponent(
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
-            mapState.selectedAddress?.address?.center?.let { mapManager.moveToPosition(it, true) }
+            mapState.selectedAddress?.latLng?.let {
+                mapManager.moveToPosition(
+                    coordinates = W3WCoordinates(it.lat, it.lng),
+                    animate = true
+                )
+            }
         },
         onMarkerClicked = currentOnMarkerClicked,
         onError = onError
@@ -425,7 +430,7 @@ private fun fetchCurrentLocation(
                 // Update camera state
                 withContext(Main) {
                     mapManager.moveToPosition(
-                        coordinates = W3WCoordinates(location.latitude,location.longitude),
+                        coordinates = W3WCoordinates(location.latitude, location.longitude),
                         zoom = when (mapManager.mapProvider) {
                             MapProvider.GOOGLE_MAP -> {
                                 W3WGoogleCameraState.MY_LOCATION_ZOOM

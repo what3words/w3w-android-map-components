@@ -230,7 +230,7 @@ class W3WMapManager(
         gridCalculationFlow.value = newCameraState
         // TODO: Check if recall button used or not
         _buttonState.update {
-            it.copy(isRecallButtonVisible = shouldShowRecallButton())
+            it.copy(isRecallButtonVisible = handleRecallButton())
         }
     }
 
@@ -357,7 +357,7 @@ class W3WMapManager(
                     )
                 )
             }
-            shouldShowRecallButton()
+            handleRecallButton()
         }
 
         return@withContext c23wa
@@ -445,7 +445,7 @@ class W3WMapManager(
     private suspend fun updateSelectedScreenLocation() {
         // Only run on main thread due to Mapbox requirements, otherwise it will crash
         withContext(Dispatchers.Main) {
-            val selectedAddress = mapState.value.selectedAddress?.address?.center
+            val selectedAddress = mapState.value.selectedAddress?.latLng
             val selectedScreenLocation = selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
             Log.d("Test==>", "projection: ${buttonState.value.mapProjection}")
             Log.d("Test==>", "updateSelectedScreenLocation: $selectedScreenLocation")
@@ -455,7 +455,7 @@ class W3WMapManager(
         }
     }
 
-    private suspend fun shouldShowRecallButton(): Boolean {
+    private suspend fun handleRecallButton(): Boolean {
         updateSelectedScreenLocation()
         val selectedScreenLocation = buttonState.value.selectedScreenLocation
         val recallButtonViewport = buttonState.value.recallButtonViewPort
