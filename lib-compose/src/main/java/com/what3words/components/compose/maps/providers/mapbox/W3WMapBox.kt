@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import com.mapbox.maps.CameraState
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
@@ -27,12 +26,9 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlin.math.abs
 
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
@@ -67,16 +63,8 @@ fun W3WMapBox(
 
     LaunchedEffect(mapViewportState) {
         snapshotFlow { mapViewportState.cameraState }
-            .conflate()
             .filterNotNull()
             .onEach { currentCameraState ->
-                val significantChange =
-                    isSignificantChange(currentCameraState, lastProcessedCameraState)
-                if (significantChange) {
-                    delay(300)
-                } else {
-                    delay(500)
-                }
                 mapView?.mapboxMap?.let { mapboxMap ->
                     updateGridBound(
                         mapboxMap,
@@ -146,21 +134,6 @@ fun W3WMapBox(
         W3WMapBoxDrawer(state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
-}
-
-private fun isSignificantChange(
-    newCameraState: CameraState,
-    lastCameraState: CameraState?
-): Boolean {
-    if (lastCameraState == null) {
-        return true
-    }
-
-    val latDiff = abs(newCameraState.center.latitude() - lastCameraState.center.latitude())
-    val lngDiff = abs(newCameraState.center.longitude() - lastCameraState.center.longitude())
-    val zoomDiff = abs(newCameraState.zoom - lastCameraState.zoom)
-
-    return latDiff > 0.01 || lngDiff > 0.01 || zoomDiff > 0.5
 }
 
 private fun updateGridBound(

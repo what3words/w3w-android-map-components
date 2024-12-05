@@ -24,12 +24,10 @@ import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -86,12 +84,6 @@ fun W3WGoogleMap(
         snapshotFlow { cameraPositionState.position to cameraPositionState.projection }
             .conflate()
             .onEach { (position, projection) ->
-                val significantChange = isSignificantChange(position, lastProcessedPosition)
-                if (significantChange) {
-                    delay(300)
-                } else {
-                    delay(500)
-                }
                 projection?.let {
                     updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->
                         lastProcessedPosition = position
@@ -116,17 +108,6 @@ fun W3WGoogleMap(
         W3WGoogleMapDrawer(state = state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
-}
-
-private fun isSignificantChange(
-    newPosition: com.google.android.gms.maps.model.CameraPosition,
-    lastPosition: com.google.android.gms.maps.model.CameraPosition
-): Boolean {
-    val latDiff = abs(newPosition.target.latitude - lastPosition.target.latitude)
-    val lngDiff = abs(newPosition.target.longitude - lastPosition.target.longitude)
-    val zoomDiff = abs(newPosition.zoom - lastPosition.zoom)
-
-    return latDiff > 0.01 || lngDiff > 0.01 || zoomDiff > 0.5
 }
 
 private suspend fun updateGridBound(
