@@ -21,8 +21,8 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
-import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMapProjection
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
@@ -81,9 +81,6 @@ fun W3WMapBox(
                             onCameraUpdated(newCameraState)
                         }
                     )
-//                    if (mapConfig.buttonConfig.isRecallButtonEnabled) {
-//                        onMapProjectionUpdated(W3WMapBoxMapProjection(mapboxMap))
-//                    }
                 }
             }.launchIn(this)
     }
@@ -144,8 +141,10 @@ fun W3WMapBox(
                 }
                 it.mapboxMap.setBounds(cameraBounds)
             }
-            mapView?.mapboxMap?.let { map ->
-                onMapProjectionUpdated(W3WMapBoxMapProjection(map))
+            if (mapConfig.buttonConfig.isRecallButtonEnabled) {
+                mapView?.mapboxMap?.let { map ->
+                    onMapProjectionUpdated(W3WMapBoxMapProjection(map))
+                }
             }
         }
 
