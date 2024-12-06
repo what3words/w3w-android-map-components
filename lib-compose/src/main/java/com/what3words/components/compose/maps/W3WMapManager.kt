@@ -229,9 +229,7 @@ class W3WMapManager(
         }
         gridCalculationFlow.value = newCameraState
         // TODO: Check if recall button used or not
-        _buttonState.update {
-            it.copy(isRecallButtonVisible = handleRecallButton())
-        }
+        handleRecallButton()
     }
 
     //endregion
@@ -357,6 +355,7 @@ class W3WMapManager(
                     )
                 )
             }
+            // TODO: Check if recall button used or not
             handleRecallButton()
         }
 
@@ -455,7 +454,7 @@ class W3WMapManager(
         }
     }
 
-    private suspend fun handleRecallButton(): Boolean {
+    private suspend fun handleRecallButton() {
         updateSelectedScreenLocation()
         val selectedScreenLocation = buttonState.value.selectedScreenLocation
         val recallButtonViewport = buttonState.value.recallButtonViewPort
@@ -466,8 +465,12 @@ class W3WMapManager(
                 recallButtonViewport?.containsPoint(it) == false
             }
         } ?: false
+        _buttonState.update {
+            it.copy(
+                isRecallButtonVisible = shouldShowRecallButton
+            )
+        }
         Log.d("Test==>", "shouldShowRecallButton: $shouldShowRecallButton")
-        return shouldShowRecallButton
     }
 }
 
