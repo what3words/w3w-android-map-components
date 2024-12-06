@@ -9,6 +9,10 @@ fun W3WLatLng.toGoogleLatLng(): LatLng {
     return LatLng(this.lat, this.lng)
 }
 
+fun LatLng.toW3WLatLng(): W3WLatLng {
+    return W3WLatLng(this.latitude, this.longitude)
+}
+
 fun W3WMapType.toGoogleMapType(): MapType {
     return when (this) {
         W3WMapType.NORMAL -> MapType.NORMAL
