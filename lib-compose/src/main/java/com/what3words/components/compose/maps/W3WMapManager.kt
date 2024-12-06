@@ -34,18 +34,24 @@ import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WGridSection
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -73,47 +79,60 @@ class W3WMapManager(
 ) {
     private var language: W3WRFC5646Language = W3WRFC5646Language.EN_GB
 
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
+
     private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
     val mapState: StateFlow<W3WMapState> = _mapState.asStateFlow()
 
     private val _buttonState: MutableStateFlow<W3WButtonsState> = MutableStateFlow(buttonState)
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
 
+    private val gridCalculationFlow = MutableStateFlow<W3WCameraState<*>?>(null)
+
     init {
-        if (mapProvider == MapProvider.MAPBOX) {
-            _mapState.update {
-                it.copy(
-                    cameraState = W3WMapboxCameraState(
-                        MapViewportState(
-                            initialCameraState = CameraState(
-                                Point.fromLngLat(
-                                    LOCATION_DEFAULT.lng,
-                                    LOCATION_DEFAULT.lat
-                                ),
-                                EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                                W3WMapboxCameraState.MY_LOCATION_ZOOM,
-                                0.0,
-                                0.0
-                            )
-                        )
-                    )
+        _mapState.update {
+            it.copy(
+                cameraState = when (mapProvider) {
+                    MapProvider.MAPBOX -> createMapboxCameraState()
+                    MapProvider.GOOGLE_MAP -> createGoogleCameraState()
+                }
+            )
+        }
+        observeGridCalculation()
+    }
+
+    private fun createMapboxCameraState(): W3WMapboxCameraState {
+        return W3WMapboxCameraState(
+            MapViewportState(
+                initialCameraState = CameraState(
+                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
+                    EdgeInsets(0.0, 0.0, 0.0, 0.0),
+                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                    0.0,
+                    0.0
                 )
-            }
-        } else if (mapProvider == MapProvider.GOOGLE_MAP) {
-            _mapState.update {
-                it.copy(
-                    cameraState = W3WGoogleCameraState(
-                        CameraPositionState(
-                            position = CameraPosition(
-                                LOCATION_DEFAULT.toGoogleLatLng(),
-                                W3WGoogleCameraState.MY_LOCATION_ZOOM,
-                                0f,
-                                0f
-                            )
-                        )
-                    )
+            )
+        )
+    }
+
+    private fun createGoogleCameraState(): W3WGoogleCameraState {
+        return W3WGoogleCameraState(
+            CameraPositionState(
+                position = CameraPosition(
+                    LOCATION_DEFAULT.toGoogleLatLng(),
+                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                    0f,
+                    0f
                 )
-            }
+            )
+        )
+    }
+
+    private fun observeGridCalculation() {
+        scope.launch {
+            gridCalculationFlow
+                .filterNotNull()
+                .collectLatest { calculateAndUpdateGrid(it) }
         }
     }
 
@@ -199,14 +218,14 @@ class W3WMapManager(
     }
 
     suspend fun updateCameraState(newCameraState: W3WCameraState<*>) = withContext(IO) {
-        val newGridLine = calculateGridPolylines(newCameraState)
         _mapState.update {
             it.copy(
                 cameraState = newCameraState,
-                gridLines = newGridLine
             )
         }
+        gridCalculationFlow.value = newCameraState
     }
+
     //endregion
 
     //region Selected Address
@@ -235,7 +254,7 @@ class W3WMapManager(
         listName: String,
         listWords: List<String>,
         listColor: W3WMarkerColor,
-    ): List<W3WResult<W3WAddress>> = withContext(IO) {
+    ): List<W3WResult<W3WAddress>> = withContext(dispatcher) {
         // Create a list of deferred results to process the words concurrently
         val deferredResults = listWords.map { word ->
             async {
@@ -273,7 +292,7 @@ class W3WMapManager(
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
-    ): W3WResult<W3WAddress> = withContext(IO) {
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
         val result = textDataSource.convertToCoordinates(words)
 
         if (result is W3WResult.Success) {
@@ -297,7 +316,7 @@ class W3WMapManager(
         markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
-    ): W3WResult<W3WAddress> = withContext(IO) {
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
         val c23wa = textDataSource.convertTo3wa(coordinates, language)
 
         if (c23wa is W3WResult.Success) {
@@ -316,7 +335,7 @@ class W3WMapManager(
 
     suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
-    ): W3WResult<W3WAddress> = withContext(IO) {
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
         val c23wa = textDataSource.convertTo3wa(coordinates, language)
 
         if (c23wa is W3WResult.Success) {
@@ -348,33 +367,39 @@ class W3WMapManager(
         }
     }
 
-    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines {
-        return withContext(IO) {
-            cameraState.gridBound?.let { safeBox ->
-                when (val grid = textDataSource.gridSection(safeBox)) {
-                    is W3WResult.Failure -> {
-                        if (grid.error is BadBoundingBoxTooBigError || grid.error is BadBoundingBoxError) {
-                            return@withContext W3WGridLines()
-                        } else {
-                            throw grid.error
-                        }
-                    }
-
-                    is W3WResult.Success -> {
-                        W3WGridLines(
-                            verticalLines = grid.value.lines.computeVerticalLines()
-                                .toImmutableList(),
-                            horizontalLines = grid.value.lines.computeHorizontalLines()
-                                .toImmutableList()
-                        )
-                    }
-                }
-            } ?: W3WGridLines()
+    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
+        val newGridLine = calculateGridPolylines(cameraState)
+        _mapState.update {
+            it.copy(gridLines = newGridLine)
         }
     }
 
-    // Button state region
+    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines =
+        withContext(dispatcher) {
+            cameraState.gridBound?.let { safeBox ->
+                when (val grid = textDataSource.gridSection(safeBox)) {
+                    is W3WResult.Failure -> handleGridError(grid.error)
+                    is W3WResult.Success -> grid.toW3WGridLines()
+                }
+            } ?: W3WGridLines()
+        }
 
+    private fun handleGridError(error: W3WError): W3WGridLines {
+        return if (error is BadBoundingBoxTooBigError || error is BadBoundingBoxError) {
+            W3WGridLines()
+        } else {
+            throw error
+        }
+    }
+
+    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
+        return W3WGridLines(
+            verticalLines = value.lines.computeVerticalLines().toImmutableList(),
+            horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
+        )
+    }
+
+    // Button state region
     fun updateAccuracyDistance(distance: Float) {
         _buttonState.update {
             it.copy(accuracyDistance = distance)

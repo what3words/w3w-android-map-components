@@ -80,7 +80,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test)
-    implementation(libs.kotlinx.collections.immutable)
+    api(libs.kotlinx.collections.immutable)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
