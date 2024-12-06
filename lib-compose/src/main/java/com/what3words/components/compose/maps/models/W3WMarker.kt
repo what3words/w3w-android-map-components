@@ -2,6 +2,7 @@ package com.what3words.components.compose.maps.models
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 @Immutable
 data class W3WMarker(
@@ -31,4 +32,11 @@ data class W3WMarker(
 data class W3WMarkerColor(
     val background: Color,
     val slash: Color
-)
+) {
+    val id: Long
+        get() {
+            val backgroundLong = background.toArgb().toLong() and 0xFFFFFFFFL
+            val slashLong = slash.toArgb().toLong() and 0xFFFFFFFFL
+            return (backgroundLong shl 32) or slashLong
+        }
+}
