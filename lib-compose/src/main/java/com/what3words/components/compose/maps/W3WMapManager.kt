@@ -11,7 +11,7 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxError
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
-import com.what3words.components.compose.maps.W3WMapDefaults.MAKER_COLOR_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -289,7 +289,7 @@ class W3WMapManager(
 
     suspend fun addMarkerAtWords(
         words: String,
-        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
@@ -313,7 +313,7 @@ class W3WMapManager(
 
     suspend fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
-        markerColor: W3WMarkerColor = MAKER_COLOR_DEFAULT,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
@@ -345,7 +345,7 @@ class W3WMapManager(
                         words = c23wa.value.words,
                         square = c23wa.value.square!!.toW3WSquare(),
                         latLng = c23wa.value.center!!.toW3WLatLong(),
-                        color = MAKER_COLOR_DEFAULT
+                        color = MARKER_COLOR_DEFAULT
                     )
                 )
             }
@@ -358,12 +358,12 @@ class W3WMapManager(
     fun removeMarkerAtWords(words: String) {
         _mapState.update { currentState ->
             // Filter out markers with the specified words
-            val updatedListMakers = currentState.listMakers.mapValues { (_, listMarker) ->
+            val updatedListMarkers = currentState.listMarkers.mapValues { (_, listMarker) ->
                 listMarker.filter { it.words != words }.toImmutableList()
             }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
 
             // Return the updated state with the cleaned list
-            currentState.copy(listMakers = updatedListMakers.toImmutableMap())
+            currentState.copy(listMarkers = updatedListMarkers.toImmutableMap())
         }
     }
 
