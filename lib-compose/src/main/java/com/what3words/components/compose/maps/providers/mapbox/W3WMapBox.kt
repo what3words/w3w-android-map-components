@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
@@ -29,6 +30,8 @@ import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+
+private const val MAPBOX_MIN_ZOOM_LEVEL = 3.0
 
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
@@ -124,10 +127,17 @@ fun W3WMapBox(
         }
     ) {
         MapEffect(Unit) {
-            mapView = it
-            it.location.updateSettings {
-                enabled = state.isMyLocationEnabled
-                locationPuck = createDefault2DPuck(withBearing = false)
+            val cameraBounds = CameraBoundsOptions.Builder()
+                // Zoom out to continent level only, prevent zooming to the Earth. Zoom levels detail: https://docs.mapbox.com/help/glossary/zoom-level/
+                .minZoom(MAPBOX_MIN_ZOOM_LEVEL)
+                .build()
+
+            mapView = it.also {
+                it.location.updateSettings {
+                    enabled = state.isMyLocationEnabled
+                    locationPuck = createDefault2DPuck(withBearing = false)
+                }
+                it.mapboxMap.setBounds(cameraBounds)
             }
         }
 
