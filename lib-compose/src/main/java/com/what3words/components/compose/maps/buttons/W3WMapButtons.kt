@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.buttons
 
+import android.graphics.PointF
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -20,9 +21,11 @@ fun W3WMapButtons(
     isLocationActive: Boolean,
     isRecallButtonVisible: Boolean,
     accuracyDistance: Float,
+    rotation: Float,
     onMyLocationClicked: (() -> Unit),
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onRecallClicked: (() -> Unit),
+    onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
     Column(
         modifier = modifier,
@@ -30,7 +33,11 @@ fun W3WMapButtons(
         horizontalAlignment = Alignment.End
     ) {
         if (mapConfig.buttonConfig.isRecallButtonEnabled && isRecallButtonVisible) {
-            W3WRecallButton(onRecallButtonClick = onRecallClicked)
+            W3WRecallButton(
+                onRecallClicked = onRecallClicked,
+                onRecallPositionProvided = onRecallButtonPositionProvided,
+                rotation = rotation,
+            )
         }
         if (mapConfig.buttonConfig.isMyLocationButtonEnabled) {
             W3WFindMyLocationButton(

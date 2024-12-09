@@ -119,6 +119,7 @@ fun W3WMapComponent(
                 )
             }
         },
+        onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
         onMarkerClicked = currentOnMarkerClicked,
         onError = onError
     )
@@ -160,6 +161,7 @@ fun W3WMapComponent(
     onError: ((W3WError) -> Unit)? = null,
     onMapProjectionProvided: ((W3WMapProjection) -> Unit)? = null,
     onMapViewPortProvided: ((W3WGridScreenCell) -> Unit)? = null,
+    onRecallButtonPositionProvided: ((PointF) -> Unit)? = null,
 ) {
     W3WMapContent(
         modifier = modifier,
@@ -193,6 +195,9 @@ fun W3WMapComponent(
         },
         onRecallClicked = {
             onRecallClicked?.invoke()
+        },
+        onRecallButtonPositionProvided = {
+            onRecallButtonPositionProvided?.invoke(it)
         }
     )
 }
@@ -234,6 +239,7 @@ internal fun W3WMapContent(
     onError: ((W3WError) -> Unit)? = null,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
+    onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
     // Handles check location permissions, if isMyLocationEnabled enable
     MapPermissionsHandler(mapState = mapState, onError = onError) {
@@ -245,19 +251,13 @@ internal fun W3WMapContent(
             if (mapState.isMyLocationEnabled) {
                 onMyLocationClicked.invoke()
             }
+            // TODO: Implement logic with the padding of other elements (action panel, search bar, etc)
             bounds?.let {
                 val leftTop = PointF(it.left, it.top)
                 val rightTop = PointF(it.right, it.top)
                 val rightBottom = PointF(it.right, it.bottom)
                 val leftBottom = PointF(it.left, it.bottom)
                 onMapViewPortProvided.invoke(W3WGridScreenCell(leftTop, rightTop, rightBottom, leftBottom))
-
-                Log.d("Test==>", "=============================")
-                Log.d("Test==>", "Left-Top: $leftTop")
-                Log.d("Test==>", "Right-Top: $rightTop")
-                Log.d("Test==>", "Left-Bottom: $leftBottom")
-                Log.d("Test==>", "Right-Bottom: $rightBottom")
-                Log.d("Test==>", "=============================")
             }
         }
 
@@ -291,6 +291,8 @@ internal fun W3WMapContent(
                 mapConfig = mapConfig,
                 onMapTypeClicked = onMapTypeClicked,
                 onRecallClicked = onRecallClicked,
+                rotation = buttonState.rotationDegree,
+                onRecallButtonPositionProvided = onRecallButtonPositionProvided,
                 isLocationEnabled = mapState.isMyLocationEnabled,
                 accuracyDistance = buttonState.accuracyDistance,
                 isLocationActive = buttonState.isLocationActive,
