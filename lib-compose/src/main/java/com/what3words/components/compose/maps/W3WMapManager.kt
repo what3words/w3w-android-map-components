@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
+import android.graphics.PointF
 import androidx.annotation.RequiresPermission
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
@@ -18,6 +19,8 @@ import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WLatLong
 import com.what3words.components.compose.maps.mapper.toW3WSquare
 import com.what3words.components.compose.maps.models.W3WGridLines
+import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
@@ -29,6 +32,7 @@ import com.what3words.components.compose.maps.state.addMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
+import com.what3words.components.compose.maps.utils.angleOfPoints
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -65,6 +69,7 @@ import kotlinx.coroutines.withContext
  * @param dispatcher A [CoroutineDispatcher] used for managing coroutines, defaulting to
  *   [Dispatchers.IO] for background operations.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
+ * @param mapConfig Configuration for the map's appearance, such as grid line config and button config.
  * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
  *
@@ -74,6 +79,7 @@ class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = IO,
     val mapProvider: MapProvider,
+    mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState = W3WMapState(),
     buttonState: W3WButtonsState = W3WButtonsState(),
 ) {
@@ -86,6 +92,8 @@ class W3WMapManager(
 
     private val _buttonState: MutableStateFlow<W3WButtonsState> = MutableStateFlow(buttonState)
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
+
+    private val isRecallButtonEnabled = mapConfig.buttonConfig.isRecallButtonEnabled
 
     private val gridCalculationFlow = MutableStateFlow<W3WCameraState<*>?>(null)
 
@@ -224,6 +232,10 @@ class W3WMapManager(
             )
         }
         gridCalculationFlow.value = newCameraState
+
+        if (isRecallButtonEnabled) {
+            handleRecallButton()
+        }
     }
 
     //endregion
@@ -349,6 +361,10 @@ class W3WMapManager(
                     )
                 )
             }
+
+            if (isRecallButtonEnabled) {
+                handleRecallButton()
+            }
         }
 
         return@withContext c23wa
@@ -411,6 +427,72 @@ class W3WMapManager(
             it.copy(isLocationActive = isActive)
         }
     }
+
+    fun setMapProjection(mapProjection: W3WMapProjection) {
+        _buttonState.update {
+            it.copy(mapProjection = mapProjection)
+        }
+    }
+
+    fun setMapViewPort(mapViewPort: W3WGridScreenCell) {
+        _buttonState.update {
+            it.copy(
+                mapViewPort = mapViewPort,
+                recallButtonViewPort = W3WGridScreenCell(
+                    PointF(mapViewPort.v1.x, 0f),
+                    PointF(mapViewPort.v2.x, 0f),
+                    mapViewPort.v3,
+                    mapViewPort.v4
+                )
+            )
+        }
+    }
+
+    fun setRecallButtonPosition(recallButtonPosition: PointF) {
+        _buttonState.update {
+            it.copy(recallButtonPosition = recallButtonPosition)
+        }
+    }
+
+    private suspend fun updateSelectedScreenLocation() {
+        withContext(dispatcher) {
+            val selectedAddress = mapState.value.selectedAddress?.latLng
+            val selectedScreenLocation = selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
+            _buttonState.update {
+                it.copy(selectedScreenLocation = selectedScreenLocation)
+            }
+        }
+    }
+
+    // TODO: Update recall button color according to marker
+    private suspend fun handleRecallButton() {
+        updateSelectedScreenLocation()
+        val selectedScreenLocation = buttonState.value.selectedScreenLocation
+        val recallButtonViewport = buttonState.value.recallButtonViewPort
+        val mapProjection = buttonState.value.mapProjection
+        val recallButtonPosition = buttonState.value.recallButtonPosition
+        val shouldShowRecallButton = mapProjection?.let {
+            selectedScreenLocation?.let {
+                // Check if the selected screen location is within the recall button viewport
+                recallButtonViewport?.containsPoint(it) == false
+            }
+        } ?: false
+        val rotationDegree = computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
+        _buttonState.update {
+            it.copy(
+                rotationDegree = rotationDegree ?: 0F,
+                isRecallButtonVisible = shouldShowRecallButton,
+            )
+        }
+    }
+
+    private fun computeRecallButtonRotation(selectedScreenLocation: PointF?, recallButtonPosition: PointF) =
+        selectedScreenLocation?.let {
+            angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
+                // add 180 degrees to computed value to compensate arrow rotation
+                (180 + alpha) * -1
+            }
+        }
 }
 
 sealed class W3WMapResult {
