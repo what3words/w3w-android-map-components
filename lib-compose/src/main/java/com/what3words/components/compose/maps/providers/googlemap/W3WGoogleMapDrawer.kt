@@ -62,7 +62,7 @@ fun W3WGoogleMapDrawer(
             W3WGoogleMapDrawMarkers(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                listMarkers = state.markers,
+                markers = state.markers,
                 onMarkerClicked = onMarkerClicked
             )
         }
@@ -141,6 +141,7 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
+    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
 
     val markerState =
         rememberMarkerState(
@@ -151,12 +152,12 @@ private fun DrawZoomOutSelectedAddress(
         markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val icon = remember(selectedMarker.isInMultipleLists, selectedMarker.color) {
+    val icon = remember(color.id) {
         BitmapDescriptorFactory.fromBitmap(
             getMarkerBitmap(
                 context,
                 density,
-                if(selectedMarker.isInMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
+                color
             )
         )
     }
@@ -220,19 +221,19 @@ fun W3WGoogleMapDrawMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMarkers: ImmutableList<W3WMarker>,
+    markers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
             markerConfig = markerConfig,
-            listMarkers = listMarkers,
+            markers = markers,
             onMarkerClicked = onMarkerClicked
         )
     } else {
         DrawZoomInMarkers(
             markerConfig = markerConfig,
-            listMarkers = listMarkers
+            markers = markers
         )
     }
 }
@@ -240,13 +241,13 @@ fun W3WGoogleMapDrawMarkers(
 @Composable
 private fun DrawZoomInMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
-    listMarkers: ImmutableList<W3WMarker>
+    markers: ImmutableList<W3WMarker>
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMarkers.forEach { marker ->
-        val color = if(marker.isInMultipleLists) markerConfig.multiMarkersColor else marker.color
+    markers.forEach { marker ->
+        val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getFillGridMarkerBitmap(
@@ -277,15 +278,15 @@ private fun DrawZoomInMarkers(
 @Composable
 private fun DrawZoomOutMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
-    listMarkers: ImmutableList<W3WMarker>,
+    markers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    listMarkers.forEach { marker ->
-        val color = if(marker.isInMultipleLists) markerConfig.multiMarkersColor else marker.color
+    markers.forEach { marker ->
+        val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(

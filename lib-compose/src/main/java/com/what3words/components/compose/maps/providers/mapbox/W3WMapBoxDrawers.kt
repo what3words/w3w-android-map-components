@@ -63,7 +63,7 @@ fun W3WMapBoxDrawer(
                 markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                listMarkers = state.markers,
+                markers = state.markers,
                 onMarkerClicked = onMarkerClicked
             )
         }
@@ -134,19 +134,19 @@ fun W3WMapBoxDrawMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMarkers: ImmutableList<W3WMarker>,
+    markers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
             markerConfig,
-            listMarkers,
+            markers,
             onMarkerClicked
         )
     } else {
         DrawZoomInMarkers(
             markerConfig,
-            listMarkers
+            markers
         )
     }
 }
@@ -155,7 +155,7 @@ fun W3WMapBoxDrawMarkers(
 @MapboxMapComposable
 private fun DrawZoomOutMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
-    listMarkers: ImmutableList<W3WMarker>,
+    markers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
@@ -165,9 +165,9 @@ private fun DrawZoomOutMarkers(
     // Map of cached bitmap with key is the ID of the W3WColor
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
-    val annotations = remember(listMarkers) {
-        listMarkers.map { marker ->
-            val color = if(marker.isInMultipleLists) markerConfig.multiMarkersColor else marker.color
+    val annotations = remember(markers) {
+        markers.map { marker ->
+            val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
             val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
@@ -188,7 +188,7 @@ private fun DrawZoomOutMarkers(
     ) {
         interactionsState.onClicked { it ->
             val markerId = it.getData()?.asLong
-            val marker = listMarkers.find { it.id == markerId }
+            val marker = markers.find { it.id == markerId }
             marker?.let(currentOnMarkerClicked)
             true
         }
@@ -199,7 +199,7 @@ private fun DrawZoomOutMarkers(
 @MapboxMapComposable
 private fun DrawZoomInMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
-    listMarkers: ImmutableList<W3WMarker>
+    markers: ImmutableList<W3WMarker>
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -207,8 +207,8 @@ private fun DrawZoomInMarkers(
     // Map of cached bitmap with key is the ID of the W3WColor
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
-    listMarkers.forEach { marker ->
-        val color = if(marker.isInMultipleLists) markerConfig.markerColor else marker.color
+    markers.forEach { marker ->
+        val color = if(marker.hasMultipleLists) markerConfig.markerColor else marker.color
         val bitmap = bitmapCache.getOrPut(color.id) {
             getFillGridMarkerBitmap(
                 context, 
@@ -245,14 +245,15 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
+    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
 
     val marker = rememberIconImage(
-        key = selectedMarker.words,
+        key = color.id,
         painter = BitmapPainter(
             getMarkerBitmap(
                 context,
                 density,
-                if(selectedMarker.isInMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
+                color
             ).asImageBitmap()
         )
     )

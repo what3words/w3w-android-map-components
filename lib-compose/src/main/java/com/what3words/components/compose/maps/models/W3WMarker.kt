@@ -10,7 +10,8 @@ data class W3WMarker(
     val latLng: W3WLatLng,
     val square: W3WSquare,
     val color: W3WMarkerColor,
-    val isInMultipleLists: Boolean = false,
+    // This marker is associated with multiple lists
+    val hasMultipleLists: Boolean = false,
     val title: String? = null,
     val snippet: String? = null
 ) {
