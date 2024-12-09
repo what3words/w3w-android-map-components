@@ -23,8 +23,8 @@ enum class MapProvider {
  */
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
-    val MAKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    val MUlTI_MAKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
+    val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
+    val MUlTI_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
 
     /**
      * Data class representing the configuration for the map.

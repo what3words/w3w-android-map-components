@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -9,14 +10,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import com.google.gson.JsonPrimitive
 import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
+import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotationGroup
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
+import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroup
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
 import com.mapbox.maps.extension.compose.style.PointListValue
 import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayer
@@ -24,8 +29,10 @@ import com.mapbox.maps.extension.compose.style.sources.generated.rememberImageSo
 import com.mapbox.maps.extension.style.sources.generated.ImageSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MARKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.MarkerStatus
@@ -48,9 +55,9 @@ fun W3WMapBoxDrawer(
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     // Check if selectedMarker exists in the saved list
-    val markerStatus by remember(state.listMakers, state.selectedAddress) {
+    val markerStatus by remember(state.listMarkers, state.selectedAddress) {
         derivedStateOf {
-            state.selectedAddress?.let { isMarkerInSavedList(state.listMakers, it) }
+            state.selectedAddress?.let { isMarkerInSavedList(state.listMarkers, it) }
         }
     }
 
@@ -64,11 +71,11 @@ fun W3WMapBoxDrawer(
             )
         }
 
-        if (state.listMakers.isNotEmpty()) {
+        if (state.listMarkers.isNotEmpty()) {
             W3WMapBoxDrawMarkers(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                listMakers = state.listMakers,
+                listMarkers = state.listMarkers,
                 selectedMarkerID = if (markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
                 onMarkerClicked = onMarkerClicked
             )
@@ -80,7 +87,7 @@ fun W3WMapBoxDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedMarker = state.selectedAddress.copy(
-                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MAKERS_COLOR_DEFAULT else state.selectedAddress.color
+                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MARKERS_COLOR_DEFAULT else state.selectedAddress.color
                 ),
             )
         }
@@ -95,19 +102,22 @@ fun W3WMapBoxDrawGridLines(
     gridColor: Color,
     gridLineWidth: Dp,
 ) {
-    PolylineAnnotation(
-        points = verticalLines.map { Point.fromLngLat(it.lng, it.lat) }
-    ) {
-        lineColor = gridColor
-        lineWidth = gridLineWidth.value.toDouble()
+    val polylines = remember(verticalLines, horizontalLines, gridColor, gridLineWidth) {
+        listOf(
+            PolylineAnnotationOptions()
+                .withPoints(verticalLines.map { Point.fromLngLat(it.lng, it.lat) })
+                .withLineColor(gridColor.toArgb())
+                .withLineWidth(gridLineWidth.value.toDouble()),
+            PolylineAnnotationOptions()
+                .withPoints(horizontalLines.map { Point.fromLngLat(it.lng, it.lat) })
+                .withLineColor(gridColor.toArgb())
+                .withLineWidth(gridLineWidth.value.toDouble())
+        )
     }
 
-    PolylineAnnotation(
-        points = horizontalLines.map { Point.fromLngLat(it.lng, it.lat) }
-    ) {
-        lineColor = gridColor
-        lineWidth = gridLineWidth.value.toDouble()
-    }
+    PolylineAnnotationGroup(
+        annotations = polylines
+    )
 }
 
 @Composable
@@ -133,18 +143,18 @@ fun W3WMapBoxDrawSelectedAddress(
 fun W3WMapBoxDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMakers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
     selectedMarkerID: Long? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
-    ) {
+) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
-            listMakers,
+            listMarkers,
             selectedMarkerID,
             onMarkerClicked
         )
     } else {
-        DrawZoomInMarkers(listMakers)
+        DrawZoomInMarkers(listMarkers)
     }
 }
 
@@ -159,43 +169,41 @@ private fun DrawZoomOutMarkers(
     val density = LocalDensity.current.density
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    listMarkers.forEach { (listId, markers) ->
-        markers.forEach { marker ->
-            if(selectedMarkerID != marker.id) {
-                val color by remember(marker, listId, listMarkers) {
-                    derivedStateOf {
-                        if (isExistInOtherList(listId, marker, listMarkers)) {
-                            MUlTI_MAKERS_COLOR_DEFAULT
-                        } else {
-                            marker.color
-                        }
+    // Map of cached bitmap with key is the ID of the W3WColor
+    val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
+
+    val annotations = remember(listMarkers, selectedMarkerID) {
+        listMarkers.flatMap { (listId, markers) ->
+            markers.mapNotNull { marker ->
+                if (selectedMarkerID != marker.id) {
+                    val color = if (isExistInOtherList(listId, marker, listMarkers)) {
+                        MUlTI_MARKERS_COLOR_DEFAULT
+                    } else {
+                        marker.color
                     }
-                }
 
-                val bitmap = remember(color) {
-                    getPinBitmap(context, density, color)
-                }
-
-                val icon = rememberIconImage(
-                    key = marker.id,
-                    painter = BitmapPainter(
-                        bitmap.asImageBitmap()
-                    )
-                )
-
-                PointAnnotation(
-                    point = Point.fromLngLat(
-                        marker.latLng.lng,
-                        marker.latLng.lat
-                    )
-                ) {
-                    iconImage = icon
-                    interactionsState.onClicked {
-                        currentOnMarkerClicked(marker)
-                        true
+                    val bitmap = bitmapCache.getOrPut(color.id) {
+                        getPinBitmap(context, density, color)
                     }
-                }
+
+                    PointAnnotationOptions()
+                        .withPoint(Point.fromLngLat(marker.latLng.lng, marker.latLng.lat))
+                        .withIconImage(bitmap)
+                        .withData(JsonPrimitive(marker.id))
+                } else null
             }
+        }
+    }
+
+    PointAnnotationGroup(
+        annotations = annotations,
+    ) {
+        interactionsState.onClicked {
+            val markerId = it.getData()?.asLong
+            val marker = listMarkers.values.flatten().find { it.id == markerId }
+
+            marker?.let(currentOnMarkerClicked)
+            true
         }
     }
 }
@@ -203,44 +211,51 @@ private fun DrawZoomOutMarkers(
 @Composable
 @MapboxMapComposable
 private fun DrawZoomInMarkers(
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMarkers.forEach { (listId, markers) ->
-        markers.forEach { marker ->
-            val square = marker.square
-            val color by remember(marker, listId, listMarkers) {
-                derivedStateOf {
-                    if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MAKERS_COLOR_DEFAULT
-                    } else {
-                        marker.color
-                    }
+    // Map of cached bitmap with key is the ID of the W3WColor
+    val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
+
+    val processedMarkers = remember(listMarkers) {
+        listMarkers.flatMap { (listId, markers) ->
+            markers.map { marker ->
+                val color = if (isExistInOtherList(listId, marker, listMarkers)) {
+                    MUlTI_MARKERS_COLOR_DEFAULT
+                } else {
+                    marker.color
                 }
-            }
 
-            val bitmap = remember(marker.id, color) {
-                getFillGridMarkerBitmap(context, density, color)
-            }
-
-            MapEffect(Unit) {
-                val imageSource: ImageSource = it.mapboxMap.getSourceAs(marker.id.toString())!!
-                imageSource.updateImage(bitmap)
-            }
-
-            RasterLayer(
-                sourceState = rememberImageSourceState(sourceId = marker.id.toString()) {
-                    coordinates = PointListValue(
-                        Point.fromLngLat(square.southwest.lng, square.northeast.lat),
-                        Point.fromLngLat(square.northeast.lng, square.northeast.lat),
-                        Point.fromLngLat(square.northeast.lng, square.southwest.lat),
-                        Point.fromLngLat(square.southwest.lng, square.southwest.lat),
-                    )
+                val bitmap = bitmapCache.getOrPut(color.id) {
+                    getFillGridMarkerBitmap(context, density, color)
                 }
-            )
+
+                // Return a pair with necessary information
+                Pair(marker, bitmap)
+            }
         }
+    }
+
+    processedMarkers.forEach { (marker, bitmap) ->
+        val square = marker.square
+
+        MapEffect(bitmap) { mapView ->
+            val imageSource: ImageSource = mapView.mapboxMap.getSourceAs(marker.id.toString())!!
+            imageSource.updateImage(bitmap)
+        }
+
+        RasterLayer(
+            sourceState = rememberImageSourceState(sourceId = marker.id.toString()) {
+                coordinates = PointListValue(
+                    Point.fromLngLat(square.southwest.lng, square.northeast.lat),
+                    Point.fromLngLat(square.northeast.lng, square.northeast.lat),
+                    Point.fromLngLat(square.northeast.lng, square.southwest.lat),
+                    Point.fromLngLat(square.southwest.lng, square.southwest.lat)
+                )
+            }
+        )
     }
 }
 

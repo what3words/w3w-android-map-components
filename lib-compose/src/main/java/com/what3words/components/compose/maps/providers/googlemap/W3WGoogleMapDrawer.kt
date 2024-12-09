@@ -20,7 +20,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MARKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -51,9 +51,9 @@ fun W3WGoogleMapDrawer(
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     // Check if selectedMarker exists in the saved list
-    val markerStatus by remember(state.listMakers, state.selectedAddress) {
+    val markerStatus by remember(state.listMarkers, state.selectedAddress) {
         derivedStateOf {
-            state.selectedAddress?.let { isMarkerInSavedList(state.listMakers, it) }
+            state.selectedAddress?.let { isMarkerInSavedList(state.listMarkers, it) }
         }
     }
 
@@ -68,13 +68,13 @@ fun W3WGoogleMapDrawer(
             )
         }
 
-        if (state.listMakers.isNotEmpty()) {
+        if (state.listMarkers.isNotEmpty()) {
             //Draw the markers
             W3WGoogleMapDrawMarkers(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedMarkerID = if (markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
-                listMarkers = state.listMakers,
+                listMarkers = state.listMarkers,
                 onMarkerClicked = onMarkerClicked
             )
         }
@@ -85,7 +85,7 @@ fun W3WGoogleMapDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedMarker = state.selectedAddress.copy(
-                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MAKERS_COLOR_DEFAULT else state.selectedAddress.color
+                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MARKERS_COLOR_DEFAULT else state.selectedAddress.color
                 ),
             )
         }
@@ -258,7 +258,7 @@ private fun DrawZoomInMarkers(
             val color by remember(marker, listId, listMarkers) {
                 derivedStateOf {
                     if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MAKERS_COLOR_DEFAULT
+                        MUlTI_MARKERS_COLOR_DEFAULT
                     } else {
                         marker.color
                     }
@@ -303,7 +303,7 @@ private fun DrawZoomOutMarkers(
             val color by remember(marker, listId, listMarkers) {
                 derivedStateOf {
                     if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MAKERS_COLOR_DEFAULT
+                        MUlTI_MARKERS_COLOR_DEFAULT
                     } else {
                         marker.color
                     }
