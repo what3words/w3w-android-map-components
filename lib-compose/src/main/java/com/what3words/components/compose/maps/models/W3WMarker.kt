@@ -10,6 +10,7 @@ data class W3WMarker(
     val latLng: W3WLatLng,
     val square: W3WSquare,
     val color: W3WMarkerColor,
+    val isInMultipleLists: Boolean = false,
     val title: String? = null,
     val snippet: String? = null
 ) {

@@ -33,6 +33,7 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.components.compose.maps.utils.angleOfPoints
+import com.what3words.components.compose.maps.state.isInMultipleLists
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -69,7 +70,6 @@ import kotlinx.coroutines.withContext
  * @param dispatcher A [CoroutineDispatcher] used for managing coroutines, defaulting to
  *   [Dispatchers.IO] for background operations.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
- * @param mapConfig Configuration for the map's appearance, such as grid line config and button config.
  * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
  *
@@ -240,7 +240,9 @@ class W3WMapManager(
     //region Selected Address
     fun setSelectedMarker(marker: W3WMarker) {
         _mapState.value = mapState.value.copy(
-            selectedAddress = marker
+            selectedAddress = marker.copy(
+                isInMultipleLists = isInMultipleLists(marker, mapState.value.listMarkers)
+            )
         )
     }
 
@@ -345,26 +347,24 @@ class W3WMapManager(
     suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        val c23wa = textDataSource.convertTo3wa(coordinates, language)
+        val result = textDataSource.convertTo3wa(coordinates, language)
 
-        if (c23wa is W3WResult.Success) {
-            _mapState.update {
-                it.copy(
-                    selectedAddress = W3WMarker(
-                        words = c23wa.value.words,
-                        square = c23wa.value.square!!.toW3WSquare(),
-                        latLng = c23wa.value.center!!.toW3WLatLong(),
-                        color = MARKER_COLOR_DEFAULT
-                    )
+        if (result is W3WResult.Success) {
+            setSelectedMarker(
+                W3WMarker(
+                    words = result.value.words,
+                    square = result.value.square!!.toW3WSquare(),
+                    latLng = result.value.center!!.toW3WLatLong(),
+                    color = MARKER_COLOR_DEFAULT
                 )
-            }
+            )
 
             if (_buttonState.value.isRecallButtonEnabled) {
                 handleRecallButton()
             }
         }
 
-        return@withContext c23wa
+        return@withContext result
     }
 
     // Method used to test add/remove drawn markers on map. To be removed
@@ -496,9 +496,4 @@ class W3WMapManager(
                 (180 + alpha) * -1
             }
         }
-}
-
-sealed class W3WMapResult {
-    data class Success(val address: W3WAddress) : W3WMapResult()
-    data class Failure(val error: W3WError) : W3WMapResult()
 }

@@ -109,12 +109,12 @@ object W3WMapDefaults {
         )
     }
 
-    private fun defaultGridLinesConfig(
+    fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
         gridColor: Color = Color.LightGray,
-        zoomSwitchLevel: Float = 18f,
+        zoomSwitchLevel: Float = 19f,
         gridLineWidth: Dp = 1.dp,
-        gridScale: Float = 6f
+        gridScale: Float = 4f
     ): GridLinesConfig {
         return GridLinesConfig(
             isGridEnabled = isGridEnabled,

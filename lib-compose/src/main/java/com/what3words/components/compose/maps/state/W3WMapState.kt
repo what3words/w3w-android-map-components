@@ -45,12 +45,23 @@ data class W3WMapState(
 
     val listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>> = persistentMapOf(),
 
+    // data class handling draw markers unique by id
+    internal val markers: ImmutableList<W3WMarker> = persistentListOf(),
+
     // Control camera position of map
     internal val cameraState: W3WCameraState<*>? = null,
 
     // data class handling draw grid lines on map
     internal val gridLines: W3WGridLines = W3WGridLines(),
 )
+
+// Generate list markers from map list name and markers
+internal fun generateMarkers(
+    listMakers: ImmutableMap<String, ImmutableList<W3WMarker>>): ImmutableList<W3WMarker> {
+    return listMakers.values.flatten().map { item ->
+        item.copy(isInMultipleLists = isInMultipleLists(item,listMakers))
+    }.toImmutableList()
+}
 
 internal fun W3WMapState.addListMarker(
     listName: String,
@@ -64,9 +75,11 @@ internal fun W3WMapState.addListMarker(
     val updatedSavedListMarkers = listMarkers + (listName to updatedMarkers.toImmutableList())
 
     // Return a new state with the updated map
-    return copy(listMarkers = updatedSavedListMarkers.toImmutableMap())
+    return copy(
+        listMarkers = updatedSavedListMarkers.toImmutableMap(),
+        markers = generateMarkers(updatedSavedListMarkers.toImmutableMap())
+    )
 }
-
 
 internal fun W3WMapState.addMarker(
     listName: String? = null,  // Optional list identifier
@@ -91,52 +104,16 @@ internal fun W3WMapState.addMarker(
     val updatedMap = listMarkers + (key to updatedList.toImmutableList())
 
     // Return a new map with the updated list for the key
-    return copy(listMarkers = updatedMap.toImmutableMap())
+    return copy(
+        listMarkers = updatedMap.toImmutableMap(),
+        markers = generateMarkers(updatedMap.toImmutableMap())
+    )
 }
 
-
-internal fun isExistInOtherList(
-    listName: String,  // The current listName
+internal fun isInMultipleLists(
     marker: W3WMarker,  // The marker to check
     listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>
 ): Boolean {
-    // Check if the marker exists in any other list besides the one with listName
-    return listMarkers.filter { (key, listMarker) ->
-        // Skip the current listName
-        key != listName && listMarker.any { it.id == marker.id }
-    }.isNotEmpty()
-}
-
-internal fun isMarkerInSavedList(
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    marker: W3WMarker
-): MarkerStatus {
-
-    // Count how many lists contain the marker
-    var foundMarker: W3WMarker? = null
-
-    // Iterate over the saved lists
-    for (list in listMarkers.values) {
-        // Check if the marker exists in the current list
-        list.firstOrNull { it.id == marker.id }?.let {
-            if (foundMarker != null) {
-                // Marker found in multiple lists, immediately return Multiple
-                return MarkerStatus.InMultipleList
-            }
-
-            foundMarker = it
-        }
-    }
-
-    // If we found the marker in exactly one list, return Single; otherwise, return None
-    return foundMarker?.let { MarkerStatus.InSingleList(it) } ?: MarkerStatus.NotSaved
-}
-
-@Immutable
-sealed class MarkerStatus {
-    object NotSaved : MarkerStatus() // Marker doesn't exist in any list
-    data class InSingleList(val marker: W3WMarker) :
-        MarkerStatus() // Marker exists in exactly one list
-
-    object InMultipleList : MarkerStatus() // Marker exists in multiple lists
+    val count = listMarkers.values.flatten().count { it.id == marker.id }
+    return count > 1
 }

@@ -3,10 +3,10 @@ package com.what3words.components.compose.maps.providers.googlemap
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -20,20 +20,17 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MARKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.state.MarkerStatus
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.isExistInOtherList
-import com.what3words.components.compose.maps.state.isMarkerInSavedList
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 
 /**
  * A composable function that draws What3Words component support:
@@ -50,13 +47,6 @@ fun W3WGoogleMapDrawer(
     mapConfig: W3WMapDefaults.MapConfig,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
-    // Check if selectedMarker exists in the saved list
-    val markerStatus by remember(state.listMarkers, state.selectedAddress) {
-        derivedStateOf {
-            state.selectedAddress?.let { isMarkerInSavedList(state.listMarkers, it) }
-        }
-    }
-
     state.cameraState?.let { cameraState ->
         if (mapConfig.gridLineConfig.isGridEnabled) {
             // Draw grid lines
@@ -68,13 +58,12 @@ fun W3WGoogleMapDrawer(
             )
         }
 
-        if (state.listMarkers.isNotEmpty()) {
+        if (state.markers.isNotEmpty()) {
             //Draw the markers
             W3WGoogleMapDrawMarkers(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarkerID = if (markerStatus != MarkerStatus.NotSaved) state.selectedAddress?.id else null,
-                listMarkers = state.listMarkers,
+                listMarkers = state.markers,
                 onMarkerClicked = onMarkerClicked
             )
         }
@@ -84,9 +73,7 @@ fun W3WGoogleMapDrawer(
             W3WGoogleMapDrawSelectedAddress(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress.copy(
-                    color = if (markerStatus == MarkerStatus.InMultipleList) MUlTI_MARKERS_COLOR_DEFAULT else state.selectedAddress.color
-                ),
+                selectedMarker = state.selectedAddress
             )
         }
     }
@@ -163,19 +150,21 @@ private fun DrawZoomOutSelectedAddress(
         markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val icon = remember(selectedMarker.color) {
+    val icon = remember(selectedMarker.isInMultipleLists, selectedMarker.color) {
         BitmapDescriptorFactory.fromBitmap(
             getMarkerBitmap(
                 context,
                 density,
-                selectedMarker.color
+                if(selectedMarker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else selectedMarker.color
             )
         )
     }
 
     Marker(
         state = markerState,
-        icon = icon
+        anchor = Offset(0.5f, 0.75f),
+        icon = icon,
+        zIndex = 1f
     )
 }
 
@@ -229,104 +218,86 @@ private fun DrawZoomInSelectedAddress(
 fun W3WGoogleMapDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    selectedMarkerID: Long? = null,
-    onMarkerClicked: (W3WMarker) -> Unit,
+    listMarkers: ImmutableList<W3WMarker>,
+    onMarkerClicked: (W3WMarker) -> Unit
 ) {
     if (zoomLevel < zoomSwitchLevel) {
         DrawZoomOutMarkers(
-            selectedMarkerID = selectedMarkerID,
             listMarkers = listMarkers,
             onMarkerClicked = onMarkerClicked
         )
     } else {
         DrawZoomInMarkers(
-            listMarkers = listMarkers
+            listMarkers
         )
     }
 }
 
 @Composable
 private fun DrawZoomInMarkers(
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
+    listMakers: ImmutableList<W3WMarker>
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    listMarkers.forEach { (listId, markers) ->
-        markers.forEach { marker ->
-            val color by remember(marker, listId, listMarkers) {
-                derivedStateOf {
-                    if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MARKERS_COLOR_DEFAULT
-                    } else {
-                        marker.color
-                    }
-                }
-            }
-
-            val bitmap = remember(marker.id, color) {
-                BitmapDescriptorFactory.fromBitmap(getFillGridMarkerBitmap(context, density, color))
-            }
-
-            val square = marker.square
-
-            GroundOverlay(
-                position = GroundOverlayPosition.create(
-                    LatLngBounds(
-                        LatLng(
-                            square.southwest.lat,
-                            square.southwest.lng
-                        ),
-                        LatLng(square.northeast.lat, square.northeast.lng)
-                    )
-                ),
-                image = bitmap,
+    listMakers.forEach { marker ->
+        val bitmap = remember(marker.isInMultipleLists, marker.color) {
+            BitmapDescriptorFactory.fromBitmap(
+                getFillGridMarkerBitmap(
+                    context,
+                    density,
+                    if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                )
             )
         }
+
+        val square = marker.square
+
+        GroundOverlay(
+            position = GroundOverlayPosition.create(
+                LatLngBounds(
+                    LatLng(
+                        square.southwest.lat,
+                        square.southwest.lng
+                    ),
+                    LatLng(square.northeast.lat, square.northeast.lng)
+                )
+            ),
+            image = bitmap,
+        )
     }
 }
 
 @Composable
 private fun DrawZoomOutMarkers(
-    listMarkers: ImmutableMap<String, ImmutableList<W3WMarker>>,
-    selectedMarkerID: Long? = null,
+    listMarkers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    listMarkers.forEach { (listId, markers) ->
-        markers.forEach { marker ->
-            val color by remember(marker, listId, listMarkers) {
-                derivedStateOf {
-                    if (isExistInOtherList(listId, marker, listMarkers)) {
-                        MUlTI_MARKERS_COLOR_DEFAULT
-                    } else {
-                        marker.color
-                    }
-                }
-            }
-
-            val icon = remember(marker.id, color) {
-                BitmapDescriptorFactory.fromBitmap(getPinBitmap(context, density, color))
-            }
-
-            Marker(
-                state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
-                icon = icon,
-                visible = selectedMarkerID != marker.id,
-                onClick = {
-                    currentOnMarkerClicked(marker)
-                    true
-                },
-                title = marker.title,
-                snippet = marker.snippet
+    listMarkers.forEach { marker ->
+        val icon = remember(marker.isInMultipleLists, marker.color) {
+            BitmapDescriptorFactory.fromBitmap(
+                getPinBitmap(
+                    context,
+                    density,
+                    if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                )
             )
-
         }
+
+        Marker(
+            state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
+            icon = icon,
+            onClick = {
+                currentOnMarkerClicked(marker)
+                true
+            },
+            title = marker.title,
+            snippet = marker.snippet
+        )
     }
 }
 
