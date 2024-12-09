@@ -9,10 +9,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.core.graphics.PathUtils.flatten
 import com.google.gson.JsonPrimitive
 import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapEffect
@@ -40,7 +40,6 @@ import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableList
-import java.nio.file.Files.find
 
 @Composable
 @MapboxMapComposable
@@ -87,11 +86,17 @@ fun W3WMapBoxDrawGridLines(
     gridColor: Color,
     gridLineWidth: Dp,
 ) {
-    PolylineAnnotation(
-        points = verticalLines.map { Point.fromLngLat(it.lng, it.lat) }
-    ) {
-        lineColor = gridColor
-        lineWidth = gridLineWidth.value.toDouble()
+    val polylines = remember(verticalLines, horizontalLines, gridColor, gridLineWidth) {
+        listOf(
+            PolylineAnnotationOptions()
+                .withPoints(verticalLines.map { Point.fromLngLat(it.lng, it.lat) })
+                .withLineColor(gridColor.toArgb())
+                .withLineWidth(gridLineWidth.value.toDouble()),
+            PolylineAnnotationOptions()
+                .withPoints(horizontalLines.map { Point.fromLngLat(it.lng, it.lat) })
+                .withLineColor(gridColor.toArgb())
+                .withLineWidth(gridLineWidth.value.toDouble())
+        )
     }
 
     PolylineAnnotationGroup(
@@ -150,11 +155,12 @@ private fun DrawZoomOutMarkers(
 
     val annotations = remember(listMarkers) {
         listMarkers.map { marker ->
-            val bitmap = bitmapCache.getOrPut(marker.color.id) {
+            val color = if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+            val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
                     density,
-                    if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                    color
                 )
             }
 
@@ -189,11 +195,12 @@ private fun DrawZoomInMarkers(
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
     listMakers.forEach { marker ->
-        val bitmap = bitmapCache.getOrPut(marker.color.id) {
+        val color = if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+        val bitmap = bitmapCache.getOrPut(color.id) {
             getFillGridMarkerBitmap(
                 context, 
                 density,
-                if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                color
             )
         }
 

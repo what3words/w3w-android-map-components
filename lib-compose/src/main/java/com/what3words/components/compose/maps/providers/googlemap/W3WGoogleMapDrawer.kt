@@ -20,7 +20,6 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MAKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MUlTI_MARKERS_COLOR_DEFAULT
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WLatLng
@@ -241,12 +240,13 @@ private fun DrawZoomInMarkers(
     val density = LocalDensity.current.density
 
     listMakers.forEach { marker ->
-        val bitmap = remember(marker.isInMultipleLists, marker.color) {
+        val color = if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+        val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getFillGridMarkerBitmap(
                     context,
                     density,
-                    if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                    color
                 )
             )
         }
@@ -263,7 +263,7 @@ private fun DrawZoomInMarkers(
                     LatLng(square.northeast.lat, square.northeast.lng)
                 )
             ),
-            image = bitmap,
+            image = icon,
         )
     }
 }
@@ -278,12 +278,13 @@ private fun DrawZoomOutMarkers(
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
     listMarkers.forEach { marker ->
-        val icon = remember(marker.isInMultipleLists, marker.color) {
+        val color = if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+        val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
                     context,
                     density,
-                    if(marker.isInMultipleLists) MUlTI_MARKERS_COLOR_DEFAULT else marker.color
+                    color
                 )
             )
         }
