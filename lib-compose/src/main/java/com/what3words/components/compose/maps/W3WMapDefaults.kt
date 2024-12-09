@@ -35,6 +35,8 @@ object W3WMapDefaults {
     @Immutable
     data class MapConfig(
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        // Marker
+        val markerConfig: MarkerConfig,
         // Grid view
         val gridLineConfig: GridLinesConfig,
         // Buttons
@@ -88,6 +90,12 @@ object W3WMapDefaults {
         val isRecallButtonEnabled: Boolean,
     )
 
+    @Immutable
+    data class MarkerConfig(
+        val markerColor: W3WMarkerColor,
+        val multiMarkersColor: W3WMarkerColor
+    )
+
     @Composable
     fun defaultLayoutConfig(
         contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp)
@@ -100,12 +108,14 @@ object W3WMapDefaults {
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
-        buttonConfig: ButtonConfig = defaultButtonConfig()
+        buttonConfig: ButtonConfig = defaultButtonConfig(),
+        markerConfig: MarkerConfig = defaultMarkerConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
             gridLineConfig = gridLineConfig,
-            buttonConfig = buttonConfig
+            buttonConfig = buttonConfig,
+            markerConfig = markerConfig
         )
     }
 
@@ -137,4 +147,13 @@ object W3WMapDefaults {
         )
     }
 
+    fun defaultMarkerConfig(
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        multiMarkersColor: W3WMarkerColor = MUlTI_MARKERS_COLOR_DEFAULT
+    ): MarkerConfig {
+        return MarkerConfig(
+            markerColor = markerColor,
+            multiMarkersColor = multiMarkersColor
+        )
+    }
 }
