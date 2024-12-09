@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps
 
 import android.Manifest
 import android.graphics.PointF
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -69,6 +68,10 @@ fun W3WMapComponent(
 
     val mapState by mapManager.mapState.collectAsState()
     val buttonState by mapManager.buttonState.collectAsState()
+
+    // TODO: Find optimal way to set isRecallButtonEnabled
+    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonEnabled)
+
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
     val onMarkerClicked = remember(mapManager) {

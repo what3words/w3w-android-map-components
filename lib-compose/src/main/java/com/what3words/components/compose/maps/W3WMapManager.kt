@@ -79,7 +79,6 @@ class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     private val dispatcher: CoroutineDispatcher = IO,
     val mapProvider: MapProvider,
-    mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapState: W3WMapState = W3WMapState(),
     buttonState: W3WButtonsState = W3WButtonsState(),
 ) {
@@ -92,8 +91,6 @@ class W3WMapManager(
 
     private val _buttonState: MutableStateFlow<W3WButtonsState> = MutableStateFlow(buttonState)
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
-
-    private val isRecallButtonEnabled = mapConfig.buttonConfig.isRecallButtonEnabled
 
     private val gridCalculationFlow = MutableStateFlow<W3WCameraState<*>?>(null)
 
@@ -233,7 +230,7 @@ class W3WMapManager(
         }
         gridCalculationFlow.value = newCameraState
 
-        if (isRecallButtonEnabled) {
+        if (_buttonState.value.isRecallButtonEnabled) {
             handleRecallButton()
         }
     }
@@ -362,7 +359,7 @@ class W3WMapManager(
                 )
             }
 
-            if (isRecallButtonEnabled) {
+            if (_buttonState.value.isRecallButtonEnabled) {
                 handleRecallButton()
             }
         }
@@ -451,6 +448,12 @@ class W3WMapManager(
     fun setRecallButtonPosition(recallButtonPosition: PointF) {
         _buttonState.update {
             it.copy(recallButtonPosition = recallButtonPosition)
+        }
+    }
+
+    fun setRecallButtonEnabled(isEnabled: Boolean) {
+        _buttonState.update {
+            it.copy(isRecallButtonEnabled = isEnabled)
         }
     }
 

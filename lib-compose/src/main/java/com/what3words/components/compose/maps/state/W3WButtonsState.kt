@@ -15,6 +15,7 @@ data class W3WButtonsState(
 
     // Recall button
     val isRecallButtonVisible: Boolean = false,
+    val isRecallButtonEnabled: Boolean = false,
     val arrowColor: Color = Color.White,
     val backgroundColor: Color = Color.Red,
     val rotationDegree: Float = 0F,
