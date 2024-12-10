@@ -167,7 +167,7 @@ private fun DrawZoomOutMarkers(
 
     val annotations = remember(markers) {
         markers.map { marker ->
-            val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
+            val color = if(marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
             val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
@@ -245,7 +245,7 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
+    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiListMarkersColor else selectedMarker.color
 
     val marker = rememberIconImage(
         key = color.id,

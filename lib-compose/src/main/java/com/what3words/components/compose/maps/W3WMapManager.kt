@@ -11,6 +11,8 @@ import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxError
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
+import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
+import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -30,7 +32,6 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.components.compose.maps.utils.angleOfPoints
-import com.what3words.components.compose.maps.state.isInMultipleLists
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
@@ -331,10 +332,11 @@ class W3WMapManager(
         if (c23wa is W3WResult.Success) {
             addMarker(
                 marker = W3WMarker(
-                words = c23wa.value.words,
-                square = c23wa.value.square!!.toW3WSquare(),
-                latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                color = markerColor)
+                    words = c23wa.value.words,
+                    square = c23wa.value.square!!.toW3WSquare(),
+                    latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                    color = markerColor
+                )
             )
         }
 
@@ -359,24 +361,6 @@ class W3WMapManager(
             if (_buttonState.value.isRecallButtonEnabled) {
                 handleRecallButton()
             }
-        }
-
-        return@withContext result
-    }
-
-    // Method used to test add/remove drawn markers on map. To be removed
-    suspend fun removeMarkerAtWords(words: String
-    ): W3WResult<W3WAddress> = withContext(dispatcher){
-        val result = textDataSource.convertToCoordinates(words)
-
-        if (result is W3WResult.Success) {
-                removeMarker(W3WMarker(
-                    words = result.value.words,
-                    square = result.value.square!!.toW3WSquare(),
-                    latLng = result.value.center!!.toW3WLatLong(),
-                    color = MARKER_COLOR_DEFAULT
-                )
-            )
         }
 
         return@withContext result
@@ -462,7 +446,8 @@ class W3WMapManager(
     private suspend fun updateSelectedScreenLocation() {
         withContext(dispatcher) {
             val selectedAddress = mapState.value.selectedAddress?.latLng
-            val selectedScreenLocation = selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
+            val selectedScreenLocation =
+                selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
             _buttonState.update {
                 it.copy(selectedScreenLocation = selectedScreenLocation)
             }
@@ -482,7 +467,8 @@ class W3WMapManager(
                 recallButtonViewport?.containsPoint(it) == false
             }
         } ?: false
-        val rotationDegree = computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
+        val rotationDegree =
+            computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
         _buttonState.update {
             it.copy(
                 rotationDegree = rotationDegree ?: 0F,
@@ -491,7 +477,10 @@ class W3WMapManager(
         }
     }
 
-    private fun computeRecallButtonRotation(selectedScreenLocation: PointF?, recallButtonPosition: PointF) =
+    private fun computeRecallButtonRotation(
+        selectedScreenLocation: PointF?,
+        recallButtonPosition: PointF
+    ) =
         selectedScreenLocation?.let {
             angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
                 // add 180 degrees to computed value to compensate arrow rotation
@@ -547,7 +536,7 @@ class W3WMapManager(
     }
 }
 
-fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
+private fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
     listName: String,
     listColor: W3WMarkerColor,
     markers: List<W3WMarker>,
@@ -572,7 +561,7 @@ fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
     this[listName] = currentList
 }
 
-fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
+private fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
     listName: String? = null,  // Optional list identifier
     marker: W3WMarker,        // Marker to add or update
 ) {
@@ -603,7 +592,7 @@ fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
  *
  * @return list of W3WMarker
  */
-fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
+private fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
     return this.values.flatten().map { item ->
         item.copy(
             hasMultipleLists = hasMultipleLists(
@@ -614,8 +603,8 @@ fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
     }
 }
 
-fun hasMultipleLists(
-    marker: W3WMarker,  // The marker to check
+private fun hasMultipleLists(
+    marker: W3WMarker,
     listMarkers: Map<String, List<W3WMarker>>
 ): Boolean {
     val count = listMarkers.values.flatten().count { it.id == marker.id }

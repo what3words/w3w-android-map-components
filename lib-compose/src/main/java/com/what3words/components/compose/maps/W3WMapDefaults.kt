@@ -24,7 +24,7 @@ enum class MapProvider {
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    val MUlTI_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
+    private val MUlTI_LIST_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
 
     /**
      * Data class representing the configuration for the map.
@@ -93,7 +93,7 @@ object W3WMapDefaults {
     @Immutable
     data class MarkerConfig(
         val markerColor: W3WMarkerColor,
-        val multiMarkersColor: W3WMarkerColor
+        val multiListMarkersColor: W3WMarkerColor
     )
 
     @Composable
@@ -149,11 +149,11 @@ object W3WMapDefaults {
 
     fun defaultMarkerConfig(
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-        multiMarkersColor: W3WMarkerColor = MUlTI_MARKERS_COLOR_DEFAULT
+        multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT
     ): MarkerConfig {
         return MarkerConfig(
             markerColor = markerColor,
-            multiMarkersColor = multiMarkersColor
+            multiListMarkersColor = multiMarkersColor
         )
     }
 }

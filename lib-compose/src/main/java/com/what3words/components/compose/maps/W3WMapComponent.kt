@@ -280,9 +280,7 @@ internal fun W3WMapContent(
                 onMarkerClicked = onMarkerClicked,
                 onMapClicked = onMapClicked,
                 content = content,
-                onCameraUpdated = {
-                    onCameraUpdated.invoke(it)
-                },
+                onCameraUpdated = onCameraUpdated,
                 onMapProjectionUpdated = onMapProjectionUpdated
             )
 
@@ -390,9 +388,7 @@ internal fun W3WMapView(
                 content = content,
                 onMapClicked = onMapClicked,
                 onMarkerClicked = onMarkerClicked,
-                onCameraUpdated = {
-                    onCameraUpdated.invoke(it)
-                },
+                onCameraUpdated = onCameraUpdated,
                 onMapProjectionUpdated = onMapProjectionUpdated
             )
         }
@@ -406,9 +402,7 @@ internal fun W3WMapView(
                 content = content,
                 onMapClicked = onMapClicked,
                 onMarkerClicked = onMarkerClicked,
-                onCameraUpdated = {
-                    onCameraUpdated.invoke(it)
-                },
+                onCameraUpdated = onCameraUpdated,
                 onMapProjectionUpdated = onMapProjectionUpdated
             )
         }

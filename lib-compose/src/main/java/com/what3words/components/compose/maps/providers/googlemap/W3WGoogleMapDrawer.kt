@@ -141,7 +141,7 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiMarkersColor else selectedMarker.color
+    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiListMarkersColor else selectedMarker.color
 
     val markerState =
         rememberMarkerState(
@@ -247,7 +247,7 @@ private fun DrawZoomInMarkers(
     val density = LocalDensity.current.density
 
     markers.forEach { marker ->
-        val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
+        val color = if(marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getFillGridMarkerBitmap(
@@ -286,7 +286,7 @@ private fun DrawZoomOutMarkers(
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
     markers.forEach { marker ->
-        val color = if(marker.hasMultipleLists) markerConfig.multiMarkersColor else marker.color
+        val color = if(marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
