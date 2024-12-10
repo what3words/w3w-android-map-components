@@ -24,7 +24,7 @@ enum class MapProvider {
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    val MUlTI_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
+    private val MUlTI_LIST_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
 
     /**
      * Data class representing the configuration for the map.
@@ -35,6 +35,8 @@ object W3WMapDefaults {
     @Immutable
     data class MapConfig(
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        // Marker
+        val markerConfig: MarkerConfig,
         // Grid view
         val gridLineConfig: GridLinesConfig,
         // Buttons
@@ -88,6 +90,12 @@ object W3WMapDefaults {
         val isRecallButtonEnabled: Boolean,
     )
 
+    @Immutable
+    data class MarkerConfig(
+        val markerColor: W3WMarkerColor,
+        val multiListMarkersColor: W3WMarkerColor
+    )
+
     @Composable
     fun defaultLayoutConfig(
         contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp)
@@ -100,21 +108,23 @@ object W3WMapDefaults {
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
-        buttonConfig: ButtonConfig = defaultButtonConfig()
+        buttonConfig: ButtonConfig = defaultButtonConfig(),
+        markerConfig: MarkerConfig = defaultMarkerConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
             gridLineConfig = gridLineConfig,
-            buttonConfig = buttonConfig
+            buttonConfig = buttonConfig,
+            markerConfig = markerConfig
         )
     }
 
-    private fun defaultGridLinesConfig(
+    fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
         gridColor: Color = Color.LightGray,
-        zoomSwitchLevel: Float = 18f,
+        zoomSwitchLevel: Float = 19f,
         gridLineWidth: Dp = 1.dp,
-        gridScale: Float = 6f
+        gridScale: Float = 4f
     ): GridLinesConfig {
         return GridLinesConfig(
             isGridEnabled = isGridEnabled,
@@ -137,4 +147,13 @@ object W3WMapDefaults {
         )
     }
 
+    fun defaultMarkerConfig(
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT
+    ): MarkerConfig {
+        return MarkerConfig(
+            markerColor = markerColor,
+            multiListMarkersColor = multiMarkersColor
+        )
+    }
 }

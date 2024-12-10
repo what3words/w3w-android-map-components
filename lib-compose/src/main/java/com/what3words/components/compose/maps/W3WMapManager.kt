@@ -25,10 +25,9 @@ import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WZoomOption
+import com.what3words.components.compose.maps.state.LIST_DEFAULT_ID
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.addListMarker
-import com.what3words.components.compose.maps.state.addMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
@@ -41,7 +40,6 @@ import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +67,6 @@ import kotlinx.coroutines.withContext
  * @param dispatcher A [CoroutineDispatcher] used for managing coroutines, defaulting to
  *   [Dispatchers.IO] for background operations.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
- * @param mapConfig Configuration for the map's appearance, such as grid line config and button config.
  * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
  *
@@ -93,6 +90,9 @@ class W3WMapManager(
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
 
     private val gridCalculationFlow = MutableStateFlow<W3WCameraState<*>?>(null)
+
+    // A mutable map that stores lists of markers, keyed by a list name identifier
+    private val markersMap: MutableMap<String, MutableList<W3WMarker>> = mutableMapOf()
 
     init {
         _mapState.update {
@@ -240,7 +240,9 @@ class W3WMapManager(
     //region Selected Address
     fun setSelectedMarker(marker: W3WMarker) {
         _mapState.value = mapState.value.copy(
-            selectedAddress = marker
+            selectedAddress = marker.copy(
+                hasMultipleLists = hasMultipleLists(marker, markersMap)
+            )
         )
     }
 
@@ -285,11 +287,10 @@ class W3WMapManager(
             )
         }
 
-        // Update the map with the markers
-        _mapState.value = mapState.value.addListMarker(
+        addListMarker(
             listName = listName,
-            markers = markers.toImmutableList(),
-            listColor = listColor
+            listColor = listColor,
+            markers = markers
         )
 
         // Return the complete list of results
@@ -312,7 +313,7 @@ class W3WMapManager(
                 color = markerColor
             )
 
-            _mapState.value = mapState.value.addMarker(
+            addMarker(
                 marker = marker
             )
         }
@@ -329,7 +330,7 @@ class W3WMapManager(
         val c23wa = textDataSource.convertTo3wa(coordinates, language)
 
         if (c23wa is W3WResult.Success) {
-            _mapState.value = mapState.value.addMarker(
+            addMarker(
                 marker = W3WMarker(
                     words = c23wa.value.words,
                     square = c23wa.value.square!!.toW3WSquare(),
@@ -345,39 +346,24 @@ class W3WMapManager(
     suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        val c23wa = textDataSource.convertTo3wa(coordinates, language)
+        val result = textDataSource.convertTo3wa(coordinates, language)
 
-        if (c23wa is W3WResult.Success) {
-            _mapState.update {
-                it.copy(
-                    selectedAddress = W3WMarker(
-                        words = c23wa.value.words,
-                        square = c23wa.value.square!!.toW3WSquare(),
-                        latLng = c23wa.value.center!!.toW3WLatLong(),
-                        color = MARKER_COLOR_DEFAULT
-                    )
+        if (result is W3WResult.Success) {
+            setSelectedMarker(
+                W3WMarker(
+                    words = result.value.words,
+                    square = result.value.square!!.toW3WSquare(),
+                    latLng = result.value.center!!.toW3WLatLong(),
+                    color = MARKER_COLOR_DEFAULT
                 )
-            }
+            )
 
             if (_buttonState.value.isRecallButtonEnabled) {
                 handleRecallButton()
             }
         }
 
-        return@withContext c23wa
-    }
-
-    // Method used to test add/remove drawn markers on map. To be removed
-    fun removeMarkerAtWords(words: String) {
-        _mapState.update { currentState ->
-            // Filter out markers with the specified words
-            val updatedListMarkers = currentState.listMarkers.mapValues { (_, listMarker) ->
-                listMarker.filter { it.words != words }.toImmutableList()
-            }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
-
-            // Return the updated state with the cleaned list
-            currentState.copy(listMarkers = updatedListMarkers.toImmutableMap())
-        }
+        return@withContext result
     }
 
     private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
@@ -460,7 +446,8 @@ class W3WMapManager(
     private suspend fun updateSelectedScreenLocation() {
         withContext(dispatcher) {
             val selectedAddress = mapState.value.selectedAddress?.latLng
-            val selectedScreenLocation = selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
+            val selectedScreenLocation =
+                selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
             _buttonState.update {
                 it.copy(selectedScreenLocation = selectedScreenLocation)
             }
@@ -480,7 +467,8 @@ class W3WMapManager(
                 recallButtonViewport?.containsPoint(it) == false
             }
         } ?: false
-        val rotationDegree = computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
+        val rotationDegree =
+            computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
         _buttonState.update {
             it.copy(
                 rotationDegree = rotationDegree ?: 0F,
@@ -489,16 +477,136 @@ class W3WMapManager(
         }
     }
 
-    private fun computeRecallButtonRotation(selectedScreenLocation: PointF?, recallButtonPosition: PointF) =
+    private fun computeRecallButtonRotation(
+        selectedScreenLocation: PointF?,
+        recallButtonPosition: PointF
+    ) =
         selectedScreenLocation?.let {
             angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
                 // add 180 degrees to computed value to compensate arrow rotation
                 (180 + alpha) * -1
             }
         }
+
+    private fun addMarker(
+        marker: W3WMarker
+    ) {
+        markersMap.addMarker(
+            marker = marker
+        )
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+    }
+
+    private fun addListMarker(
+        listName: String,
+        listColor: W3WMarkerColor,
+        markers: List<W3WMarker>
+    ) {
+        markersMap.addListMarker(
+            listName = listName,
+            markers = markers,
+            listColor = listColor
+        )
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+    }
+
+    private fun removeMarker(
+        marker: W3WMarker
+    ) {
+        // Filter out markers with the specified words
+        markersMap.mapValues { (_, listMarker) ->
+            listMarker.filter { it.id != marker.id }.toImmutableList()
+        }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+    }
 }
 
-sealed class W3WMapResult {
-    data class Success(val address: W3WAddress) : W3WMapResult()
-    data class Failure(val error: W3WError) : W3WMapResult()
+private fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
+    listName: String,
+    listColor: W3WMarkerColor,
+    markers: List<W3WMarker>,
+) {
+    if (markers.isEmpty()) return
+
+    val currentList = this.getOrPut(listName) { mutableListOf() }
+
+    markers.map { it.copy(color = listColor) }.forEach { marker ->
+        // Check if the marker already exists (based on its `id`)
+        val index = currentList.indexOfFirst { it.id == marker.id }
+
+        if (index != -1) {
+            // If the marker exists, update it with the new one
+            currentList[index] = marker
+        } else {
+            // If the marker does not exist, add it to the list
+            currentList.add(marker)
+        }
+    }
+
+    this[listName] = currentList
+}
+
+private fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
+    listName: String? = null,  // Optional list identifier
+    marker: W3WMarker,        // Marker to add or update
+) {
+    // Determine the listName: use provided listName or a default
+    val key = listName ?: LIST_DEFAULT_ID
+
+    // Get or create the current list of markers (using MutableList for in-place updates)
+    val currentList = this[key] ?: mutableListOf()
+
+    // Create a new list by either updating or adding the marker
+    if (marker in currentList) {
+        // Replace the existing marker if it exists (by id)
+        val index = currentList.indexOfFirst { it.id == marker.id }
+        if (index != -1) {
+            currentList[index] = marker
+        }
+    } else {
+        // Marker doesn't exist, add it to the list
+        currentList.add(marker)
+    }
+
+    // Update the map with the modified list
+    this[key] = currentList
+}
+
+/**
+ * Convert Map maker to list marker with unique ID
+ *
+ * @return list of W3WMarker
+ */
+private fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
+    return this.values.flatten().map { item ->
+        item.copy(
+            hasMultipleLists = hasMultipleLists(
+                item,
+                this
+            )
+        )
+    }
+}
+
+private fun hasMultipleLists(
+    marker: W3WMarker,
+    listMarkers: Map<String, List<W3WMarker>>
+): Boolean {
+    val count = listMarkers.values.flatten().count { it.id == marker.id }
+    return count > 1
 }

@@ -118,6 +118,16 @@ fun W3WMapBox(
         modifier = modifier,
         mapState = mapState,
         mapViewportState = mapViewportState,
+        logo = {
+            Logo(
+                contentPadding = layoutConfig.contentPadding
+            )
+        },
+        compass = {
+            Compass(
+                contentPadding = layoutConfig.contentPadding
+            )
+        },
         onMapClickListener = {
             onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))
             true
