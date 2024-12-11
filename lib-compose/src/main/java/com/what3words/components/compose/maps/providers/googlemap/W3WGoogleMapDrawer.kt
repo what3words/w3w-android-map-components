@@ -60,7 +60,8 @@ fun W3WGoogleMapDrawer(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
                 zoomLevel = cameraState.getZoomLevel(),
-                gridLinesConfig = mapConfig.gridLineConfig
+                gridLinesConfig = mapConfig.gridLineConfig,
+                isDarkMode = state.isDarkMode
             )
         }
 
@@ -150,6 +151,7 @@ fun W3WGoogleMapDrawGridLines(
     horizontalLines: List<W3WLatLng>,
     zoomLevel: Float,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
+    isDarkMode: Boolean
 ) {
     val shouldDrawGrid = remember(zoomLevel) {
         derivedStateOf {
@@ -166,9 +168,13 @@ fun W3WGoogleMapDrawGridLines(
             LatLng(coordinate.lat, coordinate.lng)
         }
 
+        val gridLineColor = remember(isDarkMode) {
+            if(isDarkMode) gridLinesConfig.gridColorDarkMode else gridLinesConfig.gridColor
+        }
+
         Polyline(
             points = horizontalPolylines,
-            color = gridLinesConfig.gridColor,
+            color = gridLineColor,
             width = gridLinesConfig.gridLineWidth.value,
             clickable = false,
             zIndex = 1f
@@ -176,7 +182,7 @@ fun W3WGoogleMapDrawGridLines(
 
         Polyline(
             points = verticalPolylines,
-            color = gridLinesConfig.gridColor,
+            color = gridLineColor,
             width = gridLinesConfig.gridLineWidth.value,
             clickable = false,
             zIndex = 1f

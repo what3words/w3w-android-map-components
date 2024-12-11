@@ -12,7 +12,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     W3WCameraState<MapViewportState> {
 
     companion object {
-        const val MY_LOCATION_ZOOM = 19.0
+        const val MY_LOCATION_ZOOM = 20.0
     }
 
     override var gridBound: W3WRectangle? = null
@@ -45,19 +45,32 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         updateCameraPosition(cameraOptions, animate)
     }
 
-    override fun getZoomLevel(): Float {
-        return cameraState.cameraState?.zoom?.toFloat() ?: run { 0f }
+    override fun moveToPosition(
+        listCoordinates: List<W3WCoordinates>,
+        zoom: Float?,
+        bearing: Float?,
+        tilt: Float?,
+        animate: Boolean
+    ) {
+//        val points = listCoordinates.map { Point.fromLngLat(it.lng,it.lat) }
+//        val southwest = points.minByOrNull { it.latitude() to it.longitude() }
+//        val northeast = points.maxByOrNull { it.latitude() to it.longitude() }
+//        val bounds = Bounds(southwest,northeast)
+//
+//
+//
+//        val cameraOptions = CameraOptions.Builder()
+//            .center(bounds.)
+//            .pitch(tilt?.toDouble() ?: cameraState.cameraState?.pitch)
+//            .bearing(bearing?.toDouble() ?: cameraState.cameraState?.bearing)
+//            .zoom(zoom?.toDouble() ?: cameraState.cameraState?.zoom)
+//            .build()
+//
+//        updateCameraPosition(cameraOptions, animate)
     }
 
-    override fun moveToMyLocation(coordinates: W3WCoordinates) {
-        val cameraOptions = CameraOptions.Builder()
-            .pitch(cameraState.cameraState?.pitch)
-            .bearing(cameraState.cameraState?.bearing)
-            .center(Point.fromLngLat(coordinates.lng, coordinates.lat))
-            .zoom(MY_LOCATION_ZOOM)
-            .build()
-
-        updateCameraPosition(cameraOptions, true)
+    override fun getZoomLevel(): Float {
+        return cameraState.cameraState?.zoom?.toFloat() ?: run { 0f }
     }
 
     private fun updateCameraPosition(cameraOptions: CameraOptions, animate: Boolean) {

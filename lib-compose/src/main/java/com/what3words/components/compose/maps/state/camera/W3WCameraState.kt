@@ -40,16 +40,23 @@ interface W3WCameraState<T> {
     )
 
     /**
+     * Moves the camera to the specified coordinates.
+     *
+     * @param listCoordinates The list of W3W coordinates to move the camera to.
+     * @param animate Whether to animate the camera movement.
+     */
+    fun moveToPosition(
+        listCoordinates: List<W3WCoordinates>,
+        zoom: Float? = null,
+        bearing: Float? = null,
+        tilt: Float? = null,
+        animate: Boolean = false,
+    )
+
+    /**
      * Returns the current zoom level of the camera.
      *
      * @return The current zoom level.
      */
     fun getZoomLevel(): Float
-
-    /**
-     * Moves the camera to the current location.
-     *
-     * @param coordinates The W3W coordinates to move the camera to.
-     */
-    fun moveToMyLocation(coordinates: W3WCoordinates)
 }

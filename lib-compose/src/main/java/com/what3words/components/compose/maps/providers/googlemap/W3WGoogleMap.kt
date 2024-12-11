@@ -58,6 +58,8 @@ fun W3WGoogleMap(
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
     val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
         MapProperties(
+            isBuildingEnabled = mapConfig.isBuildingEnable,
+            isIndoorEnabled = false,
             mapType = state.mapType.toGoogleMapType(),
             isMyLocationEnabled = state.isMyLocationEnabled,
             mapStyleOptions = if (state.isDarkMode) MapStyleOptions(mapConfig.darkModeCustomJsonStyle) else null
@@ -67,6 +69,7 @@ fun W3WGoogleMap(
     // Update the MapUiSettings based on isMapGestureEnable
     val uiSettings = remember(state.isMapGestureEnable) {
         MapUiSettings(
+            indoorLevelPickerEnabled = false,
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,
             scrollGesturesEnabled = state.isMapGestureEnable,

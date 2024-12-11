@@ -8,13 +8,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
+import com.mapbox.maps.extension.compose.style.BooleanValue
 import com.mapbox.maps.extension.compose.style.GenericStyle
+import com.mapbox.maps.extension.compose.style.rememberStyleState
+import com.mapbox.maps.extension.compose.style.standard.StandardStyleConfigurationState
+import com.mapbox.maps.extension.compose.style.styleImportsConfig
 import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -88,10 +93,6 @@ fun W3WMapBox(
 
     val mapState = rememberMapState()
 
-    val mapStyle = remember(state.mapType, state.isDarkMode) {
-        state.mapType.toMapBoxMapType(state.isDarkMode)
-    }
-
     LaunchedEffect(state.isMyLocationEnabled) {
         mapView?.let {
             it.location.updateSettings {
@@ -134,7 +135,22 @@ fun W3WMapBox(
         },
         style = {
             GenericStyle(
-                style = mapStyle,
+                style = state.mapType.toMapBoxMapType(),
+                styleState = rememberStyleState {
+                    styleImportsConfig = styleImportsConfig {
+                        importConfig(importId = "basemap") {
+                            with(StandardStyleConfigurationState().apply {
+                                show3dObjects = BooleanValue(true)
+                            }) {
+                                config(
+                                    "show3dObjects",
+                                    show3dObjects.value
+                                )
+                                config("lightPreset", (if (state.isDarkMode) "night" else "day").toValue())
+                            }
+                        }
+                    }
+                }
             )
         }
     ) {
@@ -150,6 +166,7 @@ fun W3WMapBox(
                     locationPuck = createDefault2DPuck(withBearing = false)
                 }
                 it.mapboxMap.setBounds(cameraBounds)
+//                it.mapboxMap.cameraForCoordinates()
             }
             if (mapConfig.buttonConfig.isRecallButtonEnabled) {
                 mapView?.mapboxMap?.let { map ->

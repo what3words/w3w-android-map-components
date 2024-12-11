@@ -34,11 +34,16 @@ object W3WMapDefaults {
      */
     @Immutable
     data class MapConfig(
+        // Map config
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        val isBuildingEnable: Boolean,
+
         // Marker
         val markerConfig: MarkerConfig,
+
         // Grid view
         val gridLineConfig: GridLinesConfig,
+
         // Buttons
         val buttonConfig: ButtonConfig
     )
@@ -58,6 +63,7 @@ object W3WMapDefaults {
     data class GridLinesConfig(
         val isGridEnabled: Boolean,
         val gridColor: Color,
+        val gridColorDarkMode: Color,
         val gridLineWidth: Dp,
         val zoomSwitchLevel: Float,
         val gridScale: Float
@@ -107,12 +113,14 @@ object W3WMapDefaults {
 
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        isBuildingEnable: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
         markerConfig: MarkerConfig = defaultMarkerConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
+            isBuildingEnable = isBuildingEnable,
             gridLineConfig = gridLineConfig,
             buttonConfig = buttonConfig,
             markerConfig = markerConfig
@@ -121,14 +129,16 @@ object W3WMapDefaults {
 
     fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
-        gridColor: Color = Color.LightGray,
+        gridColor: Color = Color(105, 127,  141, 70),
+        gridColorDarkMode: Color = Color(105, 127,  141, 70),
         zoomSwitchLevel: Float = 19f,
-        gridLineWidth: Dp = 1.dp,
+        gridLineWidth: Dp = 1.5.dp,
         gridScale: Float = 4f
     ): GridLinesConfig {
         return GridLinesConfig(
             isGridEnabled = isGridEnabled,
             gridColor = gridColor,
+            gridColorDarkMode = gridColorDarkMode,
             zoomSwitchLevel = zoomSwitchLevel,
             gridLineWidth = gridLineWidth,
             gridScale = gridScale

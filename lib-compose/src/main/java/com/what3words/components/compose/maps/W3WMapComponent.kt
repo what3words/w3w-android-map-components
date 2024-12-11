@@ -82,8 +82,9 @@ fun W3WMapComponent(
         mapState = mapState,
         buttonState = buttonState,
         onMapTypeClicked = {
-            mapManager.setMapType(it)
-            mapManager.orientCamera()
+//            mapManager.setMapType(it)
+//            mapManager.orientCamera()
+            mapManager.setDarkMode(!mapManager.isDarkMode())
         },
         onMapClicked = {
             coroutineScope.launch {

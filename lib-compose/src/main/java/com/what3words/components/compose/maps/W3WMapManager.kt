@@ -242,6 +242,7 @@ class W3WMapManager(
     fun setSelectedMarker(marker: W3WMarker) {
         _mapState.value = mapState.value.copy(
             selectedAddress = marker.copy(
+                color = marker.color,
                 isInMultipleList = hasMultipleLists(marker, markersMap)
             )
         )
@@ -266,6 +267,7 @@ class W3WMapManager(
         listName: String,
         listWords: List<String>,
         listColor: W3WMarkerColor,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
     ): List<W3WResult<W3WAddress>> = withContext(dispatcher) {
         // Create a list of deferred results to process the words concurrently
         val deferredResults = listWords.map { word ->
@@ -278,8 +280,10 @@ class W3WMapManager(
         val results = deferredResults.awaitAll()
 
         // Create markers for all successful results
+        val listCoordinates = mutableListOf<W3WCoordinates>()
         val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
             val address = result.value
+            listCoordinates.add(address.center!!)
             W3WMarker(
                 words = address.words,
                 square = address.square!!.toW3WSquare(),
@@ -293,6 +297,9 @@ class W3WMapManager(
             listColor = listColor,
             markers = markers
         )
+
+        // Handle zoom for lists
+        handleZoomOption(listCoordinates, zoomOption)
 
         // Return the complete list of results
         return@withContext results
@@ -317,6 +324,8 @@ class W3WMapManager(
             addMarker(
                 marker = marker
             )
+
+            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
         }
 
         return@withContext result
@@ -346,20 +355,22 @@ class W3WMapManager(
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        val c23wa = textDataSource.convertTo3wa(coordinates, language)
+        val result = textDataSource.convertTo3wa(coordinates, language)
 
-        if (c23wa is W3WResult.Success) {
+        if (result is W3WResult.Success) {
             addMarker(
                 marker = W3WMarker(
-                    words = c23wa.value.words,
-                    square = c23wa.value.square!!.toW3WSquare(),
-                    latLng = c23wa.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                    words = result.value.words,
+                    square = result.value.square!!.toW3WSquare(),
+                    latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                     color = markerColor
                 )
             )
+
+            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
         }
 
-        return@withContext c23wa
+        return@withContext result
     }
 
     suspend fun selectAtCoordinates(
@@ -572,6 +583,43 @@ class W3WMapManager(
             it.copy(
                 markers = markersMap.toMarkers().toImmutableList()
             )
+        }
+    }
+
+    /**
+     * Handle zoom option for a [W3WCoordinates] with multiple zoom options which will use the zoom level
+     * if it's provided or the default zoom level.
+     */
+    private fun handleZoomOption(coordinates: W3WCoordinates, zoomOption: W3WZoomOption, zoom: Float?) {
+        when (zoomOption) {
+            W3WZoomOption.NONE -> {}
+            W3WZoomOption.CENTER -> {
+                mapState.value.cameraState?.moveToPosition(
+                    coordinates = coordinates,
+                    animate = true
+                )
+            }
+
+            W3WZoomOption.CENTER_AND_ZOOM -> {
+                mapState.value.cameraState?.moveToPosition(
+                    coordinates = coordinates,
+                    zoom,
+                    animate = true
+                )
+            }
+        }
+    }
+
+    /**
+     * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
+     * if it's provided or the default zoom level.
+     */
+    private fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
+        when (zoomOption) {
+            W3WZoomOption.NONE -> {}
+            W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
+                mapState.value.cameraState?.moveToPosition(listCoordinates)
+            }
         }
     }
 }
