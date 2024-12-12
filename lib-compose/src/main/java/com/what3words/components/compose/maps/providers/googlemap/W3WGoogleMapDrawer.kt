@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -21,6 +23,7 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
+import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -28,8 +31,11 @@ import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
+import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * A composable function that draws What3Words component support:
@@ -57,7 +63,63 @@ fun W3WGoogleMapDrawer(
             )
         }
 
+
+        /**
+         * Optimized marker rendering for W3WGoogleMapDrawer.
+         *
+         * This implementation provides an efficient way to render markers on a map, optimizing for
+         * performance and responsiveness, especially when dealing with a large number of markers.
+         *
+         * Key features:
+         * 1. Progressive marker accumulation: Markers are added to the visible set gradually,
+         *    reducing the workload in any single frame and improving responsiveness.
+         * 2. Zoom level sensitivity: At high zoom levels (>= 19f), the visible marker set is reset,
+         *    ensuring smooth transitions between zoom in and zoom out drawer.
+         * 3. Efficient recomposition: Uses remember and derivedStateOf to minimize unnecessary
+         *    recompositions and calculations.
+         *
+         * The algorithm works as follows:
+         * - If markers exist, it starts accumulating visible markers based on the current camera bounds.
+         * - It keeps track of whether all markers have been drawn to avoid unnecessary calculations.
+         * - At zoomLevelThreshold, it resets the process to ensure the smooth transition between zoom in and zoom out drawers.
+         * - It only adds new markers that are both within the camera bounds and not already visible.
+         * - Once all markers are drawn, it stops the accumulation process to save resources.
+         */
         if (state.markers.isNotEmpty()) {
+            val zoomLevelThreshold =
+                mapConfig.gridLineConfig.zoomSwitchLevel - 2f // buffer 2 zoom levels to ensure it can start calculate the visible markers on time before switching to zoom in drawer.
+            var allMarkersDrawn by remember { mutableStateOf(false) }
+            var visibleMarkers by remember {
+                mutableStateOf<ImmutableList<W3WMarker>>(
+                    persistentListOf()
+                )
+            }
+
+            LaunchedEffect(cameraState.gridBound, state.markers, cameraState.getZoomLevel()) {
+                val currentZoomLevel = cameraState.getZoomLevel()
+
+                if (currentZoomLevel >= zoomLevelThreshold) {
+                    allMarkersDrawn = false
+                    visibleMarkers = persistentListOf()
+                }
+
+                if (!allMarkersDrawn) {
+                    val cameraBound = cameraState.gridBound
+                    if (cameraBound != null) {
+                        val newVisibleMarkers = state.markers.filter {
+                            cameraBound.contains(W3WCoordinates(it.latLng.lat, it.latLng.lng)) &&
+                                    !visibleMarkers.contains(it)
+                        }
+
+                        visibleMarkers = (visibleMarkers + newVisibleMarkers).toImmutableList()
+
+                        if (visibleMarkers.size == state.markers.size) {
+                            allMarkersDrawn = true
+                        }
+                    }
+                }
+            }
+
             //Draw the markers
             W3WGoogleMapDrawMarkers(
                 zoomLevel = cameraState.getZoomLevel(),
@@ -141,7 +203,8 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val color = if(selectedMarker.hasMultipleLists) markerConfig.multiListMarkersColor else selectedMarker.color
+    val color =
+        if (selectedMarker.hasMultipleLists) markerConfig.multiListMarkersColor else selectedMarker.color
 
     val markerState =
         rememberMarkerState(
@@ -247,7 +310,8 @@ private fun DrawZoomInMarkers(
     val density = LocalDensity.current.density
 
     markers.forEach { marker ->
-        val color = if(marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
+        val color =
+            if (marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getFillGridMarkerBitmap(
@@ -286,7 +350,8 @@ private fun DrawZoomOutMarkers(
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
     markers.forEach { marker ->
-        val color = if(marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
+        val color =
+            if (marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
         val icon = remember(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
