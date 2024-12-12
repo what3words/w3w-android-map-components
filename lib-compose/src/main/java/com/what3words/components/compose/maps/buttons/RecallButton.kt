@@ -1,7 +1,6 @@
-package com.what3words.components.compose.maps.buttons.recall
+package com.what3words.components.compose.maps.buttons
 
 import android.graphics.PointF
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -23,35 +22,52 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
+/**
+ * A composable function to display a recall button.
+ *
+ * @param modifier The modifier for the button.
+ * @param rotation The rotation angle for the button in degrees.
+ * @param backgroundColor The background color of the button.
+ * @param arrowColor The color of the arrow icon.
+ * @param isVisible Whether the button is visible or not.
+ * @param onRecallClicked The callback when the button is clicked.
+ * @param onRecallButtonPositionProvided The callback providing the button's position as a PointF.
+ */
 @Composable
-fun W3WRecallButton(
+fun RecallButton(
     modifier: Modifier = Modifier,
     rotation: Float = 0F,
     backgroundColor: Color = Color(0xFFE11F26),
     arrowColor: Color = Color.White,
+    isVisible: Boolean = false,
     onRecallClicked: () -> Unit,
-    onRecallPositionProvided: (PointF) -> Unit,
+    onRecallButtonPositionProvided: (PointF) -> Unit,
 ) {
 
-    var position: Offset? by remember { mutableStateOf(null) }
+    var position: Offset by remember { mutableStateOf(Offset.Zero) }
 
     IconButton(
         onClick = { onRecallClicked() },
         modifier = modifier
+            .alpha(if (isVisible) 1f else 0f)
             .rotate(rotation)
             .shadow(elevation = 3.dp, shape = CircleShape)
             .size(50.dp)
             .background(backgroundColor)
             .onGloballyPositioned { coordinate ->
-                if (position == null) {
-                    position = coordinate.localToWindow(Offset.Zero)
-                    val point = PointF(position!!.x, position!!.y)
-                    onRecallPositionProvided.invoke(point)
+                // Only trigger one time when the button is initialized
+                // The coordinate is affected by the rotation
+                if (position == Offset.Zero) {
+                    position = coordinate.positionInWindow()
+                    val point = PointF(position.x, position.y)
+                    onRecallButtonPositionProvided.invoke(point)
                 }
             },
+        enabled = isVisible
     ) {
         Icon(
             modifier = Modifier
@@ -68,64 +84,69 @@ fun W3WRecallButton(
 @Preview
 @Composable
 private fun A1() {
-    W3WRecallButton(
+    RecallButton(
         modifier = Modifier,
         rotation = 0f,
         backgroundColor = Color(0xFFE11F26),
         arrowColor = Color.White,
+        isVisible = true,
         onRecallClicked = {},
-        onRecallPositionProvided = {}
+        onRecallButtonPositionProvided = {}
     )
 }
 
 @Preview
 @Composable
 private fun A2() {
-    W3WRecallButton(
+    RecallButton(
         modifier = Modifier,
         rotation = 45f,
         backgroundColor = Color(0xFFE11F26),
         arrowColor = Color.White,
+        isVisible = true,
         onRecallClicked = {},
-        onRecallPositionProvided = {}
+        onRecallButtonPositionProvided = {}
     )
 }
 
 @Preview
 @Composable
 private fun A3() {
-    W3WRecallButton(
+    RecallButton(
         modifier = Modifier,
         rotation = 90f,
         backgroundColor = Color(0xFFE11F26),
         arrowColor = Color.White,
+        isVisible = true,
         onRecallClicked = {},
-        onRecallPositionProvided = {}
+        onRecallButtonPositionProvided = {}
     )
 }
 
 @Preview
 @Composable
 private fun A4() {
-    W3WRecallButton(
+    RecallButton(
         modifier = Modifier,
         rotation = 135f,
         backgroundColor = Color(0xFFE11F26),
         arrowColor = Color.White,
+        isVisible = true,
         onRecallClicked = {},
-        onRecallPositionProvided = {}
+        onRecallButtonPositionProvided = {}
     )
 }
 
 @Preview
 @Composable
 private fun A5() {
-    W3WRecallButton(
+    RecallButton(
         modifier = Modifier,
         rotation = 180f,
         backgroundColor = Color(0xFFE11F26),
         arrowColor = Color.White,
+        isVisible = true,
         onRecallClicked = {},
-        onRecallPositionProvided = {}
+        onRecallButtonPositionProvided = {}
     )
 }

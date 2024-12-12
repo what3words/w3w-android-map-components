@@ -1,4 +1,4 @@
-package com.what3words.components.compose.maps.buttons.mapswitch
+package com.what3words.components.compose.maps.buttons
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.padding
@@ -27,7 +27,7 @@ import com.what3words.map.components.compose.R
  * @param onMapTypeChange The callback function to be invoked when the map type is changed.
  */
 @Composable
-fun W3WMapSwitchButton(
+fun MapSwitchButton(
     modifier: Modifier = Modifier,
     w3wMapType: W3WMapType = W3WMapType.NORMAL,
     onMapTypeChange: (W3WMapType) -> Unit
@@ -63,11 +63,11 @@ fun W3WMapSwitchButton(
 @Preview
 @Composable
 fun MapNormalPreview() {
-    W3WMapSwitchButton(w3wMapType = W3WMapType.NORMAL) {}
+    MapSwitchButton(w3wMapType = W3WMapType.NORMAL) {}
 }
 
 @Preview
 @Composable
 fun MapTypeSwitcherPreview() {
-    W3WMapSwitchButton(w3wMapType = W3WMapType.SATELLITE) {}
+    MapSwitchButton(w3wMapType = W3WMapType.SATELLITE) {}
 }

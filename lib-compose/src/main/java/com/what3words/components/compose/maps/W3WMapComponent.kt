@@ -247,15 +247,17 @@ internal fun W3WMapContent(
     // Handles check location permissions, if isMyLocationEnabled enable
     MapPermissionsHandler(mapState = mapState, onError = onError) {
 
-        var bounds by remember { mutableStateOf<Rect?>(null) }
+        var bounds by remember { mutableStateOf(Rect.Zero) }
 
         // Fetch current location when launch
         LaunchedEffect(Unit) {
             if (mapState.isMyLocationEnabled) {
                 onMyLocationClicked.invoke()
             }
-            // TODO: Implement logic with the padding of other elements (action panel, search bar, etc)
-            bounds?.let {
+        }
+
+        LaunchedEffect(bounds) {
+            bounds.let {
                 val leftTop = PointF(it.left, it.top)
                 val rightTop = PointF(it.right, it.top)
                 val rightBottom = PointF(it.right, it.bottom)
@@ -266,9 +268,7 @@ internal fun W3WMapContent(
 
         Box(modifier = modifier
             .onGloballyPositioned { coordinates ->
-                if (bounds == null) {
-                    bounds = coordinates.boundsInParent()
-                }
+                bounds = coordinates.boundsInParent()
             }
         ) {
             W3WMapView(
@@ -288,16 +288,13 @@ internal fun W3WMapContent(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(layoutConfig.contentPadding),
-                onMyLocationClicked = onMyLocationClicked,
-                mapConfig = mapConfig,
-                onMapTypeClicked = onMapTypeClicked,
-                onRecallClicked = onRecallClicked,
-                rotation = buttonState.rotationDegree,
-                onRecallButtonPositionProvided = onRecallButtonPositionProvided,
+                buttonConfig = mapConfig.buttonConfig,
+                buttonState = buttonState,
                 isLocationEnabled = mapState.isMyLocationEnabled,
-                accuracyDistance = buttonState.accuracyDistance,
-                isLocationActive = buttonState.isLocationActive,
-                isRecallButtonVisible = buttonState.isRecallButtonVisible,
+                onMapTypeClicked = onMapTypeClicked,
+                onMyLocationClicked = onMyLocationClicked,
+                onRecallClicked = onRecallClicked,
+                onRecallButtonPositionProvided = onRecallButtonPositionProvided,
             )
         }
     }

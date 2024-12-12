@@ -1,4 +1,4 @@
-package com.what3words.components.compose.maps.buttons.findmylocation
+package com.what3words.components.compose.maps.buttons
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault
 import com.what3words.design.library.ui.theme.W3WTheme
 import com.what3words.design.library.ui.theme.w3wColorScheme
 import kotlinx.coroutines.delay
@@ -57,7 +56,7 @@ const val VISIBLE_TIME = 2000L
  * @param onMyLocationClicked The callback when the button is clicked.
  */
 @Composable
-fun W3WFindMyLocationButton(
+fun MyLocationButton(
     modifier: Modifier = Modifier,
     accuracyDistance: Int,
     isLocationEnabled: Boolean,
@@ -162,7 +161,7 @@ fun W3WFindMyLocationButton(
 @Composable
 private fun A1() {
     W3WTheme {
-        W3WFindMyLocationButton(
+        MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 0,
@@ -178,7 +177,7 @@ private fun A1() {
 @Composable
 private fun A2() {
     W3WTheme {
-        W3WFindMyLocationButton(
+        MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 0,
@@ -193,7 +192,7 @@ private fun A2() {
 @Composable
 private fun A3() {
     W3WTheme {
-        W3WFindMyLocationButton(
+        MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 110,
@@ -208,7 +207,7 @@ private fun A3() {
 @Composable
 private fun A4() {
     W3WTheme {
-        W3WFindMyLocationButton(
+        MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 220,
@@ -223,7 +222,7 @@ private fun A4() {
 @Composable
 private fun A5() {
     W3WTheme {
-        W3WFindMyLocationButton(
+        MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 220,
