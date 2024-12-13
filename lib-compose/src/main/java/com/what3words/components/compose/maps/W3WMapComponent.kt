@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,14 +73,6 @@ fun W3WMapComponent(
 
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
-    val onMarkerClicked = remember(mapManager) {
-        { marker: W3WMarker ->
-            mapManager.setSelectedMarker(marker)
-        }
-    }
-
-    val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
-
     W3WMapContent(
         modifier = modifier,
         layoutConfig = layoutConfig,
@@ -123,7 +114,11 @@ fun W3WMapComponent(
             }
         },
         onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
-        onMarkerClicked = currentOnMarkerClicked,
+        onMarkerClicked = { marker ->
+            coroutineScope.launch {
+                mapManager.selectAtCoordinates(W3WCoordinates(marker.latLng.lat, marker.latLng.lng))
+            }
+        },
         onError = onError
     )
 }
@@ -174,9 +169,7 @@ fun W3WMapComponent(
         content = content,
         mapState = mapState,
         buttonState = buttonState,
-        onMapClicked = {
-            onMapClicked?.invoke(it)
-        },
+        onMapClicked = { onMapClicked?.invoke(it) },
         onMapTypeClicked = {
             onMapTypeClicked?.invoke(it)
         },
@@ -260,7 +253,14 @@ internal fun W3WMapContent(
                 val rightTop = PointF(it.right, it.top)
                 val rightBottom = PointF(it.right, it.bottom)
                 val leftBottom = PointF(it.left, it.bottom)
-                onMapViewPortProvided.invoke(W3WGridScreenCell(leftTop, rightTop, rightBottom, leftBottom))
+                onMapViewPortProvided.invoke(
+                    W3WGridScreenCell(
+                        leftTop,
+                        rightTop,
+                        rightBottom,
+                        leftBottom
+                    )
+                )
             }
         }
 

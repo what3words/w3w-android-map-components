@@ -17,8 +17,8 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
-import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMapProjection
+import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
@@ -73,7 +73,8 @@ fun W3WGoogleMap(
             tiltGesturesEnabled = state.isMapGestureEnable,
             zoomGesturesEnabled = state.isMapGestureEnable,
             rotationGesturesEnabled = state.isMapGestureEnable,
-            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable
+            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
+            mapToolbarEnabled = false
         )
     }
 
@@ -107,9 +108,10 @@ fun W3WGoogleMap(
         uiSettings = uiSettings,
         properties = mapProperties,
         onMapClick = {
-            onMapClicked.invoke(W3WCoordinates(it.latitude, it.longitude))
+            onMapClicked(W3WCoordinates(it.latitude, it.longitude))
         },
-    ) {
+
+        ) {
         W3WGoogleMapDrawer(state = state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
