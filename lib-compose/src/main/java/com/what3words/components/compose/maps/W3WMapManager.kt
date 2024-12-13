@@ -3,6 +3,7 @@ package com.what3words.components.compose.maps
 import android.annotation.SuppressLint
 import android.graphics.PointF
 import androidx.annotation.RequiresPermission
+import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
 import com.mapbox.geojson.Point
@@ -446,47 +447,61 @@ class W3WMapManager(
     private suspend fun updateSelectedScreenLocation() {
         withContext(dispatcher) {
             val selectedAddress = mapState.value.selectedAddress?.latLng
+            val mapProjection = buttonState.value.mapProjection
             val selectedScreenLocation =
-                selectedAddress?.let { buttonState.value.mapProjection?.toScreenLocation(it) }
+                selectedAddress?.let { mapProjection?.toScreenLocation(it) }
             _buttonState.update {
-                it.copy(selectedScreenLocation = selectedScreenLocation)
+                it.copy(
+                    selectedScreenLocation = selectedScreenLocation,
+                )
             }
         }
     }
 
-    // TODO: Update recall button color according to marker
+    private suspend fun updateRecallButtonColor() {
+        withContext(dispatcher) {
+            val markerSlashColor = mapState.value.selectedAddress?.color?.slash
+            val markerBackgroundColor = mapState.value.selectedAddress?.color?.background
+            _buttonState.update {
+                it.copy(
+                    recallArrowColor = markerSlashColor ?: Color.White,
+                    recallBackgroundColor = markerBackgroundColor ?: Color(0xFFE11F26), // TODO: Define name for this color
+                )
+            }
+        }
+    }
+
     private suspend fun handleRecallButton() {
         updateSelectedScreenLocation()
-        val selectedScreenLocation = buttonState.value.selectedScreenLocation
-        val recallButtonViewport = buttonState.value.recallButtonViewPort
-        val mapProjection = buttonState.value.mapProjection
-        val recallButtonPosition = buttonState.value.recallButtonPosition
-        val shouldShowRecallButton = mapProjection?.let {
-            selectedScreenLocation?.let {
-                // Check if the selected screen location is within the recall button viewport
-                recallButtonViewport?.containsPoint(it) == false
-            }
-        } ?: false
-        val rotationDegree =
-            computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
+        updateRecallButtonColor()
+
+        val buttonState = buttonState.value
+        val selectedScreenLocation = buttonState.selectedScreenLocation
+        val recallButtonViewport = buttonState.recallButtonViewPort
+        val mapProjection = buttonState.mapProjection
+        val recallButtonPosition = buttonState.recallButtonPosition
+
+        // Early return if necessary data is null
+        if (mapProjection == null || selectedScreenLocation == null) return
+
+        val shouldShowRecallButton = recallButtonViewport?.containsPoint(selectedScreenLocation) == false
+        val rotationDegree = computeRecallButtonRotation(selectedScreenLocation, recallButtonPosition)
+
         _buttonState.update {
             it.copy(
-                rotationDegree = rotationDegree ?: 0F,
+                recallRotationDegree = rotationDegree,
                 isRecallButtonVisible = shouldShowRecallButton,
             )
         }
     }
 
     private fun computeRecallButtonRotation(
-        selectedScreenLocation: PointF?,
+        selectedScreenLocation: PointF,
         recallButtonPosition: PointF
-    ) =
-        selectedScreenLocation?.let {
-            angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
-                // add 180 degrees to computed value to compensate arrow rotation
-                (180 + alpha) * -1
-            }
-        }
+    ) = angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
+        // add 180 degrees to computed value to compensate arrow rotation
+        (180 + alpha) * -1
+    }
 
     private fun addMarker(
         marker: W3WMarker
