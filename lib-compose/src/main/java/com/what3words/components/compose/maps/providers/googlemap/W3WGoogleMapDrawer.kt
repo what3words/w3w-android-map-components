@@ -3,15 +3,16 @@ package com.what3words.components.compose.maps.providers.googlemap
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -19,8 +20,8 @@ import com.google.maps.android.compose.GoogleMapComposable
 import com.google.maps.android.compose.GroundOverlay
 import com.google.maps.android.compose.GroundOverlayPosition
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
-import com.google.maps.android.compose.rememberMarkerState
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
@@ -125,6 +126,7 @@ fun W3WGoogleMapDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 markers = state.markers,
+                selectedMarker = state.selectedAddress,
                 onMarkerClicked = onMarkerClicked
             )
         }
@@ -149,31 +151,37 @@ fun W3WGoogleMapDrawGridLines(
     zoomLevel: Float,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
 ) {
-    if (zoomLevel < gridLinesConfig.zoomSwitchLevel) {
-        return
+    val shouldDrawGrid = remember(zoomLevel) {
+        derivedStateOf {
+            zoomLevel > gridLinesConfig.zoomSwitchLevel
+        }
     }
 
-    val horizontalPolylines = horizontalLines.map { coordinate ->
-        LatLng(coordinate.lat, coordinate.lng)
+    if (shouldDrawGrid.value) {
+        val horizontalPolylines = horizontalLines.map { coordinate ->
+            LatLng(coordinate.lat, coordinate.lng)
+        }
+
+        val verticalPolylines = verticalLines.map { coordinate ->
+            LatLng(coordinate.lat, coordinate.lng)
+        }
+
+        Polyline(
+            points = horizontalPolylines,
+            color = gridLinesConfig.gridColor,
+            width = gridLinesConfig.gridLineWidth.value,
+            clickable = false,
+            zIndex = 1f
+        )
+
+        Polyline(
+            points = verticalPolylines,
+            color = gridLinesConfig.gridColor,
+            width = gridLinesConfig.gridLineWidth.value,
+            clickable = false,
+            zIndex = 1f
+        )
     }
-
-    val verticalPolylines = verticalLines.map { coordinate ->
-        LatLng(coordinate.lat, coordinate.lng)
-    }
-
-    Polyline(
-        points = horizontalPolylines,
-        color = gridLinesConfig.gridColor,
-        width = gridLinesConfig.gridLineWidth.value,
-        clickable = false
-    )
-
-    Polyline(
-        points = verticalPolylines,
-        color = gridLinesConfig.gridColor,
-        width = gridLinesConfig.gridLineWidth.value,
-        clickable = false
-    )
 }
 
 @Composable
@@ -184,14 +192,21 @@ fun W3WGoogleMapDrawSelectedAddress(
     zoomSwitchLevel: Float,
     selectedMarker: W3WMarker
 ) {
-    if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutSelectedAddress(markerConfig, selectedMarker)
-    } else {
+    val drawZoomIn = remember(zoomLevel) {
+        derivedStateOf {
+            zoomLevel > zoomSwitchLevel
+        }
+    }
+
+    if (drawZoomIn.value) {
         DrawZoomInSelectedAddress(
             zoomLevel = zoomLevel,
             zoomSwitchLevel = zoomSwitchLevel,
             selectedMarker = selectedMarker
         )
+    } else {
+        DrawZoomOutSelectedAddress(markerConfig, selectedMarker)
+
     }
 }
 
@@ -204,18 +219,15 @@ private fun DrawZoomOutSelectedAddress(
     val context = LocalContext.current
     val density = LocalDensity.current.density
     val color =
-        if (selectedMarker.hasMultipleLists) markerConfig.multiListMarkersColor else selectedMarker.color
+        if (selectedMarker.isInMultipleList) markerConfig.multiListMarkersColor else selectedMarker.color
 
-    val markerState =
-        rememberMarkerState(
-            position = selectedMarker.latLng.toGoogleLatLng()
-        )
+    val markerState = rememberUpdatedMarkerState(selectedMarker.latLng.toGoogleLatLng())
 
     LaunchedEffect(selectedMarker.latLng) {
         markerState.position = selectedMarker.latLng.toGoogleLatLng()
     }
 
-    val icon = remember(color.id) {
+    val icon =
         BitmapDescriptorFactory.fromBitmap(
             getMarkerBitmap(
                 context,
@@ -223,13 +235,11 @@ private fun DrawZoomOutSelectedAddress(
                 color
             )
         )
-    }
 
     Marker(
         state = markerState,
-        anchor = Offset(0.5f, 0.75f),
         icon = icon,
-        zIndex = 1f
+        zIndex = 1f,
     )
 }
 
@@ -272,7 +282,7 @@ private fun DrawZoomInSelectedAddress(
                 zoomSwitchLevel,
             ),
             clickable = false,
-            zIndex = 5f
+            zIndex = 1f
         )
     }
 }
@@ -285,18 +295,26 @@ fun W3WGoogleMapDrawMarkers(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     markers: ImmutableList<W3WMarker>,
+    selectedMarker: W3WMarker?,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
-    if (zoomLevel < zoomSwitchLevel) {
-        DrawZoomOutMarkers(
-            markerConfig = markerConfig,
-            markers = markers,
-            onMarkerClicked = onMarkerClicked
-        )
-    } else {
+    val drawZoomIn = remember(zoomLevel) {
+        derivedStateOf {
+            zoomLevel > zoomSwitchLevel
+        }
+    }
+
+    if (drawZoomIn.value) {
         DrawZoomInMarkers(
             markerConfig = markerConfig,
             markers = markers
+        )
+    } else {
+        DrawZoomOutMarkers(
+            markerConfig = markerConfig,
+            markers = markers,
+            selectedMarker = selectedMarker,
+            onMarkerClicked = onMarkerClicked
         )
     }
 }
@@ -309,10 +327,15 @@ private fun DrawZoomInMarkers(
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
+    // Map of cached bitmap with key is the ID of the W3WColor
+    val bitmapCache = remember { mutableMapOf<Long, BitmapDescriptor>() }
+
     markers.forEach { marker ->
+        val square = marker.square
         val color =
-            if (marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
-        val icon = remember(color.id) {
+            if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+
+        val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getFillGridMarkerBitmap(
                     context,
@@ -321,8 +344,6 @@ private fun DrawZoomInMarkers(
                 )
             )
         }
-
-        val square = marker.square
 
         GroundOverlay(
             position = GroundOverlayPosition.create(
@@ -343,16 +364,21 @@ private fun DrawZoomInMarkers(
 private fun DrawZoomOutMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
     markers: ImmutableList<W3WMarker>,
+    selectedMarker: W3WMarker?,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
     val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
-    markers.forEach { marker ->
+    // Map of cached bitmap with key is the ID of the W3WColor
+    val bitmapCache = remember { mutableMapOf<Long, BitmapDescriptor>() }
+
+    markers.filter { it != selectedMarker }.forEach { marker ->
         val color =
-            if (marker.hasMultipleLists) markerConfig.multiListMarkersColor else marker.color
-        val icon = remember(color.id) {
+            if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+
+        val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
                     context,
@@ -362,8 +388,11 @@ private fun DrawZoomOutMarkers(
             )
         }
 
+        val position = LatLng(marker.latLng.lat, marker.latLng.lng)
+        val state = rememberUpdatedMarkerState(position)
+
         Marker(
-            state = rememberMarkerState(position = marker.latLng.toGoogleLatLng()),
+            state = state,
             icon = icon,
             onClick = {
                 currentOnMarkerClicked(marker)
@@ -387,3 +416,9 @@ private fun getGridSelectedBorderSizeBasedOnZoomLevel(
         else -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_2dp)
     }
 }
+
+// Workaround solution for the issue with rememberMarkerState(): https://stackoverflow.com/questions/75920971/how-to-make-remembermarkerstate-work-correctly-in-jetpack-compose
+@Composable
+fun rememberUpdatedMarkerState(newPosition: LatLng) =
+    remember { MarkerState(position = newPosition) }
+        .apply { position = newPosition }

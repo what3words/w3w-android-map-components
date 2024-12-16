@@ -242,7 +242,7 @@ class W3WMapManager(
     fun setSelectedMarker(marker: W3WMarker) {
         _mapState.value = mapState.value.copy(
             selectedAddress = marker.copy(
-                hasMultipleLists = hasMultipleLists(marker, markersMap)
+                isInMultipleList = hasMultipleLists(marker, markersMap)
             )
         )
     }
@@ -322,6 +322,24 @@ class W3WMapManager(
         return@withContext result
     }
 
+    suspend fun removeMarkerAtWords(words: String) = withContext(dispatcher) {
+        // Remove the marker from all lists in markersMap
+        markersMap.forEach { (listName, markers) ->
+            val updatedMarkers = markers.filter { it.words != words }
+            markersMap[listName] = updatedMarkers.toMutableList()
+        }
+
+        // Remove empty lists from markersMap
+        markersMap.entries.removeAll { it.value.isEmpty() }
+
+        // Update the map state with the new markers
+        _mapState.update { currentState ->
+            currentState.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+    }
+
     suspend fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
@@ -347,17 +365,24 @@ class W3WMapManager(
     suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
+        var marker = findMarkerByCoordinates(markersMap, coordinates)
+        if (marker != null) {
+            setSelectedMarker(marker)
+        }
+
         val result = textDataSource.convertTo3wa(coordinates, language)
 
         if (result is W3WResult.Success) {
-            setSelectedMarker(
-                W3WMarker(
+            if (marker == null) {
+                marker = findMarkerBy3wa(markersMap, result.value.words) ?: W3WMarker(
                     words = result.value.words,
                     square = result.value.square!!.toW3WSquare(),
-                    latLng = result.value.center!!.toW3WLatLong(),
+                    latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
                     color = MARKER_COLOR_DEFAULT
                 )
-            )
+
+                setSelectedMarker(marker)
+            }
 
             if (_buttonState.value.isRecallButtonEnabled) {
                 handleRecallButton()
@@ -610,7 +635,7 @@ private fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
 private fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
     return this.values.flatten().map { item ->
         item.copy(
-            hasMultipleLists = hasMultipleLists(
+            isInMultipleList = hasMultipleLists(
                 item,
                 this
             )
@@ -624,4 +649,21 @@ private fun hasMultipleLists(
 ): Boolean {
     val count = listMarkers.values.flatten().count { it.id == marker.id }
     return count > 1
+}
+
+private fun findMarkerByCoordinates(
+    markers: Map<String, List<W3WMarker>>,
+    coordinates: W3WCoordinates,
+    epsilon: Double = 0.00001 // the precision when comparing coordinates
+): W3WMarker? {
+    return markers.values.flatten().find { marker ->
+        kotlin.math.abs(marker.latLng.lat - coordinates.lat) < epsilon
+                && kotlin.math.abs(marker.latLng.lng - coordinates.lng) < epsilon
+    }
+}
+
+private fun findMarkerBy3wa(markers: Map<String, List<W3WMarker>>, words: String): W3WMarker? {
+    return markers.values.flatten().find { marker ->
+        marker.words == words
+    }
 }
