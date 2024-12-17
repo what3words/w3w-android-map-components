@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.annotation.UiThread
 import androidx.compose.runtime.Immutable
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
@@ -17,7 +18,11 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
 
     override var gridBound: W3WRectangle? = null
 
-    override fun orientCamera() {
+    //TODO: This is work around for the function cameraForCoordinates not support in compose
+    var cameraForCoordinates:MutableList<Point>? = mutableListOf()
+
+    @UiThread
+    override suspend fun orientCamera() {
         updateCameraPosition(
             CameraOptions.Builder()
                 .pitch(cameraState.cameraState?.pitch)
@@ -28,7 +33,8 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         )
     }
 
-    override fun moveToPosition(
+    @UiThread
+    override suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float?,
         bearing: Float?,
@@ -45,28 +51,11 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         updateCameraPosition(cameraOptions, animate)
     }
 
-    override fun moveToPosition(
+    @UiThread
+    override suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
-        zoom: Float?,
-        bearing: Float?,
-        tilt: Float?,
-        animate: Boolean
     ) {
-//        val points = listCoordinates.map { Point.fromLngLat(it.lng,it.lat) }
-//        val southwest = points.minByOrNull { it.latitude() to it.longitude() }
-//        val northeast = points.maxByOrNull { it.latitude() to it.longitude() }
-//        val bounds = Bounds(southwest,northeast)
-//
-//
-//
-//        val cameraOptions = CameraOptions.Builder()
-//            .center(bounds.)
-//            .pitch(tilt?.toDouble() ?: cameraState.cameraState?.pitch)
-//            .bearing(bearing?.toDouble() ?: cameraState.cameraState?.bearing)
-//            .zoom(zoom?.toDouble() ?: cameraState.cameraState?.zoom)
-//            .build()
-//
-//        updateCameraPosition(cameraOptions, animate)
+        cameraForCoordinates = listCoordinates.map { Point.fromLngLat(it.lng,it.lat) }.toMutableList()
     }
 
     override fun getZoomLevel(): Float {

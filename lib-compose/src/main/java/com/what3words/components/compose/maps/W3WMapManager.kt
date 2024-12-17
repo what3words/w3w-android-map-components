@@ -3,6 +3,7 @@ package com.what3words.components.compose.maps
 import android.annotation.SuppressLint
 import android.graphics.PointF
 import androidx.annotation.RequiresPermission
+import androidx.annotation.UiThread
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
@@ -45,6 +46,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -203,11 +205,13 @@ class W3WMapManager(
     //endregion
 
     // region Camera control
-    fun orientCamera() {
+    @UiThread
+    suspend fun orientCamera() {
         mapState.value.cameraState?.orientCamera()
     }
 
-    fun moveToPosition(
+    @UiThread
+    suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float? = null,
         bearing: Float? = null,
@@ -280,10 +284,8 @@ class W3WMapManager(
         val results = deferredResults.awaitAll()
 
         // Create markers for all successful results
-        val listCoordinates = mutableListOf<W3WCoordinates>()
         val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
             val address = result.value
-            listCoordinates.add(address.center!!)
             W3WMarker(
                 words = address.words,
                 square = address.square!!.toW3WSquare(),
@@ -298,8 +300,10 @@ class W3WMapManager(
             markers = markers
         )
 
-        // Handle zoom for lists
-        handleZoomOption(listCoordinates, zoomOption)
+        withContext(Main) {
+            // Handle zoom for lists
+            handleZoomOption(markers.map { W3WCoordinates(it.latLng.lat,it.latLng.lng) }, zoomOption)
+        }
 
         // Return the complete list of results
         return@withContext results
@@ -325,7 +329,9 @@ class W3WMapManager(
                 marker = marker
             )
 
-            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
+            withContext(Main) {
+                handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
+            }
         }
 
         return@withContext result
@@ -367,7 +373,9 @@ class W3WMapManager(
                 )
             )
 
-            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
+            withContext(Main) {
+                handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
+            }
         }
 
         return@withContext result
@@ -590,7 +598,8 @@ class W3WMapManager(
      * Handle zoom option for a [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    private fun handleZoomOption(coordinates: W3WCoordinates, zoomOption: W3WZoomOption, zoom: Float?) {
+    @UiThread
+    private suspend fun handleZoomOption(coordinates: W3WCoordinates, zoomOption: W3WZoomOption, zoom: Float?) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
             W3WZoomOption.CENTER -> {
@@ -614,7 +623,8 @@ class W3WMapManager(
      * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    private fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
+    @UiThread
+    private suspend fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
             W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {

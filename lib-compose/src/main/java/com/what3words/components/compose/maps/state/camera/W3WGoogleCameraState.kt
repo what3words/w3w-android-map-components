@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.annotation.UiThread
 import androidx.compose.runtime.Immutable
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -8,9 +9,6 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Immutable
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
@@ -22,7 +20,8 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
 
     override var gridBound: W3WRectangle? = null
 
-    override fun orientCamera() {
+    @UiThread
+    override suspend fun orientCamera() {
         updateCameraPosition(
             CameraPosition(
                 cameraState.position.target,
@@ -33,7 +32,8 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         )
     }
 
-    override fun moveToPosition(
+    @UiThread
+    override suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float?,
         bearing: Float?,
@@ -50,35 +50,33 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         )
     }
 
-    override fun moveToPosition(
+    @UiThread
+    override suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
-        zoom: Float?,
-        bearing: Float?,
-        tilt: Float?,
-        animate: Boolean
     ) {
         val latLngBounds = LatLngBounds.Builder()
         listCoordinates.forEach {
-            latLngBounds.include(LatLng(it.lat,it.lng))
+            latLngBounds.include(LatLng(it.lat, it.lng))
         }
 
-
-        CoroutineScope(Dispatchers.Main).launch {
-            cameraState.animate(update = CameraUpdateFactory.newLatLngBounds( latLngBounds.build(), 0))
-        }
+        cameraState.animate(
+            update =
+            CameraUpdateFactory.newLatLngBounds(
+                latLngBounds.build(), 0
+            )
+        )
     }
 
     override fun getZoomLevel(): Float {
         return cameraState.position.zoom
     }
 
-    private fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (animate) {
-                cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
-            } else {
-                cameraState.position = cameraPosition
-            }
+    @UiThread
+    private suspend fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
+        if (animate) {
+            cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
+        } else {
+            cameraState.position = cameraPosition
         }
     }
 }

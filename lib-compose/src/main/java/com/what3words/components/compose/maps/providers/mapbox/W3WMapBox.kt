@@ -10,8 +10,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
+import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
+import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
@@ -20,6 +22,10 @@ import com.mapbox.maps.extension.compose.style.GenericStyle
 import com.mapbox.maps.extension.compose.style.rememberStyleState
 import com.mapbox.maps.extension.compose.style.standard.StandardStyleConfigurationState
 import com.mapbox.maps.extension.compose.style.styleImportsConfig
+import com.mapbox.maps.extension.style.layers.generated.FillExtrusionLayer
+import com.mapbox.maps.extension.style.layers.getLayer
+import com.mapbox.maps.extension.style.layers.getLayerAs
+import com.mapbox.maps.extension.style.types.StyleTransition
 import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -115,6 +121,29 @@ fun W3WMapBox(
         }
     }
 
+    LaunchedEffect(state.cameraState.cameraForCoordinates) {
+        state.cameraState.cameraForCoordinates?.let { points ->
+            mapView?.let { mapView ->
+                mapView.mapboxMap.also { map ->
+                    // Set the camera based on coordinates
+                    map.cameraForCoordinates(
+                        points,
+                        CameraOptions.Builder().build(),
+                        null,
+                        null,
+                        null
+                    ) { options ->
+                        // Once the camera options are set, clear the coordinates state
+                        state.cameraState.cameraForCoordinates = null
+
+                        // Apply the new camera options to the map
+                        map.setCamera(options)
+                    }
+                }
+            }
+        }
+    }
+
     MapboxMap(
         modifier = modifier,
         mapState = mapState,
@@ -166,8 +195,8 @@ fun W3WMapBox(
                     locationPuck = createDefault2DPuck(withBearing = false)
                 }
                 it.mapboxMap.setBounds(cameraBounds)
-//                it.mapboxMap.cameraForCoordinates()
             }
+
             if (mapConfig.buttonConfig.isRecallButtonEnabled) {
                 mapView?.mapboxMap?.let { map ->
                     onMapProjectionUpdated(W3WMapBoxMapProjection(map))

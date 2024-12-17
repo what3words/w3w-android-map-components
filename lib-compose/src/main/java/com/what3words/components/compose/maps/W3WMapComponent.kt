@@ -82,9 +82,7 @@ fun W3WMapComponent(
         mapState = mapState,
         buttonState = buttonState,
         onMapTypeClicked = {
-//            mapManager.setMapType(it)
-//            mapManager.orientCamera()
-            mapManager.setDarkMode(!mapManager.isDarkMode())
+            mapManager.setMapType(it)
         },
         onMapClicked = {
             coroutineScope.launch {
@@ -108,18 +106,22 @@ fun W3WMapComponent(
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
             mapState.selectedAddress?.latLng?.let {
-                mapManager.moveToPosition(
-                    coordinates = W3WCoordinates(it.lat, it.lng),
-                    animate = true
-                )
+                coroutineScope.launch {
+                    withContext(Main) {
+                        mapManager.moveToPosition(
+                            coordinates = W3WCoordinates(it.lat, it.lng),
+                            animate = true
+                        )
+                    }
+                }
             }
         },
         onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
-        onMarkerClicked = { marker ->
+        onMarkerClicked = remember { { marker ->
             coroutineScope.launch {
                 mapManager.selectAtCoordinates(W3WCoordinates(marker.latLng.lat, marker.latLng.lng))
             }
-        },
+        } },
         onError = onError
     )
 }

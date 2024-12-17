@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.state.camera
 
+import androidx.annotation.UiThread
 import androidx.compose.runtime.Immutable
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
@@ -23,7 +24,8 @@ interface W3WCameraState<T> {
     /**
      *  Adjust camera bearing to 0
      */
-    fun orientCamera()
+    @UiThread
+    suspend fun orientCamera()
 
     /**
      * Moves the camera to the specified coordinates.
@@ -31,7 +33,8 @@ interface W3WCameraState<T> {
      * @param coordinates The W3W coordinates to move the camera to.
      * @param animate Whether to animate the camera movement.
      */
-    fun moveToPosition(
+    @UiThread
+    suspend fun  moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float? = null,
         bearing: Float? = null,
@@ -43,14 +46,10 @@ interface W3WCameraState<T> {
      * Moves the camera to the specified coordinates.
      *
      * @param listCoordinates The list of W3W coordinates to move the camera to.
-     * @param animate Whether to animate the camera movement.
      */
-    fun moveToPosition(
+    @UiThread
+    suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
-        zoom: Float? = null,
-        bearing: Float? = null,
-        tilt: Float? = null,
-        animate: Boolean = false,
     )
 
     /**
