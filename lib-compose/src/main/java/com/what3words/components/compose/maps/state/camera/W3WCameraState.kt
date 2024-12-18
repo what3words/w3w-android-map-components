@@ -24,7 +24,6 @@ interface W3WCameraState<T> {
     /**
      *  Adjust camera bearing to 0
      */
-    @UiThread
     suspend fun orientCamera()
 
     /**
@@ -33,7 +32,6 @@ interface W3WCameraState<T> {
      * @param coordinates The W3W coordinates to move the camera to.
      * @param animate Whether to animate the camera movement.
      */
-    @UiThread
     suspend fun  moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float? = null,
@@ -47,7 +45,6 @@ interface W3WCameraState<T> {
      *
      * @param listCoordinates The list of W3W coordinates to move the camera to.
      */
-    @UiThread
     suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
     )

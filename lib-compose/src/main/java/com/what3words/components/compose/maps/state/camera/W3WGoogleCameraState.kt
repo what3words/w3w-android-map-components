@@ -9,6 +9,8 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.withContext
 
 @Immutable
 class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
@@ -20,7 +22,6 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
 
     override var gridBound: W3WRectangle? = null
 
-    @UiThread
     override suspend fun orientCamera() {
         updateCameraPosition(
             CameraPosition(
@@ -32,7 +33,6 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         )
     }
 
-    @UiThread
     override suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float?,
@@ -50,7 +50,6 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         )
     }
 
-    @UiThread
     override suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
     ) {
@@ -59,24 +58,27 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
             latLngBounds.include(LatLng(it.lat, it.lng))
         }
 
-        cameraState.animate(
-            update =
-            CameraUpdateFactory.newLatLngBounds(
-                latLngBounds.build(), 0
+        withContext(Main) {
+            cameraState.animate(
+                update =
+                CameraUpdateFactory.newLatLngBounds(
+                    latLngBounds.build(), 0
+                )
             )
-        )
+        }
     }
 
     override fun getZoomLevel(): Float {
         return cameraState.position.zoom
     }
 
-    @UiThread
     private suspend fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
-        if (animate) {
-            cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
-        } else {
-            cameraState.position = cameraPosition
-        }
+       withContext(Main) {
+           if (animate) {
+               cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
+           } else {
+               cameraState.position = cameraPosition
+           }
+       }
     }
 }

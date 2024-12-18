@@ -205,12 +205,10 @@ class W3WMapManager(
     //endregion
 
     // region Camera control
-    @UiThread
     suspend fun orientCamera() {
         mapState.value.cameraState?.orientCamera()
     }
 
-    @UiThread
     suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float? = null,
@@ -300,10 +298,8 @@ class W3WMapManager(
             markers = markers
         )
 
-        withContext(Main) {
-            // Handle zoom for lists
-            handleZoomOption(markers.map { W3WCoordinates(it.latLng.lat,it.latLng.lng) }, zoomOption)
-        }
+        // Handle zoom for lists
+        handleZoomOption(markers.map { W3WCoordinates(it.latLng.lat,it.latLng.lng) }, zoomOption)
 
         // Return the complete list of results
         return@withContext results
@@ -329,9 +325,7 @@ class W3WMapManager(
                 marker = marker
             )
 
-            withContext(Main) {
-                handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
-            }
+            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
         }
 
         return@withContext result
@@ -373,9 +367,7 @@ class W3WMapManager(
                 )
             )
 
-            withContext(Main) {
-                handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
-            }
+            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
         }
 
         return@withContext result
@@ -598,7 +590,6 @@ class W3WMapManager(
      * Handle zoom option for a [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    @UiThread
     private suspend fun handleZoomOption(coordinates: W3WCoordinates, zoomOption: W3WZoomOption, zoom: Float?) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
@@ -623,7 +614,6 @@ class W3WMapManager(
      * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    @UiThread
     private suspend fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}

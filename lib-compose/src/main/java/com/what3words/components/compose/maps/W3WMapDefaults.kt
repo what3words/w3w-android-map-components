@@ -1,4 +1,4 @@
-package com.what3words.components.compose.maps
+ package com.what3words.components.compose.maps
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
@@ -129,8 +129,8 @@ object W3WMapDefaults {
 
     fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
-        gridColor: Color = Color(105, 127,  141, 70),
-        gridColorDarkMode: Color = Color(105, 127,  141, 70),
+        gridColor: Color = Color(0xB3697F8D),
+        gridColorDarkMode: Color = Color(0xB3697F8D),
         zoomSwitchLevel: Float = 19f,
         gridLineWidth: Dp = 1.5.dp,
         gridScale: Float = 4f

@@ -7,6 +7,7 @@ import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
+import kotlinx.coroutines.withContext
 
 @Immutable
 class W3WMapboxCameraState(override val cameraState: MapViewportState) :
@@ -21,7 +22,6 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     //TODO: This is work around for the function cameraForCoordinates not support in compose
     var cameraForCoordinates:MutableList<Point>? = mutableListOf()
 
-    @UiThread
     override suspend fun orientCamera() {
         updateCameraPosition(
             CameraOptions.Builder()
@@ -33,7 +33,6 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         )
     }
 
-    @UiThread
     override suspend fun moveToPosition(
         coordinates: W3WCoordinates,
         zoom: Float?,
@@ -51,7 +50,6 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         updateCameraPosition(cameraOptions, animate)
     }
 
-    @UiThread
     override suspend fun moveToPosition(
         listCoordinates: List<W3WCoordinates>,
     ) {
