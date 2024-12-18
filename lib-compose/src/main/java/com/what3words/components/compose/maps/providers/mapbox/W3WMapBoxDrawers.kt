@@ -25,9 +25,12 @@ import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotationGroup
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroup
+import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroupState
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
+import com.mapbox.maps.extension.compose.style.DoubleValue
 import com.mapbox.maps.extension.compose.style.PointListValue
 import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayer
+import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayerState
 import com.mapbox.maps.extension.compose.style.sources.generated.rememberImageSourceState
 import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
 import com.mapbox.maps.extension.style.sources.generated.ImageSource
@@ -68,7 +71,7 @@ fun W3WMapBoxDrawer(
             W3WMapBoxDrawGridLines(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
-                gridColor = mapConfig.gridLineConfig.gridColor,
+                gridColor = if(state.isDarkMode) mapConfig.gridLineConfig.gridColorDarkMode else mapConfig.gridLineConfig.gridColor,
                 gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
             )
         }
@@ -173,7 +176,12 @@ fun W3WMapBoxDrawGridLines(
     }
 
     PolylineAnnotationGroup(
-        annotations = polylines
+        annotations = polylines,
+        polylineAnnotationGroupState = remember {
+            PolylineAnnotationGroupState().apply {
+                lineOcclusionOpacity = 0.0
+            }
+        }
     )
 }
 
@@ -298,7 +306,7 @@ private fun DrawZoomInMarkers(
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
     markers.forEach { marker ->
-        val color = if (marker.isInMultipleList) markerConfig.markerColor else marker.color
+        val color = if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
         val bitmap = bitmapCache.getOrPut(color.id) {
             getFillGridMarkerBitmap(
                 context,
@@ -322,6 +330,11 @@ private fun DrawZoomInMarkers(
                     Point.fromLngLat(square.northeast.lng, square.southwest.lat),
                     Point.fromLngLat(square.southwest.lng, square.southwest.lat)
                 )
+            },
+            rasterLayerState = remember {
+                RasterLayerState().apply {
+                    rasterContrast = DoubleValue(1.0)
+                }
             }
         )
     }

@@ -8,13 +8,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
+import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
+import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
+import com.mapbox.maps.extension.compose.style.BooleanValue
 import com.mapbox.maps.extension.compose.style.GenericStyle
+import com.mapbox.maps.extension.compose.style.rememberStyleState
+import com.mapbox.maps.extension.compose.style.standard.StandardStyleConfigurationState
+import com.mapbox.maps.extension.compose.style.styleImportsConfig
+import com.mapbox.maps.extension.style.layers.generated.FillExtrusionLayer
+import com.mapbox.maps.extension.style.layers.getLayer
+import com.mapbox.maps.extension.style.layers.getLayerAs
+import com.mapbox.maps.extension.style.types.StyleTransition
 import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -88,10 +99,6 @@ fun W3WMapBox(
 
     val mapState = rememberMapState()
 
-    val mapStyle = remember(state.mapType, state.isDarkMode) {
-        state.mapType.toMapBoxMapType(state.isDarkMode)
-    }
-
     LaunchedEffect(state.isMyLocationEnabled) {
         mapView?.let {
             it.location.updateSettings {
@@ -110,6 +117,29 @@ fun W3WMapBox(
                 pinchScrollEnabled = it
                 doubleTapToZoomInEnabled = it
                 doubleTouchToZoomOutEnabled = it
+            }
+        }
+    }
+
+    LaunchedEffect(state.cameraState.cameraForCoordinates) {
+        state.cameraState.cameraForCoordinates?.let { points ->
+            mapView?.let { mapView ->
+                mapView.mapboxMap.also { map ->
+                    // Set the camera based on coordinates
+                    map.cameraForCoordinates(
+                        points,
+                        CameraOptions.Builder().build(),
+                        null,
+                        null,
+                        null
+                    ) { options ->
+                        // Once the camera options are set, clear the coordinates state
+                        state.cameraState.cameraForCoordinates = null
+
+                        // Apply the new camera options to the map
+                        map.setCamera(options)
+                    }
+                }
             }
         }
     }
@@ -134,7 +164,22 @@ fun W3WMapBox(
         },
         style = {
             GenericStyle(
-                style = mapStyle,
+                style = state.mapType.toMapBoxMapType(),
+                styleState = rememberStyleState {
+                    styleImportsConfig = styleImportsConfig {
+                        importConfig(importId = "basemap") {
+                            with(StandardStyleConfigurationState().apply {
+                                show3dObjects = BooleanValue(true)
+                            }) {
+                                config(
+                                    "show3dObjects",
+                                    show3dObjects.value
+                                )
+                                config("lightPreset", (if (state.isDarkMode) "night" else "day").toValue())
+                            }
+                        }
+                    }
+                }
             )
         }
     ) {
@@ -151,6 +196,7 @@ fun W3WMapBox(
                 }
                 it.mapboxMap.setBounds(cameraBounds)
             }
+
             if (mapConfig.buttonConfig.isRecallButtonEnabled) {
                 mapView?.mapboxMap?.let { map ->
                     onMapProjectionUpdated(W3WMapBoxMapProjection(map))

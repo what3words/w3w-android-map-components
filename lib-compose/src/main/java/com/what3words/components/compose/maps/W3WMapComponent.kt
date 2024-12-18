@@ -83,7 +83,6 @@ fun W3WMapComponent(
         buttonState = buttonState,
         onMapTypeClicked = {
             mapManager.setMapType(it)
-            mapManager.orientCamera()
         },
         onMapClicked = {
             coroutineScope.launch {
@@ -107,18 +106,20 @@ fun W3WMapComponent(
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
             mapState.selectedAddress?.latLng?.let {
-                mapManager.moveToPosition(
-                    coordinates = W3WCoordinates(it.lat, it.lng),
-                    animate = true
-                )
+                coroutineScope.launch {
+                    mapManager.moveToPosition(
+                        coordinates = W3WCoordinates(it.lat, it.lng),
+                        animate = true
+                    )
+                }
             }
         },
         onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
-        onMarkerClicked = { marker ->
+        onMarkerClicked = remember { { marker ->
             coroutineScope.launch {
                 mapManager.selectAtCoordinates(W3WCoordinates(marker.latLng.lat, marker.latLng.lng))
             }
-        },
+        } },
         onError = onError
     )
 }
@@ -424,21 +425,20 @@ private fun fetchCurrentLocation(
             try {
                 val location = it.fetchLocation()
                 // Update camera state
-                withContext(Main) {
-                    mapManager.moveToPosition(
-                        coordinates = W3WCoordinates(location.latitude, location.longitude),
-                        zoom = when (mapManager.mapProvider) {
-                            MapProvider.GOOGLE_MAP -> {
-                                W3WGoogleCameraState.MY_LOCATION_ZOOM
-                            }
+                mapManager.moveToPosition(
+                    coordinates = W3WCoordinates(location.latitude, location.longitude),
+                    zoom = when (mapManager.mapProvider) {
+                        MapProvider.GOOGLE_MAP -> {
+                            W3WGoogleCameraState.MY_LOCATION_ZOOM
+                        }
 
-                            MapProvider.MAPBOX -> {
-                                W3WMapboxCameraState.MY_LOCATION_ZOOM.toFloat()
-                            }
-                        },
-                        animate = true
-                    )
-                }
+                        MapProvider.MAPBOX -> {
+                            W3WMapboxCameraState.MY_LOCATION_ZOOM.toFloat()
+                        }
+                    },
+                    animate = true
+                )
+
 
                 if (location.hasAccuracy()) {
                     mapManager.updateAccuracyDistance(location.accuracy)
