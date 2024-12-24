@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,20 +9,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import com.google.gson.JsonPrimitive
 import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotationGroup
-import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroup
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroupState
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
@@ -39,6 +34,7 @@ import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.models.W3WLatLng
@@ -48,7 +44,6 @@ import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -63,7 +58,7 @@ fun W3WMapBoxDrawer(
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
             derivedStateOf {
-                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel
+                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel && cameraState.getZoomLevel() >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
             }
         }
 
@@ -71,8 +66,8 @@ fun W3WMapBoxDrawer(
             W3WMapBoxDrawGridLines(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
-                gridColor = if(state.isDarkMode) mapConfig.gridLineConfig.gridColorDarkMode else mapConfig.gridLineConfig.gridColor,
-                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
+                gridLinesConfig = mapConfig.gridLineConfig,
+                isDarkMode = state.isDarkMode
             )
         }
 
@@ -148,7 +143,8 @@ fun W3WMapBoxDrawer(
                 markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress
+                selectedMarker = state.selectedAddress,
+                isDarkMode = state.isDarkMode
             )
         }
     }
@@ -159,19 +155,21 @@ fun W3WMapBoxDrawer(
 fun W3WMapBoxDrawGridLines(
     verticalLines: List<W3WLatLng>,
     horizontalLines: List<W3WLatLng>,
-    gridColor: Color,
-    gridLineWidth: Dp,
+    gridLinesConfig: W3WMapDefaults.GridLinesConfig,
+    isDarkMode: Boolean
 ) {
-    val polylines = remember(verticalLines, horizontalLines, gridColor, gridLineWidth) {
+    val gridLineColor = remember(isDarkMode) {
+        derivedStateOf {
+            if (isDarkMode) gridLinesConfig.gridColorDarkMode else gridLinesConfig.gridColor
+        }
+    }
+
+    val polylines = remember(verticalLines, horizontalLines) {
         listOf(
             PolylineAnnotationOptions()
-                .withPoints(verticalLines.map { Point.fromLngLat(it.lng, it.lat) })
-                .withLineColor(gridColor.toArgb())
-                .withLineWidth(gridLineWidth.value.toDouble()),
+                .withPoints(verticalLines.map { Point.fromLngLat(it.lng, it.lat) }),
             PolylineAnnotationOptions()
                 .withPoints(horizontalLines.map { Point.fromLngLat(it.lng, it.lat) })
-                .withLineColor(gridColor.toArgb())
-                .withLineWidth(gridLineWidth.value.toDouble())
         )
     }
 
@@ -180,6 +178,9 @@ fun W3WMapBoxDrawGridLines(
         polylineAnnotationGroupState = remember {
             PolylineAnnotationGroupState().apply {
                 lineOcclusionOpacity = 0.0
+                lineEmissiveStrength = 1.0
+                lineWidth = 1.0
+                lineColor = gridLineColor.value
             }
         }
     )
@@ -191,19 +192,27 @@ fun W3WMapBoxDrawSelectedAddress(
     markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    selectedMarker: W3WMarker
+    selectedMarker: W3WMarker,
+    isDarkMode: Boolean,
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel
+            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
         }
     }
 
     if (drawZoomIn.value) {
+        val gridLineWidth = remember(zoomLevel) {
+            derivedStateOf {
+                getSelectedGridWidth(zoomLevel)
+            }
+        }
+
         DrawZoomInSelectedAddress(
-            zoomLevel = zoomLevel,
-            zoomSwitchLevel = zoomSwitchLevel,
-            selectedMarker = selectedMarker
+            markerConfig = markerConfig,
+            gridLineWidth = gridLineWidth.value,
+            selectedMarker = selectedMarker,
+            isDarkMode = isDarkMode,
         )
     } else {
         DrawZoomOutSelectedAddress(
@@ -225,7 +234,7 @@ fun W3WMapBoxDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel
+            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
         }
     }
 
@@ -377,44 +386,45 @@ private fun DrawZoomOutSelectedAddress(
 @Composable
 @MapboxMapComposable
 private fun DrawZoomInSelectedAddress(
+    markerConfig: W3WMapDefaults.MarkerConfig,
     selectedMarker: W3WMarker,
-    zoomLevel: Float,
-    zoomSwitchLevel: Float
+    gridLineWidth: Double,
+    isDarkMode: Boolean
 ) {
-    val context = LocalContext.current
-    selectedMarker.square.let { square ->
-        PolylineAnnotation(
-            points = listOf(
-                Point.fromLngLat(square.southwest.lng, square.northeast.lat),
-                Point.fromLngLat(square.northeast.lng, square.northeast.lat),
-                Point.fromLngLat(square.northeast.lng, square.southwest.lat),
-                Point.fromLngLat(square.southwest.lng, square.southwest.lat),
-                Point.fromLngLat(square.southwest.lng, square.northeast.lat)
+    val color = remember(isDarkMode) {
+        derivedStateOf { if(isDarkMode) markerConfig.selectedZoomInColorDarkMode else markerConfig.selectedZoomInColor }
+    }
 
-            )
-        ) {
-            lineColor = Color.Black
-            lineWidth =
-                getGridSelectedBorderSizeBasedOnZoomLevel(context, zoomLevel, zoomSwitchLevel)
-        }
+    selectedMarker.square.let { square ->
+        PolylineAnnotationGroup(
+            annotations = listOf(
+                PolylineAnnotationOptions()
+                    .withPoints(
+                        listOf(
+                            Point.fromLngLat(square.southwest.lng, square.northeast.lat),
+                            Point.fromLngLat(square.northeast.lng, square.northeast.lat),
+                            Point.fromLngLat(square.northeast.lng, square.southwest.lat),
+                            Point.fromLngLat(square.southwest.lng, square.southwest.lat),
+                            Point.fromLngLat(square.southwest.lng, square.northeast.lat)
+                        )
+                    )
+                ),
+            polylineAnnotationGroupState = remember {
+                PolylineAnnotationGroupState().apply {
+                    lineOcclusionOpacity = 0.0
+                    lineEmissiveStrength = 1.0
+                    lineColor = color.value
+                    lineWidth = gridLineWidth
+                }
+            }
+        )
     }
 }
 
-private fun getGridSelectedBorderSizeBasedOnZoomLevel(
-    context: Context,
-    zoomLevel: Float,
-    zoomSwitchLevel: Float
-): Double {
-    return when {
-        zoomLevel < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
-            .toDouble()
-
-        zoomLevel >= zoomSwitchLevel && zoomLevel < 19f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_1px)
-            .toDouble()
-
-        zoomLevel in 19f..20f -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_1_5px)
-            .toDouble()
-
-        else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_2px).toDouble()
+private fun getSelectedGridWidth(zoomLevel: Float): Double {
+    return if(zoomLevel < 20) {
+        2.0
+    } else {
+        2.5
     }
 }

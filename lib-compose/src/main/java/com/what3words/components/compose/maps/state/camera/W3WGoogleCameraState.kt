@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.state.camera
 
-import androidx.annotation.UiThread
 import androidx.compose.runtime.Immutable
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition

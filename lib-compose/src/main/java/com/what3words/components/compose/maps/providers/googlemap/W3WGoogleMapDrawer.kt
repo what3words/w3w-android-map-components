@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -9,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.google.android.gms.maps.model.BitmapDescriptor
@@ -23,6 +21,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -33,7 +32,6 @@ import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.map.components.compose.R
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -54,12 +52,19 @@ fun W3WGoogleMapDrawer(
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     state.cameraState?.let { cameraState ->
-        if (mapConfig.gridLineConfig.isGridEnabled) {
+        val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
+            derivedStateOf {
+                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel && cameraState.getZoomLevel() >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+            }
+        }
+
+        if (shouldDrawGrid.value) {
+            val density = LocalDensity.current.density
+
             // Draw grid lines
             W3WGoogleMapDrawGridLines(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
-                zoomLevel = cameraState.getZoomLevel(),
                 gridLinesConfig = mapConfig.gridLineConfig,
                 isDarkMode = state.isDarkMode
             )
@@ -124,6 +129,7 @@ fun W3WGoogleMapDrawer(
 
             //Draw the markers
             W3WGoogleMapDrawMarkers(
+                markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 markers = state.markers,
@@ -135,9 +141,11 @@ fun W3WGoogleMapDrawer(
         if (state.selectedAddress != null) {
             //Draw the selected address
             W3WGoogleMapDrawSelectedAddress(
+                markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress
+                selectedMarker = state.selectedAddress,
+                isDarkMode = state.isDarkMode
             )
         }
     }
@@ -149,45 +157,39 @@ fun W3WGoogleMapDrawer(
 fun W3WGoogleMapDrawGridLines(
     verticalLines: List<W3WLatLng>,
     horizontalLines: List<W3WLatLng>,
-    zoomLevel: Float,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     isDarkMode: Boolean
 ) {
-    val shouldDrawGrid = remember(zoomLevel) {
+    val gridLineColor = remember(isDarkMode) {
         derivedStateOf {
-            zoomLevel > gridLinesConfig.zoomSwitchLevel
+            if (isDarkMode) gridLinesConfig.gridColorDarkMode else gridLinesConfig.gridColor
         }
     }
 
-    if (shouldDrawGrid.value) {
-        val horizontalPolylines = horizontalLines.map { coordinate ->
-            LatLng(coordinate.lat, coordinate.lng)
-        }
-
-        val verticalPolylines = verticalLines.map { coordinate ->
-            LatLng(coordinate.lat, coordinate.lng)
-        }
-
-        val gridLineColor = remember(isDarkMode) {
-            if(isDarkMode) gridLinesConfig.gridColorDarkMode else gridLinesConfig.gridColor
-        }
-
-        Polyline(
-            points = horizontalPolylines,
-            color = gridLineColor,
-            width = gridLinesConfig.gridLineWidth.value,
-            clickable = false,
-            zIndex = 1f
-        )
-
-        Polyline(
-            points = verticalPolylines,
-            color = gridLineColor,
-            width = gridLinesConfig.gridLineWidth.value,
-            clickable = false,
-            zIndex = 1f
-        )
+    val horizontalPolylines = remember(horizontalLines) {
+        horizontalLines.map { LatLng(it.lat, it.lng) }
     }
+
+    val verticalPolylines = remember(verticalLines) {
+        verticalLines.map { LatLng(it.lat, it.lng) }
+    }
+
+
+    Polyline(
+        points = horizontalPolylines,
+        color = gridLineColor.value,
+        width = 1f,
+        clickable = false,
+        zIndex = 1f
+    )
+
+    Polyline(
+        points = verticalPolylines,
+        color = gridLineColor.value,
+        width = 1f,
+        clickable = false,
+        zIndex = 1f
+    )
 }
 
 @Composable
@@ -196,23 +198,32 @@ fun W3WGoogleMapDrawSelectedAddress(
     markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
     zoomLevel: Float,
     zoomSwitchLevel: Float,
-    selectedMarker: W3WMarker
+    selectedMarker: W3WMarker,
+    isDarkMode: Boolean
 ) {
+
+    val density = LocalDensity.current.density
+
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel
+            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+        }
+    }
+    val gridLineWidth = remember(zoomLevel) {
+        derivedStateOf {
+            getSelectedGridWidth(zoomLevel, density)
         }
     }
 
     if (drawZoomIn.value) {
         DrawZoomInSelectedAddress(
-            zoomLevel = zoomLevel,
-            zoomSwitchLevel = zoomSwitchLevel,
-            selectedMarker = selectedMarker
+            markerConfig = markerConfig,
+            gridLineWidth = gridLineWidth.value,
+            selectedMarker = selectedMarker,
+            isDarkMode = isDarkMode
         )
     } else {
         DrawZoomOutSelectedAddress(markerConfig, selectedMarker)
-
     }
 }
 
@@ -252,11 +263,15 @@ private fun DrawZoomOutSelectedAddress(
 @Composable
 @GoogleMapComposable
 private fun DrawZoomInSelectedAddress(
+    markerConfig: W3WMapDefaults.MarkerConfig,
     selectedMarker: W3WMarker,
-    zoomLevel: Float,
-    zoomSwitchLevel: Float
+    gridLineWidth: Float,
+    isDarkMode: Boolean
 ) {
-    val context = LocalContext.current
+    val color = remember(isDarkMode) {
+        derivedStateOf { if(isDarkMode) markerConfig.selectedZoomInColorDarkMode else markerConfig.selectedZoomInColor }
+    }
+
     selectedMarker.square.let { square ->
         Polyline(
             points = listOf(
@@ -281,12 +296,8 @@ private fun DrawZoomInSelectedAddress(
                     square.southwest.lng
                 )
             ),
-            color = Color.Black,
-            width = getGridSelectedBorderSizeBasedOnZoomLevel(
-                context,
-                zoomLevel,
-                zoomSwitchLevel,
-            ),
+            color = color.value,
+            width = gridLineWidth,
             clickable = false,
             zIndex = 1f
         )
@@ -306,7 +317,7 @@ fun W3WGoogleMapDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel
+            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
         }
     }
 
@@ -410,21 +421,17 @@ private fun DrawZoomOutMarkers(
     }
 }
 
-private fun getGridSelectedBorderSizeBasedOnZoomLevel(
-    context: Context,
-    zoomLevel: Float,
-    zoomSwitchLevel: Float
-): Float {
-    return when {
-        zoomLevel < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_gone)
-        zoomLevel >= zoomSwitchLevel && zoomLevel < 19f -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_1dp)
-        zoomLevel in 19f..20f -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_1_5dp)
-        else -> context.resources.getDimension(R.dimen.grid_selected_width_google_map_2dp)
-    }
-}
-
 // Workaround solution for the issue with rememberMarkerState(): https://stackoverflow.com/questions/75920971/how-to-make-remembermarkerstate-work-correctly-in-jetpack-compose
 @Composable
 fun rememberUpdatedMarkerState(newPosition: LatLng) =
     remember { MarkerState(position = newPosition) }
         .apply { position = newPosition }
+
+
+private fun getSelectedGridWidth(zoomLevel: Float, density: Float): Float {
+    return density * if(zoomLevel < 19) {
+        1f
+    } else {
+        1.5f
+    }
+}
