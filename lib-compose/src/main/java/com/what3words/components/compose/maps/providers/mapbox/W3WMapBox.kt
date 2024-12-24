@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +78,7 @@ fun W3WMapBox(
             .filterNotNull()
             .onEach { currentCameraState ->
                 mapView?.mapboxMap?.let { mapboxMap ->
+                    Log.d("XXX","cameraPositionState ${mapboxMap.cameraState.zoom}")
                     updateGridBound(
                         mapboxMap,
                         mapConfig.gridLineConfig,
