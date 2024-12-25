@@ -25,6 +25,7 @@ import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
+import com.what3words.components.compose.maps.models.W3WSquare
 import com.what3words.components.compose.maps.models.W3WZoomOption
 import com.what3words.components.compose.maps.state.LIST_DEFAULT_ID
 import com.what3words.components.compose.maps.state.W3WButtonsState
@@ -39,8 +40,11 @@ import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
+import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.core.types.language.W3WRFC5646Language
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -107,42 +111,8 @@ class W3WMapManager(
         observeGridCalculation()
     }
 
-    private fun createMapboxCameraState(): W3WMapboxCameraState {
-        return W3WMapboxCameraState(
-            MapViewportState(
-                initialCameraState = CameraState(
-                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
-                    EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
-                    0.0,
-                    0.0
-                )
-            )
-        )
-    }
-
-    private fun createGoogleCameraState(): W3WGoogleCameraState {
-        return W3WGoogleCameraState(
-            CameraPositionState(
-                position = CameraPosition(
-                    LOCATION_DEFAULT.toGoogleLatLng(),
-                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
-                    0f,
-                    0f
-                )
-            )
-        )
-    }
-
-    private fun observeGridCalculation() {
-        scope.launch {
-            gridCalculationFlow
-                .filterNotNull()
-                .collectLatest { calculateAndUpdateGrid(it) }
-        }
-    }
-
-    //region W3WMap Config
+// ====== API Functions ======
+    //region Map Settings
     /** Set the language of [W3WAddress.words] that onSuccess callbacks should return.
      *
      * @param language a supported [W3WRFC5646Language]. Defaults to en (English).
@@ -163,9 +133,7 @@ class W3WMapManager(
             )
         }
     }
-    //endregion
 
-    //region Map Ui Settings
     fun getMapType(): W3WMapType {
         return mapState.value.mapType
     }
@@ -194,11 +162,6 @@ class W3WMapManager(
                 isMyLocationEnabled = enabled
             )
         }
-    }
-
-    //TODO: Need to confirm on/off button in button layout
-    fun setMyLocationButton(enabled: Boolean) {
-        //TODO: Update in button state
     }
     //endregion
 
@@ -235,7 +198,6 @@ class W3WMapManager(
             handleRecallButton()
         }
     }
-
     //endregion
 
     //region Selected Address
@@ -260,9 +222,32 @@ class W3WMapManager(
         }
     }
 
+
     //endregion
 
     //region Markers
+    fun removeAllMarkers() {
+        _mapState.update {
+            it.copy(
+                markers = persistentListOf()
+            )
+        }
+    }
+
+    fun getAllMarkers(): List<W3WMarker> {
+        return markersMap.values.flatten()
+    }
+
+    fun findMarkerByCoordinates(
+        coordinates: W3WCoordinates
+    ): W3WMarker? {
+       return mapState.value.markers.firstOrNull {
+           it.square.contains(coordinates)
+       }
+    }
+    //endregion
+
+    //region Marker with Words
     suspend fun addMarkerAtListWords(
         listName: String,
         listWords: List<String>,
@@ -329,24 +314,86 @@ class W3WMapManager(
         return@withContext result
     }
 
-    suspend fun removeMarkerAtWords(words: String) = withContext(dispatcher) {
-        // Remove the marker from all lists in markersMap
-        markersMap.forEach { (listName, markers) ->
-            val updatedMarkers = markers.filter { it.words != words }
-            markersMap[listName] = updatedMarkers.toMutableList()
-        }
+    suspend fun selectAtWords(
+        words: String,
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
+        val result = textDataSource.convertToCoordinates(words)
 
-        // Remove empty lists from markersMap
-        markersMap.entries.removeAll { it.value.isEmpty() }
-
-        // Update the map state with the new markers
-        _mapState.update { currentState ->
-            currentState.copy(
-                markers = markersMap.toMarkers().toImmutableList()
+        if (result is W3WResult.Success) {
+            val marker = W3WMarker(
+                words = result.value.words,
+                square = result.value.square!!.toW3WSquare(),
+                latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
+                color = MARKER_COLOR_DEFAULT
             )
+
+            setSelectedMarker(marker)
         }
+
+        return@withContext result
     }
 
+    suspend fun removeMarkerAtWords(words: String) = withContext(dispatcher) {
+        val result = textDataSource.convertToCoordinates(words)
+
+        if (result is W3WResult.Success) {
+            // Create a new map where we filter out markers by coordinates and remove empty lists
+            val updatedMarkersMap = markersMap
+                .mapValues { (_, markers) -> markers.filter { it.latLng != result.value.center?.toW3WLatLong() }.toMutableList() }
+                .filter { (_, markers) -> markers.isNotEmpty() }.toMutableMap()
+
+            // Update the map state with the new markers
+            _mapState.update { currentState ->
+                currentState.copy(
+                    markers = updatedMarkersMap.toMarkers().toImmutableList()
+                )
+            }
+        }
+
+        return@withContext result
+    }
+
+    suspend fun removeMarkerAtListWords(listWords: List<String>) = withContext(dispatcher)  {
+        // Create a list of deferred results to process the words concurrently
+        val deferredResults = listWords.map { word ->
+            async {
+                textDataSource.convertToCoordinates(word)
+            }
+        }
+
+        // Wait for all results to be processed
+        val results = deferredResults.awaitAll()
+
+        // For each result (which is expected to be of type W3WResult), we handle success and failure
+        results.forEach { result ->
+            if (result is W3WResult.Success) {
+                val coordinates = result.value.center?.toW3WLatLong()
+
+                if (coordinates != null) {
+                    // Create a new map where we filter out markers by latLng and remove empty lists
+                    val updatedMarkersMap = markersMap
+                        .mapValues { (_, markers) ->
+                            markers.filter { it.latLng != coordinates }.toMutableList() // Filter markers not matching the coordinates
+                        }
+                        .filter { (_, markers) -> markers.isNotEmpty() } // Remove empty lists
+                        .toMutableMap()
+
+                    // Update the map state with the new markers
+                    _mapState.update { currentState ->
+                        currentState.copy(
+                            markers = updatedMarkersMap.toMarkers().toImmutableList()
+                        )
+                    }
+                }
+            }
+        }
+
+        // Return the complete list of results
+        return@withContext results
+    }
+    //endregion
+
+    //region Marker with Coordinates
     suspend fun addMarkerAtCoordinates(
         coordinates: W3WCoordinates,
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
@@ -371,10 +418,50 @@ class W3WMapManager(
         return@withContext result
     }
 
+    suspend fun addMarkerAtListCoordinates(
+        listName: String,
+        listCoordinates: List<W3WCoordinates>,
+        listColor: W3WMarkerColor,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+    ): List<W3WResult<W3WAddress>> = withContext(dispatcher) {
+        // Create a list of deferred results to process the words concurrently
+        val deferredResults = listCoordinates.map { coordinates ->
+            async {
+                textDataSource.convertTo3wa(coordinates, language)
+            }
+        }
+
+        // Wait for all results to be processed
+        val results = deferredResults.awaitAll()
+
+        // Create markers for all successful results
+        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
+            val address = result.value
+            W3WMarker(
+                words = address.words,
+                square = address.square!!.toW3WSquare(),
+                latLng = address.center!!.toW3WLatLong(),
+                color = listColor
+            )
+        }
+
+        addListMarker(
+            listName = listName,
+            listColor = listColor,
+            markers = markers
+        )
+
+        // Handle zoom for lists
+        handleZoomOption(markers.map { W3WCoordinates(it.latLng.lat,it.latLng.lng) }, zoomOption)
+
+        // Return the complete list of results
+        return@withContext results
+    }
+
     suspend fun selectAtCoordinates(
         coordinates: W3WCoordinates,
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        var marker = findMarkerByCoordinates(markersMap, coordinates)
+        var marker = findMarkerByCoordinates(coordinates)
         if (marker != null) {
             setSelectedMarker(marker)
         }
@@ -401,39 +488,44 @@ class W3WMapManager(
         return@withContext result
     }
 
-    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
-        val newGridLine = calculateGridPolylines(cameraState)
-        _mapState.update {
-            it.copy(gridLines = newGridLine)
+    suspend fun removeMarkerAtCoordinates(coordinates: W3WCoordinates) = withContext(dispatcher) {
+        // Create a new map where we filter out markers by coordinates and remove empty lists
+        val updatedMarkersMap = markersMap
+            .mapValues { (_, markers) -> markers.filter { it.latLng != coordinates.toW3WLatLong() }.toMutableList() }
+            .filter { (_, markers) -> markers.isNotEmpty() }.toMutableMap()
+
+        // Update the map state with the new markers
+        _mapState.update { currentState ->
+            currentState.copy(
+                markers = updatedMarkersMap.toMarkers().toImmutableList()
+            )
         }
     }
 
-    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines =
-        withContext(dispatcher) {
-            cameraState.gridBound?.let { safeBox ->
-                when (val grid = textDataSource.gridSection(safeBox)) {
-                    is W3WResult.Failure -> handleGridError(grid.error)
-                    is W3WResult.Success -> grid.toW3WGridLines()
-                }
-            } ?: W3WGridLines()
-        }
+    suspend fun removeMarkerAtListCoordinates(listCoordinates: List<W3WCoordinates>) = withContext(dispatcher)  {
+        // For each result (which is expected to be of type W3WResult), we handle success and failure
+        listCoordinates.forEach { coordinates ->
+            // Create a new map where we filter out markers by latLng and remove empty lists
+            val updatedMarkersMap = markersMap
+                .mapValues { (_, markers) ->
+                    markers.filter { it.latLng != coordinates.toW3WLatLong() }.toMutableList() }
+                .filter { (_, markers) -> markers.isNotEmpty() } // Remove empty lists
+                .toMutableMap()
 
-    private fun handleGridError(error: W3WError): W3WGridLines {
-        return if (error is BadBoundingBoxTooBigError || error is BadBoundingBoxError) {
-            W3WGridLines()
-        } else {
-            throw error
+            // Update the map state with the new markers
+            _mapState.update { currentState ->
+                currentState.copy(
+                    markers = updatedMarkersMap.toMarkers().toImmutableList()
+                )
+            }
         }
     }
+    //endregion
 
-    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
-        return W3WGridLines(
-            verticalLines = value.lines.computeVerticalLines().toImmutableList(),
-            horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
-        )
-    }
+    //region Marker with Coordinates
+    //endregion
 
-    // Button state region
+    //region Buttons
     fun updateAccuracyDistance(distance: Float) {
         _buttonState.update {
             it.copy(accuracyDistance = distance)
@@ -476,6 +568,75 @@ class W3WMapManager(
         _buttonState.update {
             it.copy(isRecallButtonEnabled = isEnabled)
         }
+    }
+    //endregion
+
+    //region Private function
+    private fun createMapboxCameraState(): W3WMapboxCameraState {
+        return W3WMapboxCameraState(
+            MapViewportState(
+                initialCameraState = CameraState(
+                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
+                    EdgeInsets(0.0, 0.0, 0.0, 0.0),
+                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                    0.0,
+                    0.0
+                )
+            )
+        )
+    }
+
+    private fun createGoogleCameraState(): W3WGoogleCameraState {
+        return W3WGoogleCameraState(
+            CameraPositionState(
+                position = CameraPosition(
+                    LOCATION_DEFAULT.toGoogleLatLng(),
+                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                    0f,
+                    0f
+                )
+            )
+        )
+    }
+
+    private fun observeGridCalculation() {
+        scope.launch {
+            gridCalculationFlow
+                .filterNotNull()
+                .collectLatest { calculateAndUpdateGrid(it) }
+        }
+    }
+
+    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
+        val newGridLine = calculateGridPolylines(cameraState)
+        _mapState.update {
+            it.copy(gridLines = newGridLine)
+        }
+    }
+
+    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines =
+        withContext(dispatcher) {
+            cameraState.gridBound?.let { safeBox ->
+                when (val grid = textDataSource.gridSection(safeBox)) {
+                    is W3WResult.Failure -> handleGridError(grid.error)
+                    is W3WResult.Success -> grid.toW3WGridLines()
+                }
+            } ?: W3WGridLines()
+        }
+
+    private fun handleGridError(error: W3WError): W3WGridLines {
+        return if (error is BadBoundingBoxTooBigError || error is BadBoundingBoxError) {
+            W3WGridLines()
+        } else {
+            throw error
+        }
+    }
+
+    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
+        return W3WGridLines(
+            verticalLines = value.lines.computeVerticalLines().toImmutableList(),
+            horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
+        )
     }
 
     private suspend fun updateSelectedScreenLocation() {
@@ -620,8 +781,10 @@ class W3WMapManager(
             }
         }
     }
+    //endregion
 }
 
+//region Extension
 private fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
     listName: String,
     listColor: W3WMarkerColor,
@@ -697,19 +860,15 @@ private fun hasMultipleLists(
     return count > 1
 }
 
-private fun findMarkerByCoordinates(
-    markers: Map<String, List<W3WMarker>>,
-    coordinates: W3WCoordinates,
-    epsilon: Double = 0.00001 // the precision when comparing coordinates
-): W3WMarker? {
-    return markers.values.flatten().find { marker ->
-        kotlin.math.abs(marker.latLng.lat - coordinates.lat) < epsilon
-                && kotlin.math.abs(marker.latLng.lng - coordinates.lng) < epsilon
-    }
-}
-
 private fun findMarkerBy3wa(markers: Map<String, List<W3WMarker>>, words: String): W3WMarker? {
     return markers.values.flatten().find { marker ->
         marker.words == words
     }
 }
+
+private fun W3WSquare.contains(coordinates: W3WCoordinates?): Boolean {
+    if (coordinates == null) return false
+    return if (coordinates.lat >= this.southwest.lat && coordinates.lat <= this.northeast.lat && coordinates.lng >= this.southwest.lng && coordinates.lng <= this.northeast.lng) return true
+    else false
+}
+//endregion
