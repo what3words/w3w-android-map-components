@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.state.camera
 
-import androidx.annotation.UiThread
 import androidx.compose.runtime.Immutable
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle

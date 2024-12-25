@@ -25,6 +25,8 @@ object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
     private val MUlTI_LIST_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
+    const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
+    const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
     /**
      * Data class representing the configuration for the map.
@@ -98,8 +100,9 @@ object W3WMapDefaults {
 
     @Immutable
     data class MarkerConfig(
-        val markerColor: W3WMarkerColor,
-        val multiListMarkersColor: W3WMarkerColor
+        val multiListMarkersColor: W3WMarkerColor,
+        val selectedZoomInColor: Color,
+        val selectedZoomInColorDarkMode: Color,
     )
 
     @Composable
@@ -113,7 +116,7 @@ object W3WMapDefaults {
 
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
-        isBuildingEnable: Boolean = true,
+        isBuildingEnable: Boolean = false,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
         markerConfig: MarkerConfig = defaultMarkerConfig()
@@ -132,8 +135,8 @@ object W3WMapDefaults {
         gridColor: Color = Color(0xB3697F8D),
         gridColorDarkMode: Color = Color(0xB3697F8D),
         zoomSwitchLevel: Float = 19f,
-        gridLineWidth: Dp = 1.5.dp,
-        gridScale: Float = 4f
+        gridLineWidth: Dp = 2.dp,
+        gridScale: Float = 6f
     ): GridLinesConfig {
         return GridLinesConfig(
             isGridEnabled = isGridEnabled,
@@ -158,12 +161,14 @@ object W3WMapDefaults {
     }
 
     fun defaultMarkerConfig(
-        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-        multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT
+        multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT,
+        selectedColor: Color = Color.Black,
+        selectedColorDarkMode: Color = Color.White
     ): MarkerConfig {
         return MarkerConfig(
-            markerColor = markerColor,
-            multiListMarkersColor = multiMarkersColor
+            multiListMarkersColor = multiMarkersColor,
+            selectedZoomInColor = selectedColor,
+            selectedZoomInColorDarkMode = selectedColorDarkMode
         )
     }
 }

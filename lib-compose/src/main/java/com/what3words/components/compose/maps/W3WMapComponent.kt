@@ -36,9 +36,7 @@ import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * A composable function that displays a What3Words (W3W) map.
@@ -452,8 +450,3 @@ private fun fetchCurrentLocation(
         }
     }
 }
-
-
-
-
-

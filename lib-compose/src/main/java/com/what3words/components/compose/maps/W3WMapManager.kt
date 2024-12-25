@@ -3,7 +3,6 @@ package com.what3words.components.compose.maps
 import android.annotation.SuppressLint
 import android.graphics.PointF
 import androidx.annotation.RequiresPermission
-import androidx.annotation.UiThread
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
@@ -46,7 +45,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

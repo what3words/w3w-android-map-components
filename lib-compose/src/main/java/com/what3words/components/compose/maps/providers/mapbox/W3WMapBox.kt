@@ -13,7 +13,6 @@ import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
-import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
@@ -22,10 +21,6 @@ import com.mapbox.maps.extension.compose.style.GenericStyle
 import com.mapbox.maps.extension.compose.style.rememberStyleState
 import com.mapbox.maps.extension.compose.style.standard.StandardStyleConfigurationState
 import com.mapbox.maps.extension.compose.style.styleImportsConfig
-import com.mapbox.maps.extension.style.layers.generated.FillExtrusionLayer
-import com.mapbox.maps.extension.style.layers.getLayer
-import com.mapbox.maps.extension.style.layers.getLayerAs
-import com.mapbox.maps.extension.style.types.StyleTransition
 import com.mapbox.maps.plugin.gestures.generated.GesturesSettings
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -169,7 +164,7 @@ fun W3WMapBox(
                     styleImportsConfig = styleImportsConfig {
                         importConfig(importId = "basemap") {
                             with(StandardStyleConfigurationState().apply {
-                                show3dObjects = BooleanValue(true)
+                                show3dObjects = BooleanValue(mapConfig.isBuildingEnable)
                             }) {
                                 config(
                                     "show3dObjects",
