@@ -37,13 +37,13 @@ import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
+import com.what3words.components.compose.maps.models.MarkerType
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
-import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -114,7 +114,7 @@ fun W3WMapBoxDrawer(
                     val cameraBound = cameraState.gridBound
                     if (cameraBound != null) {
                         val newVisibleMarkers = state.markers.filter {
-                            cameraBound.contains(W3WCoordinates(it.latLng.lat, it.latLng.lng)) &&
+                            cameraBound.contains(it.latLng) &&
                                     !visibleMarkers.contains(it)
                         }
 
@@ -132,18 +132,18 @@ fun W3WMapBoxDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 markers = visibleMarkers,
-                selectedMarker = state.selectedAddress,
+                selectedMarker = state.selectedMarker,
                 onMarkerClicked = onMarkerClicked
             )
         }
 
-        if (state.selectedAddress != null) {
+        if (state.selectedMarker != null) {
             //Draw the selected address
             W3WMapBoxDrawSelectedAddress(
                 markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress,
+                selectedMarker = state.selectedMarker,
                 isDarkMode = state.isDarkMode
             )
         }
@@ -238,6 +238,16 @@ fun W3WMapBoxDrawMarkers(
         }
     }
 
+    val zoomOutMarkers = remember(markers, selectedMarker) {
+        derivedStateOf {
+            selectedMarker?.let {
+                markers.filter { it.id != selectedMarker.id }.toImmutableList()
+            }?: run {
+                markers
+            }
+        }
+    }
+
     if (drawZoomIn.value) {
         DrawZoomInMarkers(
             markerConfig,
@@ -246,8 +256,7 @@ fun W3WMapBoxDrawMarkers(
     } else {
         DrawZoomOutMarkers(
             markerConfig,
-            markers,
-            selectedMarker,
+            zoomOutMarkers.value,
             onMarkerClicked,
         )
     }
@@ -258,7 +267,6 @@ fun W3WMapBoxDrawMarkers(
 private fun DrawZoomOutMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
     markers: ImmutableList<W3WMarker>,
-    selectedMarker: W3WMarker?,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
@@ -268,12 +276,9 @@ private fun DrawZoomOutMarkers(
     // Map of cached bitmap with key is the ID of the W3WColor
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
-    val annotations = remember(markers, selectedMarker) {
-        markers.filter {
-            it != selectedMarker
-        }.map { marker ->
-            val color =
-                if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+    val annotations = remember(markers) {
+        markers.map { marker ->
+            val color = if (marker.type == MarkerType.IN_MULTIPLE_LIST) markerConfig.multiListMarkersColor else marker.color
             val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
@@ -298,6 +303,7 @@ private fun DrawZoomOutMarkers(
             marker?.let(currentOnMarkerClicked)
             true
         }
+        iconEmissiveStrength = 1.0
         iconAllowOverlap = true
     }
 }
@@ -315,7 +321,7 @@ private fun DrawZoomInMarkers(
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
 
     markers.forEach { marker ->
-        val color = if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+        val color = if (marker.type == MarkerType.IN_MULTIPLE_LIST) markerConfig.multiListMarkersColor else marker.color
         val bitmap = bitmapCache.getOrPut(color.id) {
             getFillGridMarkerBitmap(
                 context,
@@ -357,16 +363,24 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val color =
-        if (selectedMarker.isInMultipleList) markerConfig.multiListMarkersColor else selectedMarker.color
+
+    val color = remember(selectedMarker) {
+        derivedStateOf {
+            when(selectedMarker.type) {
+                MarkerType.IN_MULTIPLE_LIST -> markerConfig.multiListMarkersColor
+                MarkerType.IN_SINGLE_LIST -> selectedMarker.color
+                MarkerType.NOT_IN_LIST -> markerConfig.selectedZoomOutColor
+            }
+        }
+    }
 
     val marker = rememberIconImage(
-        key = color.id,
+        key = color.value.id,
         painter = BitmapPainter(
             getMarkerBitmap(
                 context,
                 density,
-                color
+                color.value
             ).asImageBitmap()
         )
     )
@@ -378,6 +392,7 @@ private fun DrawZoomOutSelectedAddress(
         )
     ) {
         iconImage = marker
+        iconEmissiveStrength = 1.0
         iconAnchor =
             IconAnchor.BOTTOM // This makes the arrow part of the icon to be at the center of the selected square
     }

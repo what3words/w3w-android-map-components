@@ -20,7 +20,7 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  * @property isDarkMode Whether dark mode is enabled for the map. Defaults to `false`.
  * @property isMapGestureEnable Whether map gestures are enabled. Defaults to `true`.
  * @property isMyLocationEnabled Whether the "My Location" feature is enabled. Defaults to `true`.
- * @property selectedAddress The currently selected W3W address. Defaults to `null`.
+ * @property selectedMarker The currently selected W3W address. Defaults to `null`.
  * @property markers A list of markers lists, Defaults to an empty list.
  * @property cameraState The current state of the map's camera. Defaults to `null`.
  * @property gridLines [W3WGridLines] data class handling draw grid line on map
@@ -36,7 +36,7 @@ data class W3WMapState(
 
     val isMyLocationEnabled: Boolean = true,
 
-    val selectedAddress: W3WMarker? = null,
+    val selectedMarker: W3WMarker? = null,
 
     // markers with unique by id
     val markers: ImmutableList<W3WMarker> = persistentListOf(),

@@ -14,13 +14,19 @@ import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxErr
 import com.what3words.androidwrapper.datasource.text.api.error.BadBoundingBoxTooBigError
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
+import com.what3words.components.compose.maps.extensions.addListMarker
+import com.what3words.components.compose.maps.extensions.addMarker
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
+import com.what3words.components.compose.maps.extensions.contains
+import com.what3words.components.compose.maps.extensions.toMarkers
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WLatLong
-import com.what3words.components.compose.maps.mapper.toW3WSquare
+import com.what3words.components.compose.maps.mapper.toW3WMarker
+import com.what3words.components.compose.maps.mapper.toW3WRectangle
 import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -37,9 +43,11 @@ import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.domain.W3WSuggestion
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
 import com.what3words.core.types.language.W3WRFC5646Language
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -107,42 +115,8 @@ class W3WMapManager(
         observeGridCalculation()
     }
 
-    private fun createMapboxCameraState(): W3WMapboxCameraState {
-        return W3WMapboxCameraState(
-            MapViewportState(
-                initialCameraState = CameraState(
-                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
-                    EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
-                    0.0,
-                    0.0
-                )
-            )
-        )
-    }
-
-    private fun createGoogleCameraState(): W3WGoogleCameraState {
-        return W3WGoogleCameraState(
-            CameraPositionState(
-                position = CameraPosition(
-                    LOCATION_DEFAULT.toGoogleLatLng(),
-                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
-                    0f,
-                    0f
-                )
-            )
-        )
-    }
-
-    private fun observeGridCalculation() {
-        scope.launch {
-            gridCalculationFlow
-                .filterNotNull()
-                .collectLatest { calculateAndUpdateGrid(it) }
-        }
-    }
-
-    //region W3WMap Config
+// ====== API Functions ======
+    //region Map Settings
     /** Set the language of [W3WAddress.words] that onSuccess callbacks should return.
      *
      * @param language a supported [W3WRFC5646Language]. Defaults to en (English).
@@ -163,9 +137,7 @@ class W3WMapManager(
             )
         }
     }
-    //endregion
 
-    //region Map Ui Settings
     fun getMapType(): W3WMapType {
         return mapState.value.mapType
     }
@@ -195,11 +167,6 @@ class W3WMapManager(
             )
         }
     }
-
-    //TODO: Need to confirm on/off button in button layout
-    fun setMyLocationButton(enabled: Boolean) {
-        //TODO: Update in button state
-    }
     //endregion
 
     // region Camera control
@@ -208,14 +175,14 @@ class W3WMapManager(
     }
 
     suspend fun moveToPosition(
-        coordinates: W3WCoordinates,
+        latLng: W3WLatLng,
         zoom: Float? = null,
         bearing: Float? = null,
         tilt: Float? = null,
         animate: Boolean = false,
     ) {
         mapState.value.cameraState?.moveToPosition(
-            coordinates = coordinates,
+            latLng,
             zoom,
             bearing,
             tilt,
@@ -235,205 +202,430 @@ class W3WMapManager(
             handleRecallButton()
         }
     }
-
     //endregion
 
-    //region Selected Address
-    fun setSelectedMarker(marker: W3WMarker) {
-        _mapState.value = mapState.value.copy(
-            selectedAddress = marker.copy(
-                color = marker.color,
-                isInMultipleList = hasMultipleLists(marker, markersMap)
-            )
-        )
-    }
-
+    //region Selected Marker
     fun getSelectedMarker(): W3WMarker? {
-        return mapState.value.selectedAddress
+        return mapState.value.selectedMarker
     }
 
     fun unselect() {
         _mapState.update {
             it.copy(
-                selectedAddress = null
+                selectedMarker = null
             )
         }
     }
-
     //endregion
 
     //region Markers
-    suspend fun addMarkerAtListWords(
-        listName: String,
-        listWords: List<String>,
-        listColor: W3WMarkerColor,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-    ): List<W3WResult<W3WAddress>> = withContext(dispatcher) {
-        // Create a list of deferred results to process the words concurrently
-        val deferredResults = listWords.map { word ->
-            async {
-                textDataSource.convertToCoordinates(word)
-            }
-        }
-
-        // Wait for all results to be processed
-        val results = deferredResults.awaitAll()
-
-        // Create markers for all successful results
-        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>().map { result ->
-            val address = result.value
-            W3WMarker(
-                words = address.words,
-                square = address.square!!.toW3WSquare(),
-                latLng = address.center!!.toW3WLatLong(),
-                color = listColor
+    fun removeAllMarkers() {
+        _mapState.update {
+            it.copy(
+                markers = persistentListOf()
             )
         }
-
-        addListMarker(
-            listName = listName,
-            listColor = listColor,
-            markers = markers
-        )
-
-        // Handle zoom for lists
-        handleZoomOption(markers.map { W3WCoordinates(it.latLng.lat,it.latLng.lng) }, zoomOption)
-
-        // Return the complete list of results
-        return@withContext results
     }
 
-    suspend fun addMarkerAtWords(
-        words: String,
-        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    fun getAllMarkers(): List<W3WMarker> {
+        return markersMap.values.flatten()
+    }
+
+    fun findMarkerByLatLng(
+        latLng: W3WLatLng
+    ): W3WMarker? {
+        return mapState.value.markers.firstOrNull {
+            it.square.contains(latLng)
+        }
+    }
+
+    suspend fun addMaker(
+        marker: W3WMarker,
+        listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
-    ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        val result = textDataSource.convertToCoordinates(words)
+    ) = withContext(dispatcher) {
+        // Add the marker to the markersMap
+        markersMap.addMarker(listName = listName, marker = marker)
 
-        if (result is W3WResult.Success) {
-            val marker = W3WMarker(
-                words = result.value.words,
-                square = result.value.square!!.toW3WSquare(),
-                latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                color = markerColor
-            )
-
-            addMarker(
-                marker = marker
-            )
-
-            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
-        }
-
-        return@withContext result
-    }
-
-    suspend fun removeMarkerAtWords(words: String) = withContext(dispatcher) {
-        // Remove the marker from all lists in markersMap
-        markersMap.forEach { (listName, markers) ->
-            val updatedMarkers = markers.filter { it.words != words }
-            markersMap[listName] = updatedMarkers.toMutableList()
-        }
-
-        // Remove empty lists from markersMap
-        markersMap.entries.removeAll { it.value.isEmpty() }
-
-        // Update the map state with the new markers
+        // Update the map state
         _mapState.update { currentState ->
             currentState.copy(
                 markers = markersMap.toMarkers().toImmutableList()
             )
         }
+
+        // Handle zoom options
+        handleZoomOption(marker.latLng, zoomOption, zoomLevel)
     }
 
-    suspend fun addMarkerAtCoordinates(
-        coordinates: W3WCoordinates,
-        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null
-    ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        val result = textDataSource.convertTo3wa(coordinates, language)
+    suspend fun addListMarker(
+        markers: List<W3WMarker>,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM
+    ) {
+        markersMap.addListMarker(
+            listName = listName,
+            markers = markers,
+        )
 
-        if (result is W3WResult.Success) {
-            addMarker(
-                marker = W3WMarker(
-                    words = result.value.words,
-                    square = result.value.square!!.toW3WSquare(),
-                    latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                    color = markerColor
-                )
-            )
-
-            handleZoomOption(result.value.center!!, zoomOption, zoomLevel)
-        }
-
-        return@withContext result
-    }
-
-    suspend fun selectAtCoordinates(
-        coordinates: W3WCoordinates,
-    ): W3WResult<W3WAddress> = withContext(dispatcher) {
-        var marker = findMarkerByCoordinates(markersMap, coordinates)
-        if (marker != null) {
-            setSelectedMarker(marker)
-        }
-
-        val result = textDataSource.convertTo3wa(coordinates, language)
-
-        if (result is W3WResult.Success) {
-            if (marker == null) {
-                marker = findMarkerBy3wa(markersMap, result.value.words) ?: W3WMarker(
-                    words = result.value.words,
-                    square = result.value.square!!.toW3WSquare(),
-                    latLng = result.value.center?.toW3WLatLong() ?: LOCATION_DEFAULT,
-                    color = MARKER_COLOR_DEFAULT
-                )
-
-                setSelectedMarker(marker)
-            }
-
-            if (_buttonState.value.isRecallButtonEnabled) {
-                handleRecallButton()
-            }
-        }
-
-        return@withContext result
-    }
-
-    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
-        val newGridLine = calculateGridPolylines(cameraState)
         _mapState.update {
-            it.copy(gridLines = newGridLine)
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+
+        // Handle zoom for lists
+        handleZoomOption(markers.map { it.latLng }, zoomOption)
+    }
+
+    suspend fun setSelectedMarker(
+        selectedMarker: W3WMarker
+    ) {
+        _mapState.update {
+            it.copy(
+                selectedMarker = selectedMarker
+            )
+        }
+
+        if (_buttonState.value.isRecallButtonEnabled) {
+            handleRecallButton()
         }
     }
 
-    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines =
-        withContext(dispatcher) {
-            cameraState.gridBound?.let { safeBox ->
-                when (val grid = textDataSource.gridSection(safeBox)) {
-                    is W3WResult.Failure -> handleGridError(grid.error)
-                    is W3WResult.Success -> grid.toW3WGridLines()
-                }
-            } ?: W3WGridLines()
-        }
-
-    private fun handleGridError(error: W3WError): W3WGridLines {
-        return if (error is BadBoundingBoxTooBigError || error is BadBoundingBoxError) {
-            W3WGridLines()
-        } else {
-            throw error
-        }
-    }
-
-    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
-        return W3WGridLines(
-            verticalLines = value.lines.computeVerticalLines().toImmutableList(),
-            horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
+    fun removeByMarker(
+        removeMarker: W3WMarker,
+        listName: String? = null
+    ): List<W3WMarker> {
+        return removeMarkerByLatLng(
+            listName = listName,
+            latLng = removeMarker.latLng
         )
     }
 
-    // Button state region
+    fun removeByListMarker(
+        markers: List<W3WMarker>,
+        listName: String? = null
+    ): List<W3WMarker> {
+        val removedMarkers = mutableListOf<W3WMarker>()
+
+        markers.forEach {
+            removedMarkers.addAll(removeByMarker(it, listName))
+        }
+
+        return removedMarkers
+    }
+    //endregion
+
+    //region Marker with Words
+    suspend fun addMarkerByWords(
+        words: String,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarker(
+            listName = listName,
+            input = words,
+            convertFunction = { convertFunctionWords(it, markerColor) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    suspend fun addMarkerByListWords(
+        listWords: List<String>,
+        listColor: W3WMarkerColor,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addListMarker(
+            listName = listName,
+            inputs = listWords,
+            convertFunction = { convertFunctionWords(it, listColor) },
+            zoomOption = zoomOption
+        )
+    }
+
+    suspend fun selectByWords(
+        words: String,
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        val result = convertFunctionWords(words)
+
+        if (result is W3WResult.Success) {
+            setSelectedMarker(selectedMarker = result.value)
+        }
+
+        return@withContext result
+    }
+
+    suspend fun removeMarkerByWords(
+        words: String,
+        listName: String? = null
+    ): W3WResult<List<W3WMarker>> = withContext(dispatcher) {
+        return@withContext when (val result = convertFunctionWords(words)) {
+            is W3WResult.Failure -> {
+                W3WResult.Failure(result.error, result.message)
+            }
+
+            is W3WResult.Success -> {
+                W3WResult.Success(
+                    removeMarkerByLatLng(
+                        listName = listName,
+                        latLng = result.value.latLng
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun removeMarkerByListWords(
+        listWords: List<String>,
+        listName: String? = null
+    ): List<W3WResult<List<W3WMarker>>> = withContext(dispatcher) {
+        // Start multiple asynchronous tasks to handle each word concurrently
+        val results = listWords.map { word ->
+            async {
+                removeMarkerByWords(
+                    listName = listName,
+                    words = word
+                )
+            }
+        }
+
+        // Await all results and return as a list
+        results.awaitAll()
+    }
+    //endregion
+
+    //region Marker with W3WCoordinates
+    suspend fun addMarkerByCoordinates(
+        coordinates: W3WCoordinates,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarker(
+            listName = listName,
+            input = coordinates,
+            convertFunction = { convertFunctionCoordinate(it, markerColor) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    suspend fun addMarkerByListCoordinates(
+        listCoordinates: List<W3WCoordinates>,
+        listName: String = LIST_DEFAULT_ID,
+        listColor: W3WMarkerColor,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addListMarker(
+            listName = listName,
+            zoomOption = zoomOption,
+            inputs = listCoordinates,
+            convertFunction = { convertFunctionCoordinate(it, listColor) }
+        )
+    }
+
+    suspend fun selectByCoordinates(
+        coordinates: W3WCoordinates,
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        val result = findMarkerByLatLng(coordinates.toW3WLatLong())?.let { marker ->
+            W3WResult.Success(marker)
+        } ?: run {
+            convertFunctionCoordinate(coordinates)
+        }
+
+        if (result is W3WResult.Success) {
+            setSelectedMarker(selectedMarker = result.value)
+        }
+
+        return@withContext result
+    }
+
+    fun removeMarkerByCoordinates(
+        coordinates: W3WCoordinates,
+        listName: String? = null
+    ): List<W3WMarker> {
+        return removeMarkerByLatLng(
+            listName = listName,
+            latLng = coordinates.toW3WLatLong()
+        )
+    }
+
+    fun removeMarkerByListCoordinates(
+        listCoordinates: List<W3WCoordinates>,
+        listName: String? = null,
+    ): List<W3WMarker> {
+        val removedMarkers = mutableListOf<W3WMarker>()
+
+        listCoordinates.forEach {
+            removedMarkers.addAll(removeMarkerByLatLng(listName, it.toW3WLatLong()))
+        }
+
+        return removedMarkers
+    }
+    //endregion
+
+    //region Marker with Suggestions
+    suspend fun addMarkerBySuggestion(
+        suggestion: W3WSuggestion,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarker(
+            listName = listName,
+            input = suggestion.w3wAddress,
+            convertFunction = { convertFunctionAddress(it, markerColor) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    suspend fun addMarkerByListSuggestion(
+        suggestions: List<W3WSuggestion>,
+        listColor: W3WMarkerColor,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addListMarker(
+            listName = listName,
+            inputs = suggestions.map { it.w3wAddress },
+            zoomOption = zoomOption,
+            convertFunction = { convertFunctionAddress(it, listColor) }
+        )
+    }
+
+    suspend fun selectBySuggestion(
+        suggestion: W3WSuggestion
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext suggestion.w3wAddress.center?.let {
+            selectByCoordinates(it)
+        } ?: run {
+            selectByWords(suggestion.w3wAddress.words)
+        }
+    }
+
+    suspend fun removeMarkerBySuggestion(
+        suggestion: W3WSuggestion,
+        listName: String? = null
+    ): W3WResult<List<W3WMarker>> = withContext(dispatcher) {
+        return@withContext suggestion.w3wAddress.center?.let {
+            W3WResult.Success(removeMarkerByLatLng(
+                listName = listName,
+                latLng = it.toW3WLatLong()
+            ))
+        }?:run {
+            removeMarkerByWords(
+                listName = listName,
+                words = suggestion.w3wAddress.words
+            )
+        }
+    }
+
+    suspend fun removeMarkerByListSuggestion(
+        suggestions: List<W3WSuggestion>,
+        listName: String? = null
+    ): List<W3WResult<List<W3WMarker>>> = withContext(dispatcher) {
+        // Start multiple asynchronous tasks to handle each word concurrently
+        val results = suggestions.map { suggestion ->
+            async {
+                removeMarkerBySuggestion(
+                    listName = listName,
+                    suggestion = suggestion
+                )
+            }
+        }
+
+        // Await all results and return as a list
+        results.awaitAll()
+
+    }
+    //endregion
+
+    //region Marker with Address
+    suspend fun addMarkerByAddress(
+        address: W3WAddress,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarker(
+            listName = listName,
+            input = address,
+            convertFunction = { convertFunctionAddress(it, markerColor) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    suspend fun addMarkerByListAddress(
+        listAddress: List<W3WAddress>,
+        listColor: W3WMarkerColor,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addListMarker(
+            listName = listName,
+            inputs = listAddress,
+            zoomOption = zoomOption,
+            convertFunction = { convertFunctionAddress(it, listColor) }
+        )
+    }
+
+    suspend fun selectByAddress(
+        address: W3WAddress
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext address.center?.let {
+            selectByCoordinates(it)
+        } ?: run {
+            selectByWords(address.words)
+        }
+    }
+
+    suspend fun removeMarkerByAddress(
+        address: W3WAddress,
+        listName: String? = null
+    ): W3WResult<List<W3WMarker>> = withContext(dispatcher) {
+        return@withContext address.center?.let {
+            W3WResult.Success(removeMarkerByLatLng(
+                listName = listName,
+                latLng = it.toW3WLatLong()
+            ))
+        }?:run {
+            removeMarkerByWords(
+                listName = listName,
+                words = address.words
+            )
+        }
+    }
+
+    suspend fun removeMarkerByListAddress(
+        listAddress: List<W3WAddress>,
+        listName: String? = null
+    ): List<W3WResult<List<W3WMarker>>>  = withContext(dispatcher)  {
+        // Start multiple asynchronous tasks to handle each word concurrently
+        val results = listAddress.map { address ->
+            async {
+                removeMarkerByAddress(
+                    listName = listName,
+                    address = address
+                )
+            }
+        }
+
+        // Await all results and return as a list
+        results.awaitAll()
+    }
+    //endregion
+
+    //region Buttons
     fun updateAccuracyDistance(distance: Float) {
         _buttonState.update {
             it.copy(accuracyDistance = distance)
@@ -477,10 +669,79 @@ class W3WMapManager(
             it.copy(isRecallButtonEnabled = isEnabled)
         }
     }
+    //endregion
+
+    //region Private function
+    private fun createMapboxCameraState(): W3WMapboxCameraState {
+        return W3WMapboxCameraState(
+            MapViewportState(
+                initialCameraState = CameraState(
+                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
+                    EdgeInsets(0.0, 0.0, 0.0, 0.0),
+                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                    0.0,
+                    0.0
+                )
+            )
+        )
+    }
+
+    private fun createGoogleCameraState(): W3WGoogleCameraState {
+        return W3WGoogleCameraState(
+            CameraPositionState(
+                position = CameraPosition(
+                    LOCATION_DEFAULT.toGoogleLatLng(),
+                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                    0f,
+                    0f
+                )
+            )
+        )
+    }
+
+    private fun observeGridCalculation() {
+        scope.launch {
+            gridCalculationFlow
+                .filterNotNull()
+                .collectLatest { calculateAndUpdateGrid(it) }
+        }
+    }
+
+    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
+        val newGridLine = calculateGridPolylines(cameraState)
+        _mapState.update {
+            it.copy(gridLines = newGridLine)
+        }
+    }
+
+    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): W3WGridLines =
+        withContext(dispatcher) {
+            cameraState.gridBound?.let { safeBox ->
+                when (val grid = textDataSource.gridSection(safeBox.toW3WRectangle())) {
+                    is W3WResult.Failure -> handleGridError(grid.error)
+                    is W3WResult.Success -> grid.toW3WGridLines()
+                }
+            } ?: W3WGridLines()
+        }
+
+    private fun handleGridError(error: W3WError): W3WGridLines {
+        return if (error is BadBoundingBoxTooBigError || error is BadBoundingBoxError) {
+            W3WGridLines()
+        } else {
+            throw error
+        }
+    }
+
+    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
+        return W3WGridLines(
+            verticalLines = value.lines.computeVerticalLines().toImmutableList(),
+            horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
+        )
+    }
 
     private suspend fun updateSelectedScreenLocation() {
         withContext(dispatcher) {
-            val selectedAddress = mapState.value.selectedAddress?.latLng
+            val selectedAddress = mapState.value.selectedMarker?.latLng
             val mapProjection = buttonState.value.mapProjection
             val selectedScreenLocation =
                 selectedAddress?.let { mapProjection?.toScreenLocation(it) }
@@ -494,8 +755,8 @@ class W3WMapManager(
 
     private suspend fun updateRecallButtonColor() {
         withContext(dispatcher) {
-            val markerSlashColor = mapState.value.selectedAddress?.color?.slash
-            val markerBackgroundColor = mapState.value.selectedAddress?.color?.background
+            val markerSlashColor = mapState.value.selectedMarker?.color?.slash
+            val markerBackgroundColor = mapState.value.selectedMarker?.color?.background
             _buttonState.update {
                 it.copy(
                     recallArrowColor = markerSlashColor ?: Color.White,
@@ -537,70 +798,155 @@ class W3WMapManager(
         (180 + alpha) * -1
     }
 
-    private fun addMarker(
-        marker: W3WMarker
-    ) {
-        markersMap.addMarker(
-            marker = marker
-        )
+    private fun convertFunctionWords(
+        words: String,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    ): W3WResult<W3WMarker> {
+         return when(val result = textDataSource.convertToCoordinates(words)) {
+             is W3WResult.Success -> {
+                 W3WResult.Success(result.value.toW3WMarker(markerColor))
+             }
+             is W3WResult.Failure -> {
+                 W3WResult.Failure(result.error, result.message)
+             }
+         }
+    }
 
-        _mapState.update {
-            it.copy(
-                markers = markersMap.toMarkers().toImmutableList()
-            )
+    private fun convertFunctionCoordinate(
+        coordinates: W3WCoordinates,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    ): W3WResult<W3WMarker> {
+        return when(val result = textDataSource.convertTo3wa(coordinates,language)) {
+            is W3WResult.Success -> {
+                W3WResult.Success(result.value.toW3WMarker(markerColor))
+            }
+            is W3WResult.Failure -> {
+                W3WResult.Failure(result.error, result.message)
+            }
         }
     }
 
-    private fun addListMarker(
+    private fun convertFunctionAddress(
+        address: W3WAddress,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    ): W3WResult<W3WMarker> {
+        return if(address.center == null) {
+            when(val result = textDataSource.convertToCoordinates(address.words)) {
+                is W3WResult.Success -> {
+                    W3WResult.Success(result.value.toW3WMarker(markerColor))
+                }
+                is W3WResult.Failure -> {
+                    W3WResult.Failure(result.error, result.message)
+                }
+            }
+        } else {
+            W3WResult.Success(address.toW3WMarker())
+        }
+    }
+
+    private suspend fun <T> addMarker(
         listName: String,
-        listColor: W3WMarkerColor,
-        markers: List<W3WMarker>
-    ) {
-        markersMap.addListMarker(
+        zoomOption: W3WZoomOption,
+        zoomLevel: Float?,
+        input: T,
+        convertFunction: suspend (T) -> W3WResult<W3WMarker>
+    ): W3WResult<W3WMarker> {
+        return when (val result = convertFunction(input)) {
+            is W3WResult.Success -> {
+                addMaker(
+                    listName = listName,
+                    marker = result.value,
+                    zoomOption = zoomOption,
+                    zoomLevel = zoomLevel
+                )
+
+                result
+            }
+            is W3WResult.Failure -> result
+        }
+    }
+
+    private suspend fun <T> addListMarker(
+        listName: String,
+        inputs: List<T>,
+        zoomOption: W3WZoomOption,
+        convertFunction: suspend (T) -> W3WResult<W3WMarker>
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        // Concurrently process all inputs
+        val result = inputs.map { input -> async { convertFunction(input) } }.awaitAll()
+        val markers = result.filterIsInstance<W3WResult.Success<W3WMarker>>().map { it.value }
+
+        addListMarker(
             listName = listName,
             markers = markers,
-            listColor = listColor
+            zoomOption = zoomOption
         )
 
-        _mapState.update {
-            it.copy(
-                markers = markersMap.toMarkers().toImmutableList()
-            )
-        }
+        // Return the complete list of results
+        return@withContext result
     }
 
-    private fun removeMarker(
-        marker: W3WMarker
-    ) {
-        // Filter out markers with the specified words
-        markersMap.mapValues { (_, listMarker) ->
-            listMarker.filter { it.id != marker.id }.toImmutableList()
-        }.filter { (_, listMarker) -> listMarker.isNotEmpty() }
+    private fun removeMarkerByLatLng(
+        listName: String? = null,
+        latLng: W3WLatLng
+    ): List<W3WMarker>  {
+        val removedMarkers = mutableListOf<W3WMarker>()
+        val listToRemove = mutableListOf<String>()
 
-        _mapState.update {
-            it.copy(
+        // Loop through the markersMap and check for markers to remove
+        markersMap.forEach { (key, markers) ->
+            val iterator = markers.iterator()
+            while (iterator.hasNext()) {
+                val marker = iterator.next()
+                val shouldRemove = if (listName == null) {
+                    // If listName is null, remove all markers matching the latLng
+                    marker.square.contains(latLng)
+                } else {
+                    // If listName is not null, remove only markers with matching latLng AND listName
+                    marker.square.contains(latLng) && key == listName
+                }
+
+                // If the marker matches the condition, remove it
+                if (shouldRemove) {
+                    removedMarkers.add(marker)
+                    iterator.remove()
+                }
+            }
+
+            // If this list has no more markers, we should consider removing this list entirely
+            if (markers.isEmpty()) {
+                listToRemove.add(key)
+            }
+        }
+
+        // Remove any empty lists from the map
+        listToRemove.forEach { markersMap.remove(it) }
+
+        // Update the map state with the new markers
+        _mapState.update { currentState ->
+            currentState.copy(
                 markers = markersMap.toMarkers().toImmutableList()
             )
         }
+
+        return removedMarkers
+
     }
 
     /**
-     * Handle zoom option for a [W3WCoordinates] with multiple zoom options which will use the zoom level
+     * Handle zoom option for a [W3WLatLng] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    private suspend fun handleZoomOption(coordinates: W3WCoordinates, zoomOption: W3WZoomOption, zoom: Float?) {
+    private suspend fun handleZoomOption(latLng: W3WLatLng, zoomOption: W3WZoomOption, zoom: Float?) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
             W3WZoomOption.CENTER -> {
-                mapState.value.cameraState?.moveToPosition(
-                    coordinates = coordinates,
-                    animate = true
-                )
+                mapState.value.cameraState?.moveToPosition(latLng, animate = true)
             }
 
             W3WZoomOption.CENTER_AND_ZOOM -> {
                 mapState.value.cameraState?.moveToPosition(
-                    coordinates = coordinates,
+                    latLng,
                     zoom,
                     animate = true
                 )
@@ -609,107 +955,16 @@ class W3WMapManager(
     }
 
     /**
-     * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
+     * Handle zoom option for a list of [W3WLatLng] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    private suspend fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
+    private suspend fun handleZoomOption(listLatLng: List<W3WLatLng>, zoomOption: W3WZoomOption) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
             W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
-                mapState.value.cameraState?.moveToPosition(listCoordinates)
+                mapState.value.cameraState?.moveToPosition(listLatLng)
             }
         }
     }
-}
-
-private fun MutableMap<String, MutableList<W3WMarker>>.addListMarker(
-    listName: String,
-    listColor: W3WMarkerColor,
-    markers: List<W3WMarker>,
-) {
-    if (markers.isEmpty()) return
-
-    val currentList = this.getOrPut(listName) { mutableListOf() }
-
-    markers.map { it.copy(color = listColor) }.forEach { marker ->
-        // Check if the marker already exists (based on its `id`)
-        val index = currentList.indexOfFirst { it.id == marker.id }
-
-        if (index != -1) {
-            // If the marker exists, update it with the new one
-            currentList[index] = marker
-        } else {
-            // If the marker does not exist, add it to the list
-            currentList.add(marker)
-        }
-    }
-
-    this[listName] = currentList
-}
-
-private fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
-    listName: String? = null,  // Optional list identifier
-    marker: W3WMarker,        // Marker to add or update
-) {
-    // Determine the listName: use provided listName or a default
-    val key = listName ?: LIST_DEFAULT_ID
-
-    // Get or create the current list of markers (using MutableList for in-place updates)
-    val currentList = this[key] ?: mutableListOf()
-
-    // Create a new list by either updating or adding the marker
-    if (marker in currentList) {
-        // Replace the existing marker if it exists (by id)
-        val index = currentList.indexOfFirst { it.id == marker.id }
-        if (index != -1) {
-            currentList[index] = marker
-        }
-    } else {
-        // Marker doesn't exist, add it to the list
-        currentList.add(marker)
-    }
-
-    // Update the map with the modified list
-    this[key] = currentList
-}
-
-/**
- * Convert Map maker to list marker with unique ID
- *
- * @return list of W3WMarker
- */
-private fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
-    return this.values.flatten().map { item ->
-        item.copy(
-            isInMultipleList = hasMultipleLists(
-                item,
-                this
-            )
-        )
-    }
-}
-
-private fun hasMultipleLists(
-    marker: W3WMarker,
-    listMarkers: Map<String, List<W3WMarker>>
-): Boolean {
-    val count = listMarkers.values.flatten().count { it.id == marker.id }
-    return count > 1
-}
-
-private fun findMarkerByCoordinates(
-    markers: Map<String, List<W3WMarker>>,
-    coordinates: W3WCoordinates,
-    epsilon: Double = 0.00001 // the precision when comparing coordinates
-): W3WMarker? {
-    return markers.values.flatten().find { marker ->
-        kotlin.math.abs(marker.latLng.lat - coordinates.lat) < epsilon
-                && kotlin.math.abs(marker.latLng.lng - coordinates.lng) < epsilon
-    }
-}
-
-private fun findMarkerBy3wa(markers: Map<String, List<W3WMarker>>, words: String): W3WMarker? {
-    return markers.values.flatten().find { marker ->
-        marker.words == words
-    }
+    //endregion
 }

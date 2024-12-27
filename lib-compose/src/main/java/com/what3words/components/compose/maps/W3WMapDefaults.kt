@@ -100,6 +100,7 @@ object W3WMapDefaults {
 
     @Immutable
     data class MarkerConfig(
+        val selectedZoomOutColor: W3WMarkerColor,
         val multiListMarkersColor: W3WMarkerColor,
         val selectedZoomInColor: Color,
         val selectedZoomInColorDarkMode: Color,
@@ -161,11 +162,13 @@ object W3WMapDefaults {
     }
 
     fun defaultMarkerConfig(
+        selectedZoomOutColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT,
         selectedColor: Color = Color.Black,
         selectedColorDarkMode: Color = Color.White
     ): MarkerConfig {
         return MarkerConfig(
+            selectedZoomOutColor = selectedZoomOutColor,
             multiListMarkersColor = multiMarkersColor,
             selectedZoomInColor = selectedColor,
             selectedZoomInColorDarkMode = selectedColorDarkMode

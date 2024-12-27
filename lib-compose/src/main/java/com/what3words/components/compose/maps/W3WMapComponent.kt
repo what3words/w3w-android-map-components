@@ -20,7 +20,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.mapper.toW3WCoordinates
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
@@ -33,7 +35,6 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.common.W3WError
-import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,7 +85,7 @@ fun W3WMapComponent(
         },
         onMapClicked = {
             coroutineScope.launch {
-                mapManager.selectAtCoordinates(it)
+                mapManager.selectByCoordinates(it.toW3WCoordinates())
             }
         },
         onCameraUpdated = {
@@ -103,19 +104,16 @@ fun W3WMapComponent(
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
-            mapState.selectedAddress?.latLng?.let {
+            mapState.selectedMarker?.latLng?.let {
                 coroutineScope.launch {
-                    mapManager.moveToPosition(
-                        coordinates = W3WCoordinates(it.lat, it.lng),
-                        animate = true
-                    )
+                    mapManager.moveToPosition(it, animate = true)
                 }
             }
         },
         onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
         onMarkerClicked = remember { { marker ->
             coroutineScope.launch {
-                mapManager.selectAtCoordinates(W3WCoordinates(marker.latLng.lat, marker.latLng.lng))
+                mapManager.setSelectedMarker(marker)
             }
         } },
         onError = onError
@@ -152,7 +150,7 @@ fun W3WMapComponent(
     onMarkerClicked: ((W3WMarker) -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMyLocationClicked: (() -> Unit)? = null,
-    onMapClicked: ((W3WCoordinates) -> Unit)? = null,
+    onMapClicked: ((W3WLatLng) -> Unit)? = null,
     onRecallClicked: (() -> Unit)? = null,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
@@ -229,7 +227,7 @@ internal fun W3WMapContent(
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onMyLocationClicked: () -> Unit,
     onRecallClicked: () -> Unit,
-    onMapClicked: (W3WCoordinates) -> Unit,
+    onMapClicked: (W3WLatLng) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
@@ -370,7 +368,7 @@ internal fun W3WMapView(
     mapState: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: ((W3WMarker) -> Unit),
-    onMapClicked: ((W3WCoordinates) -> Unit),
+    onMapClicked: ((W3WLatLng) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
 ) {
@@ -424,7 +422,7 @@ private fun fetchCurrentLocation(
                 val location = it.fetchLocation()
                 // Update camera state
                 mapManager.moveToPosition(
-                    coordinates = W3WCoordinates(location.latitude, location.longitude),
+                    latLng = W3WLatLng(location.latitude, location.longitude),
                     zoom = when (mapManager.mapProvider) {
                         MapProvider.GOOGLE_MAP -> {
                             W3WGoogleCameraState.MY_LOCATION_ZOOM

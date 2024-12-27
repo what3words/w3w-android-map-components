@@ -1,8 +1,8 @@
 package com.what3words.components.compose.maps.state.camera
 
 import androidx.compose.runtime.Immutable
-import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.core.types.geometry.W3WRectangle
+import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.components.compose.maps.models.W3WSquare
 
 /**
  * W3WCameraState the interface to define the camera state of the map.
@@ -18,7 +18,7 @@ interface W3WCameraState<T> {
 
     val cameraState: T
 
-    var gridBound: W3WRectangle?
+    var gridBound: W3WSquare?
 
     /**
      *  Adjust camera bearing to 0
@@ -26,13 +26,13 @@ interface W3WCameraState<T> {
     suspend fun orientCamera()
 
     /**
-     * Moves the camera to the specified coordinates.
+     * Moves the camera to the specified latLng.
      *
-     * @param coordinates The W3W coordinates to move the camera to.
+     * @param latLng The W3W latLng to move the camera to.
      * @param animate Whether to animate the camera movement.
      */
     suspend fun  moveToPosition(
-        coordinates: W3WCoordinates,
+        latLng: W3WLatLng,
         zoom: Float? = null,
         bearing: Float? = null,
         tilt: Float? = null,
@@ -40,12 +40,12 @@ interface W3WCameraState<T> {
     )
 
     /**
-     * Moves the camera to the specified coordinates.
+     * Moves the camera to the specified latLng.
      *
-     * @param listCoordinates The list of W3W coordinates to move the camera to.
+     * @param listLatLng The list of W3W latLng to move the camera to.
      */
     suspend fun moveToPosition(
-        listCoordinates: List<W3WCoordinates>,
+        listLatLng: List<W3WLatLng>,
     )
 
     /**

@@ -10,8 +10,7 @@ data class W3WMarker(
     val latLng: W3WLatLng,
     val square: W3WSquare,
     val color: W3WMarkerColor,
-    // This marker is associated with multiple lists
-    val isInMultipleList: Boolean = false,
+    val type: MarkerType = MarkerType.NOT_IN_LIST,
     val title: String? = null,
     val snippet: String? = null
 ) {
@@ -41,4 +40,10 @@ data class W3WMarkerColor(
             val slashLong = slash.toArgb().toLong() and 0xFFFFFFFFL
             return (backgroundLong shl 32) or slashLong
         }
+}
+
+enum class MarkerType {
+    NOT_IN_LIST,
+    IN_SINGLE_LIST,
+    IN_MULTIPLE_LIST,
 }

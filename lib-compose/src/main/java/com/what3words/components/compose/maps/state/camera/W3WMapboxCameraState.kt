@@ -4,8 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
-import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.core.types.geometry.W3WRectangle
+import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.components.compose.maps.models.W3WSquare
 
 @Immutable
 class W3WMapboxCameraState(override val cameraState: MapViewportState) :
@@ -15,7 +15,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         const val MY_LOCATION_ZOOM = 20.0
     }
 
-    override var gridBound: W3WRectangle? = null
+    override var gridBound: W3WSquare? = null
 
     //TODO: This is work around for the function cameraForCoordinates not support in compose
     var cameraForCoordinates:MutableList<Point>? = mutableListOf()
@@ -32,7 +32,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     }
 
     override suspend fun moveToPosition(
-        coordinates: W3WCoordinates,
+        latLng: W3WLatLng,
         zoom: Float?,
         bearing: Float?,
         tilt: Float?,
@@ -41,7 +41,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         val cameraOptions = CameraOptions.Builder()
             .pitch(tilt?.toDouble() ?: cameraState.cameraState?.pitch)
             .bearing(bearing?.toDouble() ?: cameraState.cameraState?.bearing)
-            .center(Point.fromLngLat(coordinates.lng, coordinates.lat))
+            .center(Point.fromLngLat(latLng.lng, latLng.lat))
             .zoom(zoom?.toDouble() ?: cameraState.cameraState?.zoom)
             .build()
 
@@ -49,9 +49,9 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     }
 
     override suspend fun moveToPosition(
-        listCoordinates: List<W3WCoordinates>,
+        listLatLng: List<W3WLatLng>,
     ) {
-        cameraForCoordinates = listCoordinates.map { Point.fromLngLat(it.lng,it.lat) }.toMutableList()
+        cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng,it.lat) }.toMutableList()
     }
 
     override fun getZoomLevel(): Float {

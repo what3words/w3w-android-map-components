@@ -25,13 +25,13 @@ import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZO
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
+import com.what3words.components.compose.maps.models.MarkerType
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
-import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -114,7 +114,7 @@ fun W3WGoogleMapDrawer(
                     val cameraBound = cameraState.gridBound
                     if (cameraBound != null) {
                         val newVisibleMarkers = state.markers.filter {
-                            cameraBound.contains(W3WCoordinates(it.latLng.lat, it.latLng.lng)) &&
+                            cameraBound.contains(it.latLng) &&
                                     !visibleMarkers.contains(it)
                         }
 
@@ -133,18 +133,18 @@ fun W3WGoogleMapDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 markers = state.markers,
-                selectedMarker = state.selectedAddress,
+                selectedMarker = state.selectedMarker,
                 onMarkerClicked = onMarkerClicked
             )
         }
 
-        if (state.selectedAddress != null) {
+        if (state.selectedMarker != null) {
             //Draw the selected address
             W3WGoogleMapDrawSelectedAddress(
                 markerConfig = mapConfig.markerConfig,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                selectedMarker = state.selectedAddress,
+                selectedMarker = state.selectedMarker,
                 isDarkMode = state.isDarkMode
             )
         }
@@ -173,7 +173,6 @@ fun W3WGoogleMapDrawGridLines(
     val verticalPolylines = remember(verticalLines) {
         verticalLines.map { LatLng(it.lat, it.lng) }
     }
-
 
     Polyline(
         points = horizontalPolylines,
@@ -209,6 +208,7 @@ fun W3WGoogleMapDrawSelectedAddress(
             zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
         }
     }
+
     val gridLineWidth = remember(zoomLevel) {
         derivedStateOf {
             getSelectedGridWidth(zoomLevel, density)
@@ -235,8 +235,16 @@ private fun DrawZoomOutSelectedAddress(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
-    val color =
-        if (selectedMarker.isInMultipleList) markerConfig.multiListMarkersColor else selectedMarker.color
+
+    val color = remember(selectedMarker) {
+        derivedStateOf {
+            when(selectedMarker.type) {
+                MarkerType.IN_MULTIPLE_LIST -> markerConfig.multiListMarkersColor
+                MarkerType.IN_SINGLE_LIST -> selectedMarker.color
+                MarkerType.NOT_IN_LIST -> markerConfig.selectedZoomOutColor
+            }
+        }
+    }
 
     val markerState = rememberUpdatedMarkerState(selectedMarker.latLng.toGoogleLatLng())
 
@@ -249,7 +257,7 @@ private fun DrawZoomOutSelectedAddress(
             getMarkerBitmap(
                 context,
                 density,
-                color
+                color.value
             )
         )
 
@@ -321,6 +329,16 @@ fun W3WGoogleMapDrawMarkers(
         }
     }
 
+    val zoomOutMarkers = remember(markers, selectedMarker) {
+        derivedStateOf {
+            selectedMarker?.let {
+                markers.filter { it.id != selectedMarker.id }.toImmutableList()
+            }?: run {
+                markers
+            }
+        }
+    }
+
     if (drawZoomIn.value) {
         DrawZoomInMarkers(
             markerConfig = markerConfig,
@@ -329,8 +347,7 @@ fun W3WGoogleMapDrawMarkers(
     } else {
         DrawZoomOutMarkers(
             markerConfig = markerConfig,
-            markers = markers,
-            selectedMarker = selectedMarker,
+            markers = zoomOutMarkers.value,
             onMarkerClicked = onMarkerClicked
         )
     }
@@ -350,7 +367,7 @@ private fun DrawZoomInMarkers(
     markers.forEach { marker ->
         val square = marker.square
         val color =
-            if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+            if (marker.type == MarkerType.IN_MULTIPLE_LIST) markerConfig.multiListMarkersColor else marker.color
 
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
@@ -381,7 +398,6 @@ private fun DrawZoomInMarkers(
 private fun DrawZoomOutMarkers(
     markerConfig: W3WMapDefaults.MarkerConfig,
     markers: ImmutableList<W3WMarker>,
-    selectedMarker: W3WMarker?,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
@@ -391,9 +407,9 @@ private fun DrawZoomOutMarkers(
     // Map of cached bitmap with key is the ID of the W3WColor
     val bitmapCache = remember { mutableMapOf<Long, BitmapDescriptor>() }
 
-    markers.filter { it != selectedMarker }.forEach { marker ->
+    markers.forEach { marker ->
         val color =
-            if (marker.isInMultipleList) markerConfig.multiListMarkersColor else marker.color
+            if (marker.type == MarkerType.IN_MULTIPLE_LIST) markerConfig.multiListMarkersColor else marker.color
 
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(

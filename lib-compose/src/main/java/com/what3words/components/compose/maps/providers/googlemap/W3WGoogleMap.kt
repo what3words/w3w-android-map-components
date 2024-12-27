@@ -17,13 +17,13 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WSquare
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
-import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.launchIn
@@ -51,7 +51,7 @@ fun W3WGoogleMap(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
-    onMapClicked: (W3WCoordinates) -> Unit,
+    onMapClicked: (W3WLatLng) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit
 ) {
@@ -111,7 +111,7 @@ fun W3WGoogleMap(
         uiSettings = uiSettings,
         properties = mapProperties,
         onMapClick = {
-            onMapClicked(W3WCoordinates(it.latitude, it.longitude))
+            onMapClicked(W3WLatLng(it.latitude, it.longitude))
         },
 
         ) {
@@ -123,17 +123,17 @@ fun W3WGoogleMap(
 private suspend fun updateGridBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WRectangle) -> Unit
+    onGridBoundUpdate: (W3WSquare) -> Unit
 ) {
     withContext(Dispatchers.IO) {
         val lastScaledBounds =
             scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
-        val box = W3WRectangle(
-            W3WCoordinates(
+        val box = W3WSquare(
+            W3WLatLng(
                 lastScaledBounds.southwest.latitude,
                 lastScaledBounds.southwest.longitude
             ),
-            W3WCoordinates(
+            W3WLatLng(
                 lastScaledBounds.northeast.latitude,
                 lastScaledBounds.northeast.longitude
             )
