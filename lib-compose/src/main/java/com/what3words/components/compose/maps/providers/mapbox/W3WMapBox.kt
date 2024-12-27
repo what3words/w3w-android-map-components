@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,13 +27,13 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
+import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WSquare
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
-import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -61,7 +60,7 @@ fun W3WMapBox(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
-    onMapClicked: ((W3WCoordinates) -> Unit),
+    onMapClicked: ((W3WLatLng) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
 ) {
@@ -73,12 +72,11 @@ fun W3WMapBox(
 
     var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
 
-    LaunchedEffect(mapViewportState) {
+    LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
             .filterNotNull()
             .onEach { currentCameraState ->
                 mapView?.mapboxMap?.let { mapboxMap ->
-                    Log.d("XXX","cameraPositionState ${mapboxMap.cameraState.zoom}")
                     updateGridBound(
                         mapboxMap,
                         mapConfig.gridLineConfig,
@@ -156,7 +154,7 @@ fun W3WMapBox(
             )
         },
         onMapClickListener = {
-            onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))
+            onMapClicked(W3WLatLng(it.latitude(), it.longitude()))
             true
         },
         style = {
@@ -209,7 +207,7 @@ fun W3WMapBox(
 private fun updateGridBound(
     mapboxMap: MapboxMap,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WRectangle) -> Unit,
+    onGridBoundUpdate: (W3WSquare) -> Unit,
 ) {
     val scale = gridLinesConfig.gridScale
     val bounds = mapboxMap
@@ -224,12 +222,12 @@ private fun updateGridBound(
     val finalSWLng =
         ((scale * (bounds.southwest.longitude() - center.longitude()) + center.longitude()))
 
-    val box = W3WRectangle(
-        W3WCoordinates(
+    val box = W3WSquare(
+        W3WLatLng(
             finalSWLat,
             finalSWLng
         ),
-        W3WCoordinates(finalNELat, finalNELng)
+        W3WLatLng(finalNELat, finalNELng)
     )
 
     onGridBoundUpdate.invoke(box)

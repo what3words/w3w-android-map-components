@@ -6,8 +6,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
-import com.what3words.core.types.geometry.W3WCoordinates
-import com.what3words.core.types.geometry.W3WRectangle
+import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.components.compose.maps.models.W3WSquare
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.withContext
 
@@ -19,7 +19,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         const val MY_LOCATION_ZOOM = 20f
     }
 
-    override var gridBound: W3WRectangle? = null
+    override var gridBound: W3WSquare? = null
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -33,7 +33,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     }
 
     override suspend fun moveToPosition(
-        coordinates: W3WCoordinates,
+        latLng: W3WLatLng,
         zoom: Float?,
         bearing: Float?,
         tilt: Float?,
@@ -41,7 +41,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     ) {
         updateCameraPosition(
             CameraPosition(
-                LatLng(coordinates.lat, coordinates.lng),
+                LatLng(latLng.lat, latLng.lng),
                 zoom ?: cameraState.position.zoom,
                 bearing ?: cameraState.position.tilt,
                 tilt ?: cameraState.position.bearing
@@ -50,10 +50,10 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     }
 
     override suspend fun moveToPosition(
-        listCoordinates: List<W3WCoordinates>,
+        listLatLng: List<W3WLatLng>,
     ) {
         val latLngBounds = LatLngBounds.Builder()
-        listCoordinates.forEach {
+        listLatLng.forEach {
             latLngBounds.include(LatLng(it.lat, it.lng))
         }
 
