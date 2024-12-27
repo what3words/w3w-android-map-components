@@ -303,6 +303,7 @@ private fun DrawZoomOutMarkers(
             marker?.let(currentOnMarkerClicked)
             true
         }
+        iconEmissiveStrength = 1.0
         iconAllowOverlap = true
     }
 }
@@ -363,7 +364,7 @@ private fun DrawZoomOutSelectedAddress(
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    val color = remember(selectedMarker.type) {
+    val color = remember(selectedMarker) {
         derivedStateOf {
             when(selectedMarker.type) {
                 MarkerType.IN_MULTIPLE_LIST -> markerConfig.multiListMarkersColor
@@ -391,6 +392,7 @@ private fun DrawZoomOutSelectedAddress(
         )
     ) {
         iconImage = marker
+        iconEmissiveStrength = 1.0
         iconAnchor =
             IconAnchor.BOTTOM // This makes the arrow part of the icon to be at the center of the selected square
     }

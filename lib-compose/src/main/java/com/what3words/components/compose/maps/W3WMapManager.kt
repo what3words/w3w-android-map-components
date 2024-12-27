@@ -282,9 +282,11 @@ class W3WMapManager(
     suspend fun setSelectedMarker(
         selectedMarker: W3WMarker
     ) {
-        _mapState.value = mapState.value.copy(
-            selectedMarker = selectedMarker
-        )
+        _mapState.update {
+            it.copy(
+                selectedMarker = selectedMarker
+            )
+        }
 
         if (_buttonState.value.isRecallButtonEnabled) {
             handleRecallButton()

@@ -236,7 +236,7 @@ private fun DrawZoomOutSelectedAddress(
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
-    val color = remember(selectedMarker.type) {
+    val color = remember(selectedMarker) {
         derivedStateOf {
             when(selectedMarker.type) {
                 MarkerType.IN_MULTIPLE_LIST -> markerConfig.multiListMarkersColor

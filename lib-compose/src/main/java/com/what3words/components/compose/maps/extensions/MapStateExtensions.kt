@@ -66,7 +66,7 @@ internal fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMar
                 this
             )
         )
-    }
+    }.distinct()
 }
 
 internal fun getMarkerType(
