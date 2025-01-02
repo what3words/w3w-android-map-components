@@ -57,6 +57,28 @@ android {
     }
 }
 
+tasks.register("checkSnapshotDependencies") {
+    doLast {
+        val snapshotDependencies = allprojects.flatMap { project ->
+            project.configurations
+                .asSequence()
+                .filter { it.isCanBeResolved }
+                .flatMap { it.allDependencies }
+                .filter { it.version?.contains("SNAPSHOT", ignoreCase = true) == true }
+                .map { "${project.name}:${it.group}:${it.name}:${it.version}" }
+                .distinct()
+                .toList()
+        }
+
+        if (snapshotDependencies.isNotEmpty()) {
+            snapshotDependencies.forEach { println("SNAPSHOT dependency found: $it") }
+            throw GradleException("SNAPSHOT dependencies found.")
+        } else {
+            println("No SNAPSHOT dependencies found.")
+        }
+    }
+}
+
 dependencies {
     // Material
     implementation(libs.material)
