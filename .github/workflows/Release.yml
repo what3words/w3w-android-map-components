@@ -1,0 +1,135 @@
+name: Build and Deploy to SonarType
+
+on:
+  push:
+    branches:
+      - 'staging'
+      - 'epic/**'
+    paths:
+      - 'lib/**'
+      - 'lib-compose/**'
+      - '.github/workflows/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lib-changed: ${{ steps.changes.outputs.lib }}
+      lib-compose-changed: ${{ steps.changes.outputs.lib-compose }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changes
+        run: |
+          # Get the last successful commit on the default branch
+          git fetch origin main
+          LAST_SUCCESSFUL_COMMIT=$(git rev-parse origin/main)
+          
+          # Compare changes between current commit and last successful commit
+          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib/"; then
+            echo "lib=true" >> $GITHUB_OUTPUT
+          else
+            echo "lib=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib-compose/"; then
+            echo "lib-compose=true" >> $GITHUB_OUTPUT
+          else
+            echo "lib-compose=false" >> $GITHUB_OUTPUT
+          fi
+
+  build_release_lib:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.lib-changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls /dev/kvm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Restore gradle.properties
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_PWD: ${{ secrets.SIGNING_KEY_PWD }}
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+          echo "OSSRH_USERNAME=${OSSRH_USERNAME}">> ~/.gradle/gradle.properties
+          echo "OSSRH_PASSWORD=${OSSRH_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "SIGNING_KEY=${SIGNING_KEY}">> ~/.gradle/gradle.properties
+          echo "SIGNING_KEY_PWD=${SIGNING_KEY_PWD}">> ~/.gradle/gradle.properties
+          echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
+      - name: Snapshot Release Check
+        run: |
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+
+      - name: Publish to Maven
+        run: ./gradlew lib:assemble publish
+
+  build_release_lib_compose:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.lib-compose-changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls /dev/kvm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Restore gradle.properties
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_PWD: ${{ secrets.SIGNING_KEY_PWD }}
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+          echo "OSSRH_USERNAME=${OSSRH_USERNAME}">> ~/.gradle/gradle.properties
+          echo "OSSRH_PASSWORD=${OSSRH_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "SIGNING_KEY=${SIGNING_KEY}">> ~/.gradle/gradle.properties
+          echo "SIGNING_KEY_PWD=${SIGNING_KEY_PWD}">> ~/.gradle/gradle.properties
+          echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
+      - name: Snapshot Release Check
+        run: |
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+
+      - name: Publish to Maven
+        run: ./gradlew :lib-compose:assemble publish
