@@ -1,4 +1,4 @@
- package com.what3words.components.compose.maps
+package com.what3words.components.compose.maps
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
@@ -93,9 +93,9 @@ object W3WMapDefaults {
 
     @Immutable
     data class ButtonConfig(
-        val isMapSwitchButtonEnabled: Boolean,
-        val isMyLocationButtonEnabled: Boolean,
-        val isRecallButtonEnabled: Boolean,
+        val isMapSwitchButtonUsed: Boolean,
+        val isMyLocationButtonUsed: Boolean,
+        val isRecallButtonUsed: Boolean,
     )
 
     @Immutable
@@ -150,14 +150,14 @@ object W3WMapDefaults {
     }
 
     fun defaultButtonConfig(
-        isMapSwitchButtonEnabled: Boolean = true,
-        isMyLocationButtonEnabled: Boolean = true,
-        isRecallButtonEnabled: Boolean = false
+        isMapSwitchButtonUsed: Boolean = true,
+        isMyLocationButtonUsed: Boolean = true,
+        isRecallButtonUsed: Boolean = false
     ): ButtonConfig {
         return ButtonConfig(
-            isMapSwitchButtonEnabled = isMapSwitchButtonEnabled,
-            isMyLocationButtonEnabled = isMyLocationButtonEnabled,
-            isRecallButtonEnabled = isRecallButtonEnabled
+            isMapSwitchButtonUsed = isMapSwitchButtonUsed,
+            isMyLocationButtonUsed = isMyLocationButtonUsed,
+            isRecallButtonUsed = isRecallButtonUsed
         )
     }
 

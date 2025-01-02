@@ -68,7 +68,7 @@ fun W3WMapComponent(
     val buttonState by mapManager.buttonState.collectAsState()
 
     // TODO: Find optimal way to set isRecallButtonEnabled
-    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonEnabled)
+    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
 
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
