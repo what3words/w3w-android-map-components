@@ -91,7 +91,7 @@ fun W3WGoogleMap(
             .conflate()
             .onEach { (position, projection) ->
                 projection?.let {
-                    if (mapConfig.buttonConfig.isRecallButtonEnabled) {
+                    if (mapConfig.buttonConfig.isRecallButtonUsed) {
                         onMapProjectionUpdated(W3WGoogleMapProjection(it))
                     }
                     updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->

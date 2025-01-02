@@ -192,7 +192,7 @@ fun W3WMapBox(
                 it.mapboxMap.setBounds(cameraBounds)
             }
 
-            if (mapConfig.buttonConfig.isRecallButtonEnabled) {
+            if (mapConfig.buttonConfig.isRecallButtonUsed) {
                 mapView?.mapboxMap?.let { map ->
                     onMapProjectionUpdated(W3WMapBoxMapProjection(map))
                 }

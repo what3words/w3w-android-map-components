@@ -68,7 +68,7 @@ fun W3WMapComponent(
     val buttonState by mapManager.buttonState.collectAsState()
 
     // TODO: Find optimal way to set isRecallButtonEnabled
-    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonEnabled)
+    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
 
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
@@ -80,8 +80,10 @@ fun W3WMapComponent(
         content = content,
         mapState = mapState,
         buttonState = buttonState,
-        onMapTypeClicked = {
-            mapManager.setMapType(it)
+        onMapTypeClicked = remember {
+            { mapType ->
+                mapManager.setMapType(mapType)
+            }
         },
         onMapClicked = {
             coroutineScope.launch {
@@ -93,13 +95,15 @@ fun W3WMapComponent(
                 mapManager.updateCameraState(it)
             }
         },
-        onMyLocationClicked = {
-            fetchCurrentLocation(
-                locationSource = locationSource,
-                mapManager = mapManager,
-                onError = onError,
-                coroutineScope = coroutineScope
-            )
+        onMyLocationClicked = remember {
+            {
+                fetchCurrentLocation(
+                    locationSource = locationSource,
+                    mapManager = mapManager,
+                    onError = onError,
+                    coroutineScope = coroutineScope
+                )
+            }
         },
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
@@ -110,12 +114,14 @@ fun W3WMapComponent(
                 }
             }
         },
-        onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
-        onMarkerClicked = remember { { marker ->
-            coroutineScope.launch {
-                mapManager.setSelectedMarker(marker)
+        onRecallButtonPositionProvided = remember { mapManager::setRecallButtonPosition },
+        onMarkerClicked = remember {
+            { marker ->
+                coroutineScope.launch {
+                    mapManager.setSelectedMarker(marker)
+                }
             }
-        } },
+        },
         onError = onError
     )
 }

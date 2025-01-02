@@ -27,7 +27,7 @@ fun W3WMapButtons(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalAlignment = Alignment.End
     ) {
-        if (buttonConfig.isRecallButtonEnabled) {
+        if (buttonConfig.isRecallButtonUsed) {
             RecallButton(
                 onRecallClicked = onRecallClicked,
                 onRecallButtonPositionProvided = onRecallButtonPositionProvided,
@@ -37,7 +37,7 @@ fun W3WMapButtons(
                 backgroundColor = buttonState.recallBackgroundColor
             )
         }
-        if (buttonConfig.isMyLocationButtonEnabled) {
+        if (buttonConfig.isMyLocationButtonUsed) {
             MyLocationButton(
                 accuracyDistance = buttonState.accuracyDistance.toInt(),
                 isLocationEnabled = isLocationEnabled,
@@ -45,7 +45,7 @@ fun W3WMapButtons(
                 onMyLocationClicked = onMyLocationClicked
             )
         }
-        if (buttonConfig.isMapSwitchButtonEnabled) {
+        if (buttonConfig.isMapSwitchButtonUsed) {
             MapSwitchButton(
                 onMapTypeChange = onMapTypeClicked
             )
