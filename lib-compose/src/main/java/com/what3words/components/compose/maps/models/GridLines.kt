@@ -14,7 +14,7 @@ import kotlinx.collections.immutable.persistentListOf
  * @property horizontalLines A list of [W3WLatLng] representing the horizontal grid lines. Defaults to an empty list.
  */
 @Immutable
-data class W3WGridLines(
+data class GridLines(
     val verticalLines: ImmutableList<W3WLatLng> = persistentListOf(),
     val horizontalLines: ImmutableList<W3WLatLng> = persistentListOf()
 )
