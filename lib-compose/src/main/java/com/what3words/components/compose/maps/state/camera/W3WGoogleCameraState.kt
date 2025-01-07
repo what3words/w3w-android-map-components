@@ -6,8 +6,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
+import com.what3words.components.compose.maps.models.Square
 import com.what3words.components.compose.maps.models.W3WLatLng
-import com.what3words.components.compose.maps.models.W3WSquare
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.withContext
 
@@ -19,7 +19,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
         const val MY_LOCATION_ZOOM = 20f
     }
 
-    override var gridBound: W3WSquare? = null
+    override var gridBound: Square? = null
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -72,12 +72,12 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     }
 
     private suspend fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
-       withContext(Main) {
-           if (animate) {
-               cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
-           } else {
-               cameraState.position = cameraPosition
-           }
-       }
+        withContext(Main) {
+            if (animate) {
+                cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
+            } else {
+                cameraState.position = cameraPosition
+            }
+        }
     }
 }

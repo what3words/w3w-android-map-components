@@ -27,7 +27,11 @@ fun findClosestTo(target: PointF, vararg points: PointF): PointF {
 fun distanceBetween(start: PointF?, end: PointF?): Float {
     if (start == null || end == null) return 0f
 
-    val distance = sqrt((end.x.toDouble() - start.x.toDouble()).pow(2.0) + (end.y.toDouble() - start.y.toDouble()).pow(2.0))
+    val distance = sqrt(
+        (end.x.toDouble() - start.x.toDouble()).pow(2.0) + (end.y.toDouble() - start.y.toDouble()).pow(
+            2.0
+        )
+    )
     return distance.toFloat()
 }
 

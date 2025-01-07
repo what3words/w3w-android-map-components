@@ -4,6 +4,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.MapType
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapType
+import com.what3words.core.types.geometry.W3WCoordinates
 
 fun W3WLatLng.toGoogleLatLng(): LatLng {
     return LatLng(this.lat, this.lng)
@@ -20,4 +21,8 @@ fun W3WMapType.toGoogleMapType(): MapType {
         W3WMapType.HYBRID -> MapType.HYBRID
         W3WMapType.TERRAIN -> MapType.TERRAIN
     }
+}
+
+fun W3WCoordinates.toGoogleLatLng(): LatLng {
+    return LatLng(this.lat, this.lng)
 }

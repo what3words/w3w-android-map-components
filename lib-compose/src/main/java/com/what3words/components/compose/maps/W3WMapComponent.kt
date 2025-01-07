@@ -20,10 +20,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.mapper.toW3WCoordinates
+import com.what3words.components.compose.maps.mapper.toW3WLatLong
+import com.what3words.components.compose.maps.models.LocationSource
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WLatLng
-import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -35,6 +35,7 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.common.W3WError
+import com.what3words.core.types.domain.W3WAddress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,7 +50,7 @@ import kotlinx.coroutines.launch
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance such as custom dark mode, grid line config.
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
- * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
+ * @param locationSource An optional [LocationSource] used to fetch the user's location.
  * @param content Optional composable content to be displayed on the map.
  * @param onError Callback invoked when an error occurs.
  */
@@ -59,7 +60,8 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapManager: W3WMapManager,
-    locationSource: W3WLocationSource? = null,
+    onSelectedSquareChanged: (W3WAddress) -> Unit,
+    locationSource: LocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
 ) {
@@ -68,7 +70,15 @@ fun W3WMapComponent(
     val buttonState by mapManager.buttonState.collectAsState()
 
     // TODO: Find optimal way to set isRecallButtonEnabled
-    mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
+    LaunchedEffect(mapConfig.buttonConfig.isRecallButtonUsed) {
+        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
+    }
+
+    LaunchedEffect(mapState.selectedAddress) {
+        mapState.selectedAddress?.let {
+            onSelectedSquareChanged.invoke(it)
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
@@ -87,7 +97,7 @@ fun W3WMapComponent(
         },
         onMapClicked = {
             coroutineScope.launch {
-                mapManager.selectByCoordinates(it.toW3WCoordinates())
+                mapManager.setSelectedAddress(it)
             }
         },
         onCameraUpdated = {
@@ -108,9 +118,9 @@ fun W3WMapComponent(
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
-            mapState.selectedMarker?.latLng?.let {
+            mapState.selectedAddress?.center?.let {
                 coroutineScope.launch {
-                    mapManager.moveToPosition(it, animate = true)
+                    mapManager.moveToPosition(it.toW3WLatLong(), animate = true)
                 }
             }
         },
@@ -118,7 +128,7 @@ fun W3WMapComponent(
         onMarkerClicked = remember {
             { marker ->
                 coroutineScope.launch {
-                    mapManager.setSelectedMarker(marker)
+                    mapManager.setSelectedAddress(marker.square.center!!)
                 }
             }
         },
@@ -412,12 +422,12 @@ internal fun W3WMapView(
 /**
  * This function is responsible for update camera position and button state based on current location
  *
- * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
+ * @param locationSource An optional [LocationSource] used to fetch the user's location.
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
  */
 private fun fetchCurrentLocation(
-    locationSource: W3WLocationSource?,
+    locationSource: LocationSource?,
     mapManager: W3WMapManager,
     coroutineScope: CoroutineScope,
     onError: ((W3WError) -> Unit)? = null

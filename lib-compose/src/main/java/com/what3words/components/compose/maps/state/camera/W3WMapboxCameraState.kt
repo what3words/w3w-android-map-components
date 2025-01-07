@@ -4,8 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
+import com.what3words.components.compose.maps.models.Square
 import com.what3words.components.compose.maps.models.W3WLatLng
-import com.what3words.components.compose.maps.models.W3WSquare
 
 @Immutable
 class W3WMapboxCameraState(override val cameraState: MapViewportState) :
@@ -15,10 +15,10 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
         const val MY_LOCATION_ZOOM = 20.0
     }
 
-    override var gridBound: W3WSquare? = null
+    override var gridBound: Square? = null
 
     //TODO: This is work around for the function cameraForCoordinates not support in compose
-    var cameraForCoordinates:MutableList<Point>? = mutableListOf()
+    var cameraForCoordinates: MutableList<Point>? = mutableListOf()
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -51,7 +51,7 @@ class W3WMapboxCameraState(override val cameraState: MapViewportState) :
     override suspend fun moveToPosition(
         listLatLng: List<W3WLatLng>,
     ) {
-        cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng,it.lat) }.toMutableList()
+        cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng, it.lat) }.toMutableList()
     }
 
     override fun getZoomLevel(): Float {

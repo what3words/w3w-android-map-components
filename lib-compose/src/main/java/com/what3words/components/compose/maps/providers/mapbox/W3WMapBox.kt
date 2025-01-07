@@ -27,10 +27,10 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.toCameraOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toMapBoxMapType
+import com.what3words.components.compose.maps.models.Square
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.models.W3WSquare
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
@@ -170,7 +170,10 @@ fun W3WMapBox(
                                     "show3dObjects",
                                     show3dObjects.value
                                 )
-                                config("lightPreset", (if (state.isDarkMode) "night" else "day").toValue())
+                                config(
+                                    "lightPreset",
+                                    (if (state.isDarkMode) "night" else "day").toValue()
+                                )
                             }
                         }
                     }
@@ -207,7 +210,7 @@ fun W3WMapBox(
 private fun updateGridBound(
     mapboxMap: MapboxMap,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WSquare) -> Unit,
+    onGridBoundUpdate: (Square) -> Unit,
 ) {
     val scale = gridLinesConfig.gridScale
     val bounds = mapboxMap
@@ -222,7 +225,7 @@ private fun updateGridBound(
     val finalSWLng =
         ((scale * (bounds.southwest.longitude() - center.longitude()) + center.longitude()))
 
-    val box = W3WSquare(
+    val box = Square(
         W3WLatLng(
             finalSWLat,
             finalSWLng

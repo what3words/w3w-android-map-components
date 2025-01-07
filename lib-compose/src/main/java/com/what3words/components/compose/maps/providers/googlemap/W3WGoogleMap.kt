@@ -17,10 +17,10 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
+import com.what3words.components.compose.maps.models.Square
 import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.models.W3WSquare
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
@@ -123,12 +123,12 @@ fun W3WGoogleMap(
 private suspend fun updateGridBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WSquare) -> Unit
+    onGridBoundUpdate: (Square) -> Unit
 ) {
     withContext(Dispatchers.IO) {
         val lastScaledBounds =
             scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
-        val box = W3WSquare(
+        val box = Square(
             W3WLatLng(
                 lastScaledBounds.southwest.latitude,
                 lastScaledBounds.southwest.longitude

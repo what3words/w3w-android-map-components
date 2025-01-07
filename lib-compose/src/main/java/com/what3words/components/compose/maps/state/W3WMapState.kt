@@ -1,14 +1,13 @@
 package com.what3words.components.compose.maps.state
 
 import androidx.compose.runtime.Immutable
-import com.what3words.components.compose.maps.models.W3WGridLines
+import com.what3words.components.compose.maps.models.GridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
+import com.what3words.core.types.domain.W3WAddress
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-
-const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
 
 /**
  * Data class representing the state of the What3Words (W3W) map.
@@ -20,10 +19,10 @@ const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
  * @property isDarkMode Whether dark mode is enabled for the map. Defaults to `false`.
  * @property isMapGestureEnable Whether map gestures are enabled. Defaults to `true`.
  * @property isMyLocationEnabled Whether the "My Location" feature is enabled. Defaults to `true`.
- * @property selectedMarker The currently selected W3W address. Defaults to `null`.
+ * @property selectedAddress The currently selected what3words address. Defaults to `null`.
  * @property markers A list of markers lists, Defaults to an empty list.
  * @property cameraState The current state of the map's camera. Defaults to `null`.
- * @property gridLines [W3WGridLines] data class handling draw grid line on map
+ * @property gridLines [GridLines] data class handling draw grid line on map
  */
 @Immutable
 data class W3WMapState(
@@ -36,7 +35,7 @@ data class W3WMapState(
 
     val isMyLocationEnabled: Boolean = true,
 
-    val selectedMarker: W3WMarker? = null,
+    val selectedAddress: W3WAddress? = null,
 
     // markers with unique by id
     val markers: ImmutableList<W3WMarker> = persistentListOf(),
@@ -45,5 +44,5 @@ data class W3WMapState(
     internal val cameraState: W3WCameraState<*>? = null,
 
     // data class handling draw grid lines on map
-    internal val gridLines: W3WGridLines = W3WGridLines(),
+    internal val gridLines: GridLines = GridLines(),
 )

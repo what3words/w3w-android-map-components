@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.models.W3WLatLng
-import com.what3words.components.compose.maps.models.W3WMarkerColor
+import com.what3words.components.compose.maps.models.MarkerColor
 
 enum class MapProvider {
     GOOGLE_MAP,
@@ -23,8 +23,8 @@ enum class MapProvider {
  */
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
-    val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    private val MUlTI_LIST_MARKERS_COLOR_DEFAULT = W3WMarkerColor(background = Color.Blue, slash = Color.White)
+    val MARKER_COLOR_DEFAULT = MarkerColor(background = Color.Red, slash = Color.White)
+    private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT = MarkerColor(background = Color(0xFF0A3049), slash = Color.White)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
@@ -100,8 +100,8 @@ object W3WMapDefaults {
 
     @Immutable
     data class MarkerConfig(
-        val selectedZoomOutColor: W3WMarkerColor,
-        val multiListMarkersColor: W3WMarkerColor,
+        val defaultMarkerColor: MarkerColor,
+        val selectedZoomOutColor: MarkerColor,
         val selectedZoomInColor: Color,
         val selectedZoomInColorDarkMode: Color,
     )
@@ -162,14 +162,14 @@ object W3WMapDefaults {
     }
 
     fun defaultMarkerConfig(
-        selectedZoomOutColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-        multiMarkersColor: W3WMarkerColor = MUlTI_LIST_MARKERS_COLOR_DEFAULT,
+        selectedZoomOutColor: MarkerColor = SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT,
+        defaultMarkerColor: MarkerColor = MARKER_COLOR_DEFAULT,
         selectedColor: Color = Color.Black,
         selectedColorDarkMode: Color = Color.White
     ): MarkerConfig {
         return MarkerConfig(
             selectedZoomOutColor = selectedZoomOutColor,
-            multiListMarkersColor = multiMarkersColor,
+            defaultMarkerColor = defaultMarkerColor,
             selectedZoomInColor = selectedColor,
             selectedZoomInColorDarkMode = selectedColorDarkMode
         )
