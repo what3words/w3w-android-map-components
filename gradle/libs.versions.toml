@@ -4,19 +4,19 @@ accompanistPermissions = "0.34.0"
 kotlinxCollectionsImmutable = "0.3.5"
 minSdk = "24"
 compileSdk = "34"
-compose-compiler = "1.4.6"
 jvmTarget = "1.8"
 androidGradlePlugin = "8.5.0"
 autonomousappsAnalysis = "1.20.0"
 gradleKtlint = "10.1.0"
 
 #Kotlin
-kotlin = "1.8.20"
+kotlin = "2.1.0"
 kotlinxCoroutinesAndroid = "1.8.1"
 kotlinxCoroutinesCore = "1.8.1"
 kotlinxCoroutinesTest = "1.8.1"
 
 #Testing
+rebugger = "1.0.0-rc03"
 truth = "1.4.2"
 junit4 = "4.13.2"
 mockk = "1.13.10"
@@ -65,6 +65,7 @@ androidx-core-testing = { module = "androidx.arch.core:core-testing", version.re
 #Testing
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+rebugger = { module = "io.github.theapache64:rebugger", version.ref = "rebugger" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
 #Compose
@@ -102,6 +103,7 @@ android-library = { id = "com.android.library", version.ref = "androidGradlePlug
 gradle-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "gradleKtlint" }
 autonomousapps-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "autonomousappsAnalysis" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 maven-publish = { id = "maven-publish" }
 signing = { id = "signing" }
