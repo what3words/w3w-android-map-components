@@ -1,25 +1,30 @@
 package com.what3words.components.compose.maps.state.camera
 
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
-import com.what3words.components.compose.maps.models.Square
-import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.withContext
 
-@Immutable
-class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
+@Stable
+class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
 
     companion object {
         const val MY_LOCATION_ZOOM = 20f
     }
 
-    override var gridBound: Square? = null
+    override val cameraState: CameraPositionState by mutableStateOf(initialCameraState)
+
+    override var gridBound: W3WRectangle? by mutableStateOf(null)
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -33,7 +38,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     }
 
     override suspend fun moveToPosition(
-        latLng: W3WLatLng,
+        latLng: W3WCoordinates,
         zoom: Float?,
         bearing: Float?,
         tilt: Float?,
@@ -50,7 +55,7 @@ class W3WGoogleCameraState(override val cameraState: CameraPositionState) :
     }
 
     override suspend fun moveToPosition(
-        listLatLng: List<W3WLatLng>,
+        listLatLng: List<W3WCoordinates>,
     ) {
         val latLngBounds = LatLngBounds.Builder()
         listLatLng.forEach {

@@ -1,7 +1,6 @@
 package com.what3words.components.compose.maps.models
 
 import android.graphics.PointF
-import kotlin.math.abs
 
 /**
  * Represents a quadrilateral grid cell on the screen defined by four [PointF] vertices.
@@ -32,6 +31,4 @@ data class W3WGridScreenCell(val v1: PointF, val v2: PointF, val v3: PointF, val
     fun containsPoint(pointX: Float, pointY: Float): Boolean {
         return pointX in v1.x..v3.x && pointY in v1.y..v3.y
     }
-
-    fun getLongestSideLength() = abs(v2.x - v1.x).coerceAtLeast(abs(v3.y - v1.y))
 }

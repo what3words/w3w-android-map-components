@@ -13,17 +13,19 @@ import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.mapper.toGoogleMapType
-import com.what3words.components.compose.maps.models.Square
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
+import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.launchIn
@@ -43,6 +45,7 @@ import kotlin.math.roundToInt
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  *
  */
+@OptIn(MapsComposeExperimentalApi::class)
 @Composable
 fun W3WGoogleMap(
     modifier: Modifier,
@@ -51,7 +54,7 @@ fun W3WGoogleMap(
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
-    onMapClicked: (W3WLatLng) -> Unit,
+    onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit
 ) {
@@ -85,6 +88,10 @@ fun W3WGoogleMap(
 
     var lastProcessedPosition by remember { mutableStateOf(cameraPositionState.position) }
 
+    var mapProjection: W3WGoogleMapProjection? by remember {
+        mutableStateOf(null)
+    }
+
     LaunchedEffect(cameraPositionState) {
         /// A hybrid approach that combines immediate updates for significant changes with debounced updates for fine-tuning
         snapshotFlow { cameraPositionState.position to cameraPositionState.projection }
@@ -92,17 +99,30 @@ fun W3WGoogleMap(
             .onEach { (position, projection) ->
                 projection?.let {
                     if (mapConfig.buttonConfig.isRecallButtonUsed) {
-                        onMapProjectionUpdated(W3WGoogleMapProjection(it))
+                        mapProjection?.projection = projection
+                        mapProjection?.let(onMapProjectionUpdated)
                     }
                     updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->
                         lastProcessedPosition = position
-                        val newCameraState = W3WGoogleCameraState(cameraPositionState)
-                        newCameraState.gridBound = newBound
-                        onCameraUpdated(newCameraState)
+                        state.cameraState.gridBound = newBound
+                        onCameraUpdated(state.cameraState)
                     }
                 }
             }.launchIn(this)
     }
+
+//    Rebugger(
+//        trackMap = mapOf(
+//            "layoutConfig" to layoutConfig,
+//            "mapConfig" to mapConfig,
+//            "mapProperties" to mapProperties,
+//            "uiSettings" to uiSettings,
+//            "state" to state,
+//            "onMarkerClicked" to onMarkerClicked,
+//            "onMapClicked" to onMapClicked,
+//            "onMapProjectionUpdated" to onMapProjectionUpdated,
+//        )
+//    )
 
     GoogleMap(
         modifier = modifier,
@@ -111,10 +131,12 @@ fun W3WGoogleMap(
         uiSettings = uiSettings,
         properties = mapProperties,
         onMapClick = {
-            onMapClicked(W3WLatLng(it.latitude, it.longitude))
-        },
-
-        ) {
+            onMapClicked(W3WCoordinates(it.latitude, it.longitude))
+        })
+    {
+        MapEffect(Unit) { map ->
+            mapProjection = W3WGoogleMapProjection(map.projection)
+        }
         W3WGoogleMapDrawer(state = state, mapConfig, onMarkerClicked)
         content?.invoke()
     }
@@ -123,17 +145,17 @@ fun W3WGoogleMap(
 private suspend fun updateGridBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (Square) -> Unit
+    onGridBoundUpdate: (W3WRectangle) -> Unit
 ) {
     withContext(Dispatchers.IO) {
         val lastScaledBounds =
             scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
-        val box = Square(
-            W3WLatLng(
+        val box = W3WRectangle(
+            W3WCoordinates(
                 lastScaledBounds.southwest.latitude,
                 lastScaledBounds.southwest.longitude
             ),
-            W3WLatLng(
+            W3WCoordinates(
                 lastScaledBounds.northeast.latitude,
                 lastScaledBounds.northeast.longitude
             )

@@ -24,14 +24,15 @@ import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
+import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -113,7 +114,7 @@ fun W3WGoogleMapDrawer(
                     val cameraBound = cameraState.gridBound
                     if (cameraBound != null) {
                         val newVisibleMarkers = state.markers.filter {
-                            cameraBound.contains(it.square.center!!) &&
+                            cameraBound.contains(it.center) &&
                                     !visibleMarkers.contains(it)
                         }
 
@@ -140,7 +141,7 @@ fun W3WGoogleMapDrawer(
         if (state.selectedAddress != null) {
             val markersInSelectedAddress by remember(state.selectedAddress, state.markers) {
                 mutableStateOf(state.markers.filter {
-                    it.square.isEqual(state.selectedAddress.center)
+                    it.square == state.selectedAddress.square
                 }.toPersistentList())
             }
 
@@ -161,8 +162,8 @@ fun W3WGoogleMapDrawer(
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawGridLines(
-    verticalLines: List<W3WLatLng>,
-    horizontalLines: List<W3WLatLng>,
+    verticalLines: List<W3WCoordinates>,
+    horizontalLines: List<W3WCoordinates>,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     isDarkMode: Boolean
 ) {
@@ -336,7 +337,7 @@ fun W3WGoogleMapDrawMarkers(
     val zoomOutMarkers = remember(markers, selectedAddress) {
         derivedStateOf {
             selectedAddress?.let {
-                markers.filter { !it.square.isEqual(selectedAddress.center) }.toImmutableList()
+                markers.filter { it.square != selectedAddress.square }.toImmutableList()
             } ?: run {
                 markers
             }
@@ -372,7 +373,7 @@ private fun DrawZoomInMarkers(
         mutableStateOf(markers.groupBy { it.square.id })
     }
 
-    markersBySquareId.forEach { (squareId, markers) ->
+    markersBySquareId.forEach { (_, markers) ->
         val color =
             if (markers.size == 1) markers.first().color else markerConfig.defaultMarkerColor
 
@@ -419,7 +420,7 @@ private fun DrawZoomOutMarkers(
         mutableStateOf(markers.groupBy { it.square.id })
     }
 
-    markersBySquareId.forEach { (squareId, markers) ->
+    markersBySquareId.forEach { (_, markers) ->
         val color =
             if (markers.size == 1) markers.first().color else markerConfig.defaultMarkerColor
 
@@ -434,7 +435,7 @@ private fun DrawZoomOutMarkers(
         }
 
         val marker = markers.first() // Get the information from the first marker in the list
-        val position = LatLng(marker.square.center!!.lat, marker.square.center.lng)
+        val position = LatLng(marker.center.lat, marker.center.lng)
         val state = rememberUpdatedMarkerState(position)
 
         Marker(

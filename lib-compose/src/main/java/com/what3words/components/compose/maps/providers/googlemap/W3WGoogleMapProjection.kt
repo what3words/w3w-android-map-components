@@ -1,22 +1,27 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
 import android.graphics.PointF
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.graphics.toPoint
 import androidx.core.graphics.toPointF
 import com.google.android.gms.maps.Projection
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
-import com.what3words.components.compose.maps.mapper.toW3WLatLng
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
+import com.what3words.core.types.geometry.W3WCoordinates
 
-class W3WGoogleMapProjection(private val projection: Projection) : W3WMapProjection {
-    override fun toScreenLocation(w3wLatLng: W3WLatLng): PointF {
-        val point = projection.toScreenLocation(w3wLatLng.toGoogleLatLng())
+class W3WGoogleMapProjection(projection: Projection) : W3WMapProjection {
+
+    var projection by mutableStateOf(projection)
+
+    override fun toScreenLocation(coordinates: W3WCoordinates): PointF {
+        val point = projection.toScreenLocation(coordinates.toGoogleLatLng())
         return point.toPointF()
     }
 
-    override fun fromScreenLocation(point: PointF): W3WLatLng {
+    override fun fromScreenLocation(point: PointF): W3WCoordinates {
         val location = projection.fromScreenLocation(point.toPoint())
-        return location.toW3WLatLng()
+        return W3WCoordinates(lat = location.latitude, lng = location.longitude)
     }
 }

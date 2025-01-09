@@ -7,8 +7,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.MarkerColor
+import com.what3words.core.types.geometry.W3WCoordinates
 
 enum class MapProvider {
     GOOGLE_MAP,
@@ -22,9 +22,10 @@ enum class MapProvider {
  * including map configuration, grid lines, layout, and buttons.
  */
 object W3WMapDefaults {
-    val LOCATION_DEFAULT = W3WLatLng(51.521251, -0.203586)
+    val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = MarkerColor(background = Color.Red, slash = Color.White)
-    private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT = MarkerColor(background = Color(0xFF0A3049), slash = Color.White)
+    private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT =
+        MarkerColor(background = Color(0xFF0A3049), slash = Color.White)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 

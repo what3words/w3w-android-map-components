@@ -38,13 +38,14 @@ import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
-import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -116,7 +117,7 @@ fun W3WMapBoxDrawer(
                     val cameraBound = cameraState.gridBound
                     if (cameraBound != null) {
                         val newVisibleMarkers = state.markers.filter {
-                            cameraBound.contains(it.square.center!!) &&
+                            cameraBound.contains(it.center) &&
                                     !visibleMarkers.contains(it)
                         }
 
@@ -142,7 +143,7 @@ fun W3WMapBoxDrawer(
         if (state.selectedAddress != null) {
             val markersInSelectedSquare by remember(state.selectedAddress, state.markers) {
                 mutableStateOf(state.markers.filter {
-                    it.square.isEqual(state.selectedAddress.center!!)
+                    it.square == state.selectedAddress.square
                 }
                     .toPersistentList())
             }
@@ -163,8 +164,8 @@ fun W3WMapBoxDrawer(
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawGridLines(
-    verticalLines: List<W3WLatLng>,
-    horizontalLines: List<W3WLatLng>,
+    verticalLines: List<W3WCoordinates>,
+    horizontalLines: List<W3WCoordinates>,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     isDarkMode: Boolean
 ) {
@@ -253,7 +254,7 @@ fun W3WMapBoxDrawMarkers(
     val zoomOutMarkers = remember(markers, selectedAddress) {
         derivedStateOf {
             selectedAddress?.let {
-                markers.filter { !it.square.isEqual(selectedAddress.center) }.toImmutableList()
+                markers.filter { it.square != selectedAddress.square }.toImmutableList()
             } ?: run {
                 markers
             }
@@ -308,7 +309,7 @@ private fun DrawZoomOutMarkers(
             val marker =
                 markersBySquareId[squareId]!!.first() // Get the information from the first marker in the list
             PointAnnotationOptions()
-                .withPoint(Point.fromLngLat(marker.square.center!!.lng, marker.square.center.lat))
+                .withPoint(Point.fromLngLat(marker.center.lng, marker.center.lat))
                 .withIconImage(bitmap)
                 .withData(JsonPrimitive(squareId))
         }
@@ -318,8 +319,8 @@ private fun DrawZoomOutMarkers(
         annotations = annotations,
     ) {
         interactionsState.onClicked { it ->
-            val markerId = it.getData()?.asLong
-            val marker = markers.find { it.id == markerId }
+            val squareId = it.getData()?.asLong
+            val marker = markers.find { it.square.id == squareId }
             marker?.let(currentOnMarkerClicked)
             true
         }

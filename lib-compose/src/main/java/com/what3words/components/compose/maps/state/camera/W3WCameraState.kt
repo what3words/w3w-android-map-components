@@ -1,8 +1,8 @@
 package com.what3words.components.compose.maps.state.camera
 
 import androidx.compose.runtime.Immutable
-import com.what3words.components.compose.maps.models.Square
-import com.what3words.components.compose.maps.models.W3WLatLng
+import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
 
 /**
  * W3WCameraState the interface to define the camera state of the map.
@@ -18,7 +18,7 @@ interface W3WCameraState<T> {
 
     val cameraState: T
 
-    var gridBound: Square?
+    var gridBound: W3WRectangle?
 
     /**
      *  Adjust camera bearing to 0
@@ -32,7 +32,7 @@ interface W3WCameraState<T> {
      * @param animate Whether to animate the camera movement.
      */
     suspend fun moveToPosition(
-        latLng: W3WLatLng,
+        latLng: W3WCoordinates,
         zoom: Float? = null,
         bearing: Float? = null,
         tilt: Float? = null,
@@ -45,7 +45,7 @@ interface W3WCameraState<T> {
      * @param listLatLng The list of W3W latLng to move the camera to.
      */
     suspend fun moveToPosition(
-        listLatLng: List<W3WLatLng>,
+        listLatLng: List<W3WCoordinates>,
     )
 
     /**

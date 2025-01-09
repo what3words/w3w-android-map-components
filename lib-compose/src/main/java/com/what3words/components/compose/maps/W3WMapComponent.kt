@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,11 +20,10 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.theapache64.rebugger.Rebugger
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.mapper.toW3WLatLong
 import com.what3words.components.compose.maps.models.LocationSource
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -36,6 +36,7 @@ import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.geometry.W3WCoordinates
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,7 +68,22 @@ fun W3WMapComponent(
 ) {
 
     val mapState by mapManager.mapState.collectAsState()
+
     val buttonState by mapManager.buttonState.collectAsState()
+
+    val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
+
+    val currentLayoutConfig = remember {
+        derivedStateOf { layoutConfig }
+    }
+
+    val currentMapConfig = remember {
+        derivedStateOf { mapConfig }
+    }
+
+    LaunchedEffect(currentMapConfig) {
+        mapManager.setMapConfig(currentMapConfig.value)
+    }
 
     // TODO: Find optimal way to set isRecallButtonEnabled
     LaunchedEffect(mapConfig.buttonConfig.isRecallButtonUsed) {
@@ -80,56 +96,51 @@ fun W3WMapComponent(
         }
     }
 
-    val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
-
     W3WMapContent(
         modifier = modifier,
-        layoutConfig = layoutConfig,
-        mapConfig = mapConfig,
+        layoutConfig = currentLayoutConfig.value,
+        mapConfig = currentMapConfig.value,
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
         buttonState = buttonState,
-        onMapTypeClicked = remember {
-            { mapType ->
-                mapManager.setMapType(mapType)
-            }
+        onMapTypeClicked =
+        { mapType ->
+            mapManager.setMapType(mapType)
         },
         onMapClicked = {
             coroutineScope.launch {
                 mapManager.setSelectedAddress(it)
             }
         },
-        onCameraUpdated = {
-            coroutineScope.launch {
-                mapManager.updateCameraState(it)
-            }
-        },
-        onMyLocationClicked = remember {
-            {
-                fetchCurrentLocation(
-                    locationSource = locationSource,
-                    mapManager = mapManager,
-                    onError = onError,
-                    coroutineScope = coroutineScope
-                )
-            }
+        onMyLocationClicked =
+        {
+            fetchCurrentLocation(
+                locationSource = locationSource,
+                mapManager = mapManager,
+                onError = onError,
+                coroutineScope = coroutineScope
+            )
         },
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
             mapState.selectedAddress?.center?.let {
                 coroutineScope.launch {
-                    mapManager.moveToPosition(it.toW3WLatLong(), animate = true)
+                    mapManager.moveToPosition(it, animate = true)
                 }
             }
         },
-        onRecallButtonPositionProvided = remember { mapManager::setRecallButtonPosition },
-        onMarkerClicked = remember {
-            { marker ->
-                coroutineScope.launch {
-                    mapManager.setSelectedAddress(marker.square.center!!)
-                }
+        onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
+        onMarkerClicked =
+        { marker ->
+            coroutineScope.launch {
+                mapManager.setSelectedAddress(marker.center)
+            }
+        },
+        onCameraUpdated = {
+            coroutineScope.launch {
+                mapManager.updateCameraState(it)
             }
         },
         onError = onError
@@ -166,7 +177,7 @@ fun W3WMapComponent(
     onMarkerClicked: ((W3WMarker) -> Unit)? = null,
     onMapTypeClicked: ((W3WMapType) -> Unit)? = null,
     onMyLocationClicked: (() -> Unit)? = null,
-    onMapClicked: ((W3WLatLng) -> Unit)? = null,
+    onMapClicked: ((W3WCoordinates) -> Unit)? = null,
     onRecallClicked: (() -> Unit)? = null,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
@@ -243,13 +254,34 @@ internal fun W3WMapContent(
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onMyLocationClicked: () -> Unit,
     onRecallClicked: () -> Unit,
-    onMapClicked: (W3WLatLng) -> Unit,
+    onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
+
+    Rebugger(
+        trackMap = mapOf(
+            "layoutConfig" to layoutConfig,
+            "mapConfig" to mapConfig,
+            "mapState" to mapState,
+            "buttonState" to buttonState,
+            "mapProvider" to mapProvider,
+            "onMarkerClicked" to onMarkerClicked,
+            "onMapTypeClicked" to onMapTypeClicked,
+            "onMyLocationClicked" to onMyLocationClicked,
+            "onRecallClicked" to onRecallClicked,
+            "onMapClicked" to onMapClicked,
+            "onCameraUpdated" to onCameraUpdated,
+            "onError" to onError,
+            "onMapViewPortProvided" to onMapViewPortProvided,
+            "onRecallButtonPositionProvided" to onRecallButtonPositionProvided,
+            "onMapProjectionUpdated" to onMapProjectionUpdated,
+        )
+    )
+
     // Handles check location permissions, if isMyLocationEnabled enable
     MapPermissionsHandler(mapState = mapState, onError = onError) {
 
@@ -384,7 +416,7 @@ internal fun W3WMapView(
     mapState: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: ((W3WMarker) -> Unit),
-    onMapClicked: ((W3WLatLng) -> Unit),
+    onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: (W3WMapProjection) -> Unit,
 ) {
@@ -438,7 +470,7 @@ private fun fetchCurrentLocation(
                 val location = it.fetchLocation()
                 // Update camera state
                 mapManager.moveToPosition(
-                    latLng = W3WLatLng(location.latitude, location.longitude),
+                    coordinates = W3WCoordinates(location.latitude, location.longitude),
                     zoom = when (mapManager.mapProvider) {
                         MapProvider.GOOGLE_MAP -> {
                             W3WGoogleCameraState.MY_LOCATION_ZOOM
