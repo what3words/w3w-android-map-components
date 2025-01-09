@@ -4,22 +4,20 @@ import android.graphics.PointF
 import com.mapbox.geojson.Point
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.ScreenCoordinate
-import com.what3words.components.compose.maps.mapper.toMapBoxPoint
-import com.what3words.components.compose.maps.mapper.toW3WLatLng
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
+import com.what3words.core.types.geometry.W3WCoordinates
 
 class W3WMapBoxMapProjection(private val map: MapboxMap) : W3WMapProjection {
 
-    override fun toScreenLocation(w3wLatLng: W3WLatLng): PointF {
-        val point = map.toScreenLocation(w3wLatLng.toMapBoxPoint())
+    override fun toScreenLocation(coordinates: W3WCoordinates): PointF {
+        val point = map.toScreenLocation(Point.fromLngLat(coordinates.lng, coordinates.lat))
         return PointF(point.x.toFloat(), point.y.toFloat())
     }
 
-    override fun fromScreenLocation(point: PointF): W3WLatLng {
+    override fun fromScreenLocation(point: PointF): W3WCoordinates {
         val screenCoordinate = ScreenCoordinate(point.x.toDouble(), point.y.toDouble())
         val mapboxPoint = map.coordinateForPixel(screenCoordinate)
-        return mapboxPoint.toW3WLatLng()
+        return W3WCoordinates(lat = mapboxPoint.latitude(), lng = mapboxPoint.longitude())
     }
 
     // Worked with Mapbox v11.8.0

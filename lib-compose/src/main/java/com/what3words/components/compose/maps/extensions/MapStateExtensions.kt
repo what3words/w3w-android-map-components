@@ -1,7 +1,5 @@
 package com.what3words.components.compose.maps.extensions
 
-import com.what3words.components.compose.maps.models.Square
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
 
 internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
@@ -14,7 +12,7 @@ internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
     // Create a new list by either updating or adding the marker
     if (marker in currentList) {
         // Replace the existing marker if it exists (by id)
-        val index = currentList.indexOfFirst { it.id == marker.id }
+        val index = currentList.indexOfFirst { it.square.id == marker.square.id }
         if (index != -1) {
             currentList[index] = marker
         }
@@ -34,9 +32,4 @@ internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
  */
 internal fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
     return this.values.flatten()
-}
-
-internal fun Square.contains(coordinates: W3WLatLng): Boolean {
-    return if (coordinates.lat >= this.southwest.lat && coordinates.lat <= this.northeast.lat && coordinates.lng >= this.southwest.lng && coordinates.lng <= this.northeast.lng) return true
-    else false
 }

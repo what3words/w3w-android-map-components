@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
 import android.graphics.PointF
-import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
@@ -14,19 +13,18 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.addMarker
+import com.what3words.components.compose.maps.extensions.area
+import com.what3words.components.compose.maps.extensions.calculateAreaOverlap
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.toMarkers
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
-import com.what3words.components.compose.maps.mapper.toW3WLatLong
 import com.what3words.components.compose.maps.mapper.toW3WMarker
-import com.what3words.components.compose.maps.mapper.toW3WRectangle
 import com.what3words.components.compose.maps.models.GridLines
 import com.what3words.components.compose.maps.models.MarkerColor
 import com.what3words.components.compose.maps.models.MarkerWithList
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
-import com.what3words.components.compose.maps.models.W3WLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -42,6 +40,7 @@ import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
+import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.core.types.language.W3WRFC5646Language
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -53,7 +52,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -89,10 +87,13 @@ class W3WMapManager(
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
 
     // This flow controls when the grid calculation should be performed.
-    private val gridCalculationFlow = MutableStateFlow<W3WCameraState<*>?>(null)
+    private val gridCalculationFlow = MutableStateFlow<W3WRectangle?>(null)
+    private var lastProcessedGridBound: W3WRectangle? = null
 
     // Stores markers by list name
     private val markersMap: MutableMap<String, MutableList<W3WMarker>> = mutableMapOf()
+
+    private var mapConfig: W3WMapDefaults.MapConfig? = null
 
     init {
         _mapState.update {
@@ -137,29 +138,81 @@ class W3WMapManager(
         scope.launch {
             gridCalculationFlow
                 .filterNotNull()
-                .collectLatest { calculateAndUpdateGrid(it) }
+                .collect { newGridBound ->
+                    if (shouldCalculateGrid(newGridBound, lastProcessedGridBound)) {
+                        calculateAndUpdateGrid(newGridBound)
+                    }
+                }
         }
     }
 
-    private suspend fun calculateAndUpdateGrid(cameraState: W3WCameraState<*>) {
-        val newGridLine = calculateGridPolylines(cameraState)
+    private fun shouldCalculateGrid(
+        newGridBound: W3WRectangle,
+        oldGridBound: W3WRectangle?,
+        areaOverlapThreshold: Double = 0.5,
+        zoomOutThreshold: Double = 1.2
+    ): Boolean {
+        // Always calculate if there's no previous grid
+        if (oldGridBound == null) return true
+
+        // Check if the view has zoomed out significantly
+        if (isSignificantZoomOut(newGridBound, oldGridBound, zoomOutThreshold)) {
+            return true
+        }
+
+        // Check if we're below the minimum zoom level for grid calculation
+        if (isBelowMinimumZoom()) {
+            return false
+        }
+
+        // Check if the view has moved significantly
+        return hasSignificantMovement(newGridBound, oldGridBound, areaOverlapThreshold)
+    }
+
+    private fun isSignificantZoomOut(
+        newGridBound: W3WRectangle,
+        oldGridBound: W3WRectangle,
+        zoomOutThreshold: Double
+    ): Boolean {
+        return newGridBound.area / oldGridBound.area > zoomOutThreshold
+    }
+
+    private fun isBelowMinimumZoom(): Boolean {
+        val zoomLevel = _mapState.value.cameraState?.getZoomLevel()
+        val zoomSwitchLevel = mapConfig?.gridLineConfig?.zoomSwitchLevel
+        return zoomLevel != null && zoomSwitchLevel != null && zoomLevel < zoomSwitchLevel
+    }
+
+    private fun hasSignificantMovement(
+        newGridBound: W3WRectangle,
+        oldGridBound: W3WRectangle,
+        areaOverlapThreshold: Double
+    ): Boolean {
+        return newGridBound.calculateAreaOverlap(oldGridBound) < areaOverlapThreshold
+    }
+
+    private suspend fun calculateAndUpdateGrid(gridBound: W3WRectangle) {
+        val newGridLines = calculateGridPolylines(gridBound)
+        if (newGridLines != null) {
+            lastProcessedGridBound = gridBound
+        }
+
         _mapState.update {
-            it.copy(gridLines = newGridLine)
+            it.copy(gridLines = newGridLines ?: GridLines())
         }
     }
 
-    private suspend fun calculateGridPolylines(cameraState: W3WCameraState<*>): GridLines =
+    private suspend fun calculateGridPolylines(gridBound: W3WRectangle): GridLines? =
         withContext(dispatcher) {
-            cameraState.gridBound?.let { safeBox ->
-                when (val grid = textDataSource.gridSection(safeBox.toW3WRectangle())) {
+            gridBound.let { safeBox ->
+                when (val grid = textDataSource.gridSection(safeBox)) {
                     is W3WResult.Failure -> {
-                        Log.e(TAG, "Failed to calculate grid", grid.error)
-                        GridLines()
+                        null
                     }
 
                     is W3WResult.Success -> grid.toW3WGridLines()
                 }
-            } ?: GridLines()
+            }
         }
 
     private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): GridLines {
@@ -188,7 +241,7 @@ class W3WMapManager(
                 cameraState = newCameraState,
             )
         }
-        gridCalculationFlow.value = newCameraState
+        gridCalculationFlow.value = newCameraState.gridBound
 
         if (_buttonState.value.isRecallButtonEnabled) {
             handleRecallButton()
@@ -286,21 +339,21 @@ class W3WMapManager(
     /**
      * Asynchronously moves the camera to a new position on the map. This method allows for optional animation of the camera movement and adjustment of zoom, bearing, and tilt for a more customized view.
      *
-     * @param latLng The target latitude and longitude ([W3WLatLng]) where the camera should move to.
+     * @param coordinates The target latitude and longitude ([W3WCoordinates]) where the camera should move to.
      * @param zoom Optional zoom level for the camera. If null, the current zoom level is maintained.
      * @param bearing Optional bearing for the camera in degrees. The bearing is the compass direction that the camera is pointing.
      * @param tilt Optional tilt angle for the camera, in degrees from the nadir (directly facing the Earth's surface).
      * @param animate Boolean flag indicating whether the camera movement should be animated. If true, the camera smoothly transitions to the new position.
      */
     suspend fun moveToPosition(
-        latLng: W3WLatLng,
+        coordinates: W3WCoordinates,
         zoom: Float? = null,
         bearing: Float? = null,
         tilt: Float? = null,
         animate: Boolean = true,
     ) = withContext(Dispatchers.Main) {
         mapState.value.cameraState?.moveToPosition(
-            latLng,
+            coordinates,
             zoom,
             bearing,
             tilt,
@@ -367,15 +420,15 @@ class W3WMapManager(
     }
 
     /**
-     * Selects an what3words address on the map at a specific [W3WLatLng].
+     * Selects an what3words address on the map at a specific [W3WCoordinates].
      *
-     * @param latLng The [W3WLatLng] to be selected.
+     * @param coordinates The [W3WCoordinates] to be selected.
      */
     suspend fun setSelectedAddress(
-        latLng: W3WLatLng
+        coordinates: W3WCoordinates
     ) = withContext(dispatcher) {
         when (val result = textDataSource.convertTo3wa(
-            W3WCoordinates(lat = latLng.lat, lng = latLng.lng),
+            W3WCoordinates(lat = coordinates.lat, lng = coordinates.lng),
             language
         )) {
             is W3WResult.Failure -> {
@@ -466,13 +519,13 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific [W3WLatLng].
+     * Removes markers from the map at a specific [W3WCoordinates].
      *
-     * @param latLng The [W3WLatLng] to remove markers from.
+     * @param coordinates The [W3WCoordinates] to remove markers from.
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
     suspend fun removeMarkerAt(
-        latLng: W3WLatLng,
+        coordinates: W3WCoordinates,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
         val removedMarkers = mutableListOf<W3WMarker>()
@@ -480,7 +533,7 @@ class W3WMapManager(
         if (listName == null) {
             // Remove markers from all lists
             markersMap.forEach { (_, markers) ->
-                val toRemove = markers.filter { it.square.contains(latLng) }
+                val toRemove = markers.filter { it.square.contains(coordinates) }
                 removedMarkers.addAll(toRemove)
                 markers.removeAll(toRemove)
             }
@@ -490,7 +543,7 @@ class W3WMapManager(
             // Remove markers only from the specified list
             val markers = markersMap[listName]
             if (markers != null) {
-                val toRemove = markers.filter { it.square.contains(latLng) }
+                val toRemove = markers.filter { it.square.contains(coordinates) }
                 removedMarkers.addAll(toRemove)
                 markers.removeAll(toRemove)
 
@@ -525,24 +578,23 @@ class W3WMapManager(
     }
 
     /**
-     * Retrieves all markers at a specific [W3WLatLng].
+     * Retrieves all markers at a specific [W3WCoordinates].
      *
      * This method searches through all marker collections in the map and returns
      * a list of markers that contain the given coordinates within their square.
      * Each marker is paired with the name of the list it belongs to.
      *
-     * @param latLng The coordinates [W3WLatLng] to search for markers.
+     * @param coordinates The coordinates [W3WCoordinates] to search for markers.
      * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
      *         The list is empty if no markers are found at the given location.
      *
-     * @see W3WLatLng
      * @see W3WMarker
      */
     fun getMarkersAt(
-        latLng: W3WLatLng
+        coordinates: W3WCoordinates
     ): List<MarkerWithList> {
         return markersMap.flatMap { (listName, markers) ->
-            markers.filter { it.square.contains(latLng) }
+            markers.filter { it.square.contains(coordinates) }
                 .map { marker -> MarkerWithList(listName, marker) }
         }
     }
@@ -608,23 +660,23 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker at the specified coordinates [W3WLatLng]. It also updates the map view based on the specified zoom options.
+     * Adds a marker at the specified coordinates [W3WCoordinates]. It also updates the map view based on the specified zoom options.
      *
-     * @param latLng The coordinates [W3WLatLng] where the marker should be placed.
+     * @param coordinates The coordinates [W3WCoordinates] where the marker should be placed.
      * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
      * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
      * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
      * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
      * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
      *
-     * @see W3WLatLng
+     * @see W3WCoordinates
      * @see MarkerColor
      * @see ZoomOption
      * @see W3WMarker
      * @see W3WResult
      */
     suspend fun addMarkerAt(
-        latLng: W3WLatLng,
+        coordinates: W3WCoordinates,
         listName: String = LIST_DEFAULT_ID,
         markerColor: MarkerColor = MARKER_COLOR_DEFAULT,
         zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
@@ -632,7 +684,7 @@ class W3WMapManager(
     ): W3WResult<W3WMarker> = withContext(dispatcher) {
         when (val result =
             textDataSource.convertTo3wa(
-                W3WCoordinates(lat = latLng.lat, lng = latLng.lng),
+                W3WCoordinates(lat = coordinates.lat, lng = coordinates.lng),
                 language
             )) {
             is W3WResult.Failure -> {
@@ -663,29 +715,29 @@ class W3WMapManager(
         }
 
         // Handle zoom options
-        handleZoomOption(marker.square.center!!, zoomOption, zoomLevel)
+        handleZoomOption(marker.center, zoomOption, zoomLevel)
 
 //        logMarkersMap()
     }
 
     /**
-     * Handle zoom option for a [W3WLatLng] with multiple zoom options which will use the zoom level
+     * Handle zoom option for a [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
     private suspend fun handleZoomOption(
-        latLng: W3WLatLng,
+        coordinates: W3WCoordinates,
         zoomOption: ZoomOption,
         zoom: Float?
     ) {
         when (zoomOption) {
             ZoomOption.NONE -> {}
             ZoomOption.CENTER -> {
-                mapState.value.cameraState?.moveToPosition(latLng, animate = true)
+                mapState.value.cameraState?.moveToPosition(coordinates, animate = true)
             }
 
             ZoomOption.CENTER_AND_ZOOM -> {
                 mapState.value.cameraState?.moveToPosition(
-                    latLng,
+                    coordinates,
                     zoom,
                     animate = true
                 )
@@ -743,7 +795,7 @@ class W3WMapManager(
             val mapProjection = buttonState.value.mapProjection
             withContext(Dispatchers.Main) {
                 val selectedScreenLocation =
-                    selectedAddress?.let { mapProjection?.toScreenLocation(it.toW3WLatLong()) }
+                    selectedAddress?.let { mapProjection?.toScreenLocation(it) }
                 _buttonState.update {
                     it.copy(
                         selectedScreenLocation = selectedScreenLocation,
@@ -755,7 +807,7 @@ class W3WMapManager(
 
     private suspend fun updateRecallButtonColor() {
         withContext(dispatcher) {
-            val selectedLatLng = getSelectedAddress()?.center?.toW3WLatLong() ?: return@withContext
+            val selectedLatLng = getSelectedAddress()?.center ?: return@withContext
 
             val markersAtSelectedSquare =
                 getMarkersAt(selectedLatLng)
@@ -813,6 +865,10 @@ class W3WMapManager(
     ) = angleOfPoints(recallButtonPosition, selectedScreenLocation).let { alpha ->
         // add 180 degrees to computed value to compensate arrow rotation
         (180 + alpha) * -1
+    }
+
+    fun setMapConfig(mapConfig: W3WMapDefaults.MapConfig) {
+        this.mapConfig = mapConfig
     }
 
     companion object {
