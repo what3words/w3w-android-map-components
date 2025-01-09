@@ -8,13 +8,13 @@ import android.graphics.Paint
 import android.util.Log
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.PathParser
-import com.what3words.components.compose.maps.models.MarkerColor
+import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.map.components.compose.R
 
 fun getMarkerBitmap(
     context: Context,
     density: Float = 1f,
-    colorMarker: MarkerColor,
+    colorMarker: W3WMarkerColor,
     width: Int = 48,
     height: Int = 56
 ): Bitmap {
@@ -40,7 +40,7 @@ fun getMarkerBitmap(
 fun getFillGridMarkerBitmap(
     context: Context,
     scale: Float,
-    colorMarker: MarkerColor,
+    colorMarker: W3WMarkerColor,
     size: Int = 32,
 ): Bitmap {
 
@@ -67,7 +67,7 @@ fun getFillGridMarkerBitmap(
 fun getPinBitmap(
     context: Context,
     density: Float = 1f,
-    colorMarker: MarkerColor
+    colorMarker: W3WMarkerColor
 ): Bitmap {
     val pinSize = 24
 

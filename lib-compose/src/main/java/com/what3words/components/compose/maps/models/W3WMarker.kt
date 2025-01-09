@@ -10,14 +10,14 @@ import com.what3words.core.types.geometry.W3WRectangle
 data class W3WMarker(
     val words: String,
     val square: W3WRectangle,
-    val color: MarkerColor,
+    val color: W3WMarkerColor,
     val center: W3WCoordinates,
     val title: String? = null,
     val snippet: String? = null
 )
 
 @Immutable
-data class MarkerColor(
+data class W3WMarkerColor(
     val background: Color,
     val slash: Color
 ) {

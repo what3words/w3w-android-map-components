@@ -21,7 +21,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.models.LocationSource
+import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance such as custom dark mode, grid line config.
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
- * @param locationSource An optional [LocationSource] used to fetch the user's location.
+ * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param content Optional composable content to be displayed on the map.
  * @param onError Callback invoked when an error occurs.
  */
@@ -61,7 +61,7 @@ fun W3WMapComponent(
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     mapManager: W3WMapManager,
     onSelectedSquareChanged: (W3WAddress) -> Unit,
-    locationSource: LocationSource? = null,
+    locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
 ) {
@@ -454,12 +454,12 @@ internal fun W3WMapView(
 /**
  * This function is responsible for update camera position and button state based on current location
  *
- * @param locationSource An optional [LocationSource] used to fetch the user's location.
+ * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
  */
 private fun fetchCurrentLocation(
-    locationSource: LocationSource?,
+    locationSource: W3WLocationSource?,
     mapManager: W3WMapManager,
     coroutineScope: CoroutineScope,
     onError: ((W3WError) -> Unit)? = null
@@ -490,10 +490,9 @@ private fun fetchCurrentLocation(
             } catch (e: Exception) {
                 onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
             }
-            mapManager.updateIsLocationActive(true)
-//            it.isActive.collect { isActive ->
-//                mapManager.updateIsLocationActive(isActive)
-//            }
+            it.isActive.collect { isActive ->
+                mapManager.updateIsLocationActive(isActive)
+            }
         }
     }
 }

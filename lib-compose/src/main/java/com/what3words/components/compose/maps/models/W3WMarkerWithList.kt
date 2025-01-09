@@ -6,4 +6,4 @@ import androidx.compose.runtime.Immutable
  * A data class that represents a marker with its corresponding list name.
  */
 @Immutable
-data class MarkerWithList(val listName: String, val marker: W3WMarker)
+data class W3WMarkerWithList(val listName: String, val marker: W3WMarker)

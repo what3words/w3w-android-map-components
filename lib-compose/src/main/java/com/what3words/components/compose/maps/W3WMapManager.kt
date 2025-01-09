@@ -21,14 +21,14 @@ import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.toMarkers
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WMarker
-import com.what3words.components.compose.maps.models.GridLines
-import com.what3words.components.compose.maps.models.MarkerColor
-import com.what3words.components.compose.maps.models.MarkerWithList
+import com.what3words.components.compose.maps.models.W3WGridLines
+import com.what3words.components.compose.maps.models.W3WMarkerColor
+import com.what3words.components.compose.maps.models.W3WMarkerWithList
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
-import com.what3words.components.compose.maps.models.ZoomOption
+import com.what3words.components.compose.maps.models.W3WZoomOption
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
@@ -198,11 +198,11 @@ class W3WMapManager(
         }
 
         _mapState.update {
-            it.copy(gridLines = newGridLines ?: GridLines())
+            it.copy(gridLines = newGridLines ?: W3WGridLines())
         }
     }
 
-    private suspend fun calculateGridPolylines(gridBound: W3WRectangle): GridLines? =
+    private suspend fun calculateGridPolylines(gridBound: W3WRectangle): W3WGridLines? =
         withContext(dispatcher) {
             gridBound.let { safeBox ->
                 when (val grid = textDataSource.gridSection(safeBox)) {
@@ -215,8 +215,8 @@ class W3WMapManager(
             }
         }
 
-    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): GridLines {
-        return GridLines(
+    private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
+        return W3WGridLines(
             verticalLines = value.lines.computeVerticalLines().toImmutableList(),
             horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
         )
@@ -592,10 +592,10 @@ class W3WMapManager(
      */
     fun getMarkersAt(
         coordinates: W3WCoordinates
-    ): List<MarkerWithList> {
+    ): List<W3WMarkerWithList> {
         return markersMap.flatMap { (listName, markers) ->
             markers.filter { it.square.contains(coordinates) }
-                .map { marker -> MarkerWithList(listName, marker) }
+                .map { marker -> W3WMarkerWithList(listName, marker) }
         }
     }
 
@@ -612,10 +612,10 @@ class W3WMapManager(
      */
     fun getMarkersAt(
         address: String
-    ): List<MarkerWithList> {
+    ): List<W3WMarkerWithList> {
         return markersMap.flatMap { (listName, markers) ->
             markers.filter { it.words == address }
-                .map { marker -> MarkerWithList(listName, marker) }
+                .map { marker -> W3WMarkerWithList(listName, marker) }
         }
     }
 
@@ -641,9 +641,9 @@ class W3WMapManager(
      */
     suspend fun addMarkerAt(
         address: String,
-        markerColor: MarkerColor = MARKER_COLOR_DEFAULT,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         listName: String = LIST_DEFAULT_ID,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WMarker> = withContext(dispatcher) {
         when (val result = textDataSource.convertToCoordinates(address)) {
@@ -670,16 +670,16 @@ class W3WMapManager(
      * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
      *
      * @see W3WCoordinates
-     * @see MarkerColor
-     * @see ZoomOption
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
      * @see W3WMarker
      * @see W3WResult
      */
     suspend fun addMarkerAt(
         coordinates: W3WCoordinates,
         listName: String = LIST_DEFAULT_ID,
-        markerColor: MarkerColor = MARKER_COLOR_DEFAULT,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WMarker> = withContext(dispatcher) {
         when (val result =
@@ -702,7 +702,7 @@ class W3WMapManager(
     private suspend fun addMakerInternal(
         marker: W3WMarker,
         listName: String = LIST_DEFAULT_ID,
-        zoomOption: ZoomOption = ZoomOption.CENTER_AND_ZOOM,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ) = withContext(dispatcher) {
         markersMap.addMarker(listName = listName, marker = marker)
@@ -726,16 +726,16 @@ class W3WMapManager(
      */
     private suspend fun handleZoomOption(
         coordinates: W3WCoordinates,
-        zoomOption: ZoomOption,
+        zoomOption: W3WZoomOption,
         zoom: Float?
     ) {
         when (zoomOption) {
-            ZoomOption.NONE -> {}
-            ZoomOption.CENTER -> {
+            W3WZoomOption.NONE -> {}
+            W3WZoomOption.CENTER -> {
                 mapState.value.cameraState?.moveToPosition(coordinates, animate = true)
             }
 
-            ZoomOption.CENTER_AND_ZOOM -> {
+            W3WZoomOption.CENTER_AND_ZOOM -> {
                 mapState.value.cameraState?.moveToPosition(
                     coordinates,
                     zoom,

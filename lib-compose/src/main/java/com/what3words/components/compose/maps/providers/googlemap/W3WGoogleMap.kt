@@ -111,6 +111,19 @@ fun W3WGoogleMap(
             }.launchIn(this)
     }
 
+//    Rebugger(
+//        trackMap = mapOf(
+//            "layoutConfig" to layoutConfig,
+//            "mapConfig" to mapConfig,
+//            "mapProperties" to mapProperties,
+//            "uiSettings" to uiSettings,
+//            "state" to state,
+//            "onMarkerClicked" to onMarkerClicked,
+//            "onMapClicked" to onMapClicked,
+//            "onMapProjectionUpdated" to onMapProjectionUpdated,
+//        )
+//    )
+
     GoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,

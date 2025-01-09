@@ -1,7 +1,7 @@
 package com.what3words.components.compose.maps.state
 
 import androidx.compose.runtime.Immutable
-import com.what3words.components.compose.maps.models.GridLines
+import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
@@ -22,7 +22,7 @@ import kotlinx.collections.immutable.persistentListOf
  * @property selectedAddress The currently selected what3words address.
  * @property markers A list of markers on the map.
  * @property cameraState The current state of the map's camera.
- * @property gridLines [GridLines] The grid lines displayed on the map.
+ * @property gridLines [W3WGridLines] The grid lines displayed on the map.
  */
 @Immutable
 data class W3WMapState(
@@ -41,5 +41,5 @@ data class W3WMapState(
 
     internal val cameraState: W3WCameraState<*>? = null,
 
-    internal val gridLines: GridLines = GridLines(),
+    internal val gridLines: W3WGridLines = W3WGridLines(),
 )

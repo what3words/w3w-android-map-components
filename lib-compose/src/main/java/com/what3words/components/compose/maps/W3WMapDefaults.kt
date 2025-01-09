@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
-import com.what3words.components.compose.maps.models.MarkerColor
+import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
 
 enum class MapProvider {
@@ -23,9 +23,9 @@ enum class MapProvider {
  */
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
-    val MARKER_COLOR_DEFAULT = MarkerColor(background = Color.Red, slash = Color.White)
+    val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
     private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT =
-        MarkerColor(background = Color(0xFF0A3049), slash = Color.White)
+        W3WMarkerColor(background = Color(0xFF0A3049), slash = Color.White)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
@@ -101,8 +101,8 @@ object W3WMapDefaults {
 
     @Immutable
     data class MarkerConfig(
-        val defaultMarkerColor: MarkerColor,
-        val selectedZoomOutColor: MarkerColor,
+        val defaultMarkerColor: W3WMarkerColor,
+        val selectedZoomOutColor: W3WMarkerColor,
         val selectedZoomInColor: Color,
         val selectedZoomInColorDarkMode: Color,
     )
@@ -163,8 +163,8 @@ object W3WMapDefaults {
     }
 
     fun defaultMarkerConfig(
-        selectedZoomOutColor: MarkerColor = SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT,
-        defaultMarkerColor: MarkerColor = MARKER_COLOR_DEFAULT,
+        selectedZoomOutColor: W3WMarkerColor = SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT,
+        defaultMarkerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         selectedColor: Color = Color.Black,
         selectedColorDarkMode: Color = Color.White
     ): MarkerConfig {
