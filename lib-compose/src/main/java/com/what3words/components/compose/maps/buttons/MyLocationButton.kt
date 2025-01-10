@@ -91,7 +91,12 @@ fun MyLocationButton(
                     horizontalArrangement = Arrangement.End, // Align Row content to end to control animation direction
                     modifier = Modifier
                         .height(locationButtonConfig.locationButtonSize)
-                        .clip(RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50)) // Rounded on the start side
+                        .clip(
+                            RoundedCornerShape(
+                                topStartPercent = 50,
+                                bottomStartPercent = 50
+                            )
+                        ) // Rounded on the start side
                         .background(Color.White.copy(alpha = 0.7f)) // TODO: The alpha is too much transparent, original is 0.16
                         .padding(start = 12.dp, end = 4.dp)
                 ) {

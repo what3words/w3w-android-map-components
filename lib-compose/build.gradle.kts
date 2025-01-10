@@ -6,6 +6,7 @@ plugins {
     id(libs.plugins.maven.publish.get().pluginId)
     id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
+    alias(libs.plugins.compose.compiler)
 }
 
 /**
@@ -42,9 +43,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
     kotlinOptions {
         jvmTarget = libs.versions.jvmTarget.get()
@@ -119,6 +117,8 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
     testImplementation(libs.androidx.core.testing)
+
+    implementation(libs.rebugger)
 }
 
 //region publishing
