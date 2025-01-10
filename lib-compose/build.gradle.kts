@@ -117,8 +117,6 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
     testImplementation(libs.androidx.core.testing)
-
-    implementation(libs.rebugger)
 }
 
 //region publishing

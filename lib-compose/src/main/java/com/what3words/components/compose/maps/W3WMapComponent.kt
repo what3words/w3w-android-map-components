@@ -260,28 +260,6 @@ internal fun W3WMapContent(
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
-
-    // TODO: Remove this when done with debugging
-//    Rebugger(
-//        trackMap = mapOf(
-//            "layoutConfig" to layoutConfig,
-//            "mapConfig" to mapConfig,
-//            "mapState" to mapState,
-//            "buttonState" to buttonState,
-//            "mapProvider" to mapProvider,
-//            "onMarkerClicked" to onMarkerClicked,
-//            "onMapTypeClicked" to onMapTypeClicked,
-//            "onMyLocationClicked" to onMyLocationClicked,
-//            "onRecallClicked" to onRecallClicked,
-//            "onMapClicked" to onMapClicked,
-//            "onCameraUpdated" to onCameraUpdated,
-//            "onError" to onError,
-//            "onMapViewPortProvided" to onMapViewPortProvided,
-//            "onRecallButtonPositionProvided" to onRecallButtonPositionProvided,
-//            "onMapProjectionUpdated" to onMapProjectionUpdated,
-//        )
-//    )
-
     // Handles check location permissions, if isMyLocationEnabled enable
     MapPermissionsHandler(mapState = mapState, onError = onError) {
 

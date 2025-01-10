@@ -16,7 +16,6 @@ kotlinxCoroutinesCore = "1.8.1"
 kotlinxCoroutinesTest = "1.8.1"
 
 #Testing
-rebugger = "1.0.0-rc03"
 truth = "1.4.2"
 junit4 = "4.13.2"
 mockk = "1.13.10"
@@ -65,7 +64,6 @@ androidx-core-testing = { module = "androidx.arch.core:core-testing", version.re
 #Testing
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-rebugger = { module = "io.github.theapache64:rebugger", version.ref = "rebugger" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
 #Compose
