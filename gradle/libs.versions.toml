@@ -46,7 +46,7 @@ what3wordsWrapper = "4.0.2"
 what3wordsDesignLibrary = "2.0.3"
 
 #Maven Publish
-dokka = "1.5.0"
+dokka = "2.0.0"
 
 [libraries]
 #Kotlin
