@@ -26,6 +26,8 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
 
     override var gridBound: W3WRectangle? by mutableStateOf(null)
 
+    override var visibleBound: W3WRectangle? by mutableStateOf(null)
+
     override suspend fun orientCamera() {
         updateCameraPosition(
             CameraPosition(

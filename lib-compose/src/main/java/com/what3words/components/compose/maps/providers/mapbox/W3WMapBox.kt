@@ -81,9 +81,10 @@ fun W3WMapBox(
                     updateGridBound(
                         mapboxMap,
                         mapConfig.gridLineConfig,
-                        onGridBoundUpdate = { newBound ->
+                        onCameraBoundUpdate = { gridBound, visibleBound ->
                             lastProcessedCameraState = currentCameraState
-                            state.cameraState.gridBound = newBound
+                            state.cameraState.gridBound = gridBound
+                            state.cameraState.visibleBound = visibleBound
                             onCameraUpdated(state.cameraState)
                         }
                     )
@@ -216,7 +217,7 @@ fun W3WMapBox(
 private fun updateGridBound(
     mapboxMap: MapboxMap,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WRectangle) -> Unit,
+    onCameraBoundUpdate: (gridBound: W3WRectangle, visibleBound: W3WRectangle) -> Unit,
 ) {
     val scale = gridLinesConfig.gridScale
     val bounds = mapboxMap
@@ -231,7 +232,7 @@ private fun updateGridBound(
     val finalSWLng =
         ((scale * (bounds.southwest.longitude() - center.longitude()) + center.longitude()))
 
-    val box = W3WRectangle(
+    val gridBound = W3WRectangle(
         southwest = W3WCoordinates(
             finalSWLat,
             finalSWLng
@@ -242,5 +243,16 @@ private fun updateGridBound(
         )
     )
 
-    onGridBoundUpdate.invoke(box)
+    val visibleBound = W3WRectangle(
+        southwest = W3WCoordinates(
+            bounds.southwest.latitude(),
+            bounds.southwest.longitude()
+        ),
+        northeast = W3WCoordinates(
+            bounds.northeast.latitude(),
+            bounds.northeast.longitude()
+        )
+    )
+
+    onCameraBoundUpdate.invoke(gridBound, visibleBound)
 }

@@ -20,6 +20,8 @@ interface W3WCameraState<T> {
 
     var gridBound: W3WRectangle?
 
+    var visibleBound: W3WRectangle?
+
     /**
      *  Adjust camera bearing to 0
      */

@@ -102,10 +102,15 @@ fun W3WGoogleMap(
                         mapProjection?.projection = projection
                         mapProjection?.let(onMapProjectionUpdated)
                     }
-                    updateGridBound(projection, mapConfig.gridLineConfig) { newBound ->
+                    updateCameraBound(
+                        projection,
+                        mapConfig.gridLineConfig
+                    ) { gridBound, visibleBound ->
                         lastProcessedPosition = position
-                        state.cameraState.gridBound = newBound
+                        state.cameraState.gridBound = gridBound
+                        state.cameraState.visibleBound = visibleBound
                         onCameraUpdated(state.cameraState)
+
                     }
                 }
             }.launchIn(this)
@@ -142,15 +147,15 @@ fun W3WGoogleMap(
     }
 }
 
-private suspend fun updateGridBound(
+private suspend fun updateCameraBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    onGridBoundUpdate: (W3WRectangle) -> Unit
+    onCameraBoundUpdate: (gridBound: W3WRectangle, visibleBound: W3WRectangle) -> Unit
 ) {
     withContext(Dispatchers.IO) {
         val lastScaledBounds =
             scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
-        val box = W3WRectangle(
+        val gridBound = W3WRectangle(
             W3WCoordinates(
                 lastScaledBounds.southwest.latitude,
                 lastScaledBounds.southwest.longitude
@@ -161,8 +166,19 @@ private suspend fun updateGridBound(
             )
         )
 
+        val visibleBound = W3WRectangle(
+            W3WCoordinates(
+                projection.visibleRegion.latLngBounds.southwest.latitude,
+                projection.visibleRegion.latLngBounds.southwest.longitude
+            ),
+            W3WCoordinates(
+                projection.visibleRegion.latLngBounds.northeast.latitude,
+                projection.visibleRegion.latLngBounds.northeast.longitude
+            )
+        )
+
         withContext(Dispatchers.Main) {
-            onGridBoundUpdate.invoke(box)
+            onCameraBoundUpdate.invoke(gridBound, visibleBound)
         }
     }
 }
