@@ -83,7 +83,8 @@ jobs:
 
       - name: Snapshot Release Check
         run: |
-          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${{ github.ref_name }}" == epic/* ]] && echo true || echo false )" >> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
 
       - name: Publish to Maven
         run: ./gradlew lib:assemble publish
@@ -125,11 +126,11 @@ jobs:
           echo "SIGNING_KEY=${SIGNING_KEY}">> ~/.gradle/gradle.properties
           echo "SIGNING_KEY_PWD=${SIGNING_KEY_PWD}">> ~/.gradle/gradle.properties
           echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
-          cat ~/.gradle/gradle.properties
 
       - name: Snapshot Release Check
         run: |
-          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${{ github.ref_name }}" == epic/* ]] && echo true || echo false )" >> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
 
       - name: Publish to Maven
         run: ./gradlew :lib-compose:assemble publish
