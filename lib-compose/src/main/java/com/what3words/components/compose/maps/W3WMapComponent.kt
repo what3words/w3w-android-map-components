@@ -21,8 +21,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -84,9 +84,11 @@ fun W3WMapComponent(
         mapManager.setMapConfig(currentMapConfig.value)
     }
 
-    // TODO: Find optimal way to set isRecallButtonEnabled
-    LaunchedEffect(mapConfig.buttonConfig.isRecallButtonUsed) {
-        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
+    LaunchedEffect(Unit) {
+        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonAvailable)
+        locationSource?.locationStatus?.collect { status ->
+            mapManager.updateLocationStatus(status)
+        }
     }
 
     LaunchedEffect(mapState.selectedAddress) {
@@ -314,6 +316,7 @@ internal fun W3WMapContent(
                 buttonConfig = mapConfig.buttonConfig,
                 buttonState = buttonState,
                 isLocationEnabled = mapState.isMyLocationEnabled,
+                isDarkMode = mapState.isDarkMode,
                 onMapTypeClicked = onMapTypeClicked,
                 onMyLocationClicked = onMyLocationClicked,
                 onRecallClicked = onRecallClicked,
@@ -461,15 +464,11 @@ private fun fetchCurrentLocation(
                     animate = true
                 )
 
-
                 if (location.hasAccuracy()) {
                     mapManager.updateAccuracyDistance(location.accuracy)
                 }
             } catch (e: Exception) {
                 onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
-            }
-            it.isActive.collect { isActive ->
-                mapManager.updateIsLocationActive(isActive)
             }
         }
     }

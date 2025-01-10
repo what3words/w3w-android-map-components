@@ -28,6 +28,7 @@ import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WMarkerWithList
 import com.what3words.components.compose.maps.models.W3WZoomOption
+import com.what3words.components.compose.maps.state.LocationStatus
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
@@ -760,9 +761,9 @@ class W3WMapManager(
         }
     }
 
-    fun updateIsLocationActive(isActive: Boolean) {
+    fun updateLocationStatus(locationStatus: LocationStatus) {
         _buttonState.update {
-            it.copy(isLocationActive = isActive)
+            it.copy(locationStatus = locationStatus)
         }
     }
 

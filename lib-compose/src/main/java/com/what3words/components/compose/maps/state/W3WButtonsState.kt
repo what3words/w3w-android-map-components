@@ -11,7 +11,7 @@ data class W3WButtonsState(
 
     // My Location button
     val accuracyDistance: Float = 0.0F,
-    val isLocationActive: Boolean = false,
+    val locationStatus: LocationStatus = LocationStatus.INACTIVE,
 
     // Recall button
     val isRecallButtonVisible: Boolean = false,
@@ -26,3 +26,9 @@ data class W3WButtonsState(
     val recallButtonViewPort: W3WGridScreenCell? = null,
     val selectedScreenLocation: PointF? = null,
 )
+
+enum class LocationStatus {
+    ACTIVE,
+    INACTIVE,
+    SEARCHING
+}

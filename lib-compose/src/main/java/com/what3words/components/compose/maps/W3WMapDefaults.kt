@@ -94,9 +94,9 @@ object W3WMapDefaults {
 
     @Immutable
     data class ButtonConfig(
-        val isMapSwitchButtonUsed: Boolean,
-        val isMyLocationButtonUsed: Boolean,
-        val isRecallButtonUsed: Boolean,
+        val isMapSwitchButtonAvailable: Boolean,
+        val isMyLocationButtonAvailable: Boolean,
+        val isRecallButtonAvailable: Boolean,
     )
 
     @Immutable
@@ -151,14 +151,14 @@ object W3WMapDefaults {
     }
 
     fun defaultButtonConfig(
-        isMapSwitchButtonUsed: Boolean = true,
-        isMyLocationButtonUsed: Boolean = true,
-        isRecallButtonUsed: Boolean = false
+        isMapSwitchButtonAvailable: Boolean = true,
+        isMyLocationButtonAvailable: Boolean = true,
+        isRecallButtonAvailable: Boolean = false
     ): ButtonConfig {
         return ButtonConfig(
-            isMapSwitchButtonUsed = isMapSwitchButtonUsed,
-            isMyLocationButtonUsed = isMyLocationButtonUsed,
-            isRecallButtonUsed = isRecallButtonUsed
+            isMapSwitchButtonAvailable = isMapSwitchButtonAvailable,
+            isMyLocationButtonAvailable = isMyLocationButtonAvailable,
+            isRecallButtonAvailable = isRecallButtonAvailable
         )
     }
 
