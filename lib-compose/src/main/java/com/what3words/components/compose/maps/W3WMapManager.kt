@@ -2,6 +2,7 @@ package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
 import android.graphics.PointF
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
@@ -13,8 +14,6 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.addMarker
-import com.what3words.components.compose.maps.extensions.area
-import com.what3words.components.compose.maps.extensions.calculateAreaOverlap
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
 import com.what3words.components.compose.maps.extensions.contains
@@ -22,12 +21,12 @@ import com.what3words.components.compose.maps.extensions.toMarkers
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WMarker
 import com.what3words.components.compose.maps.models.W3WGridLines
-import com.what3words.components.compose.maps.models.W3WMarkerColor
-import com.what3words.components.compose.maps.models.W3WMarkerWithList
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WMarkerColor
+import com.what3words.components.compose.maps.models.W3WMarkerWithList
 import com.what3words.components.compose.maps.models.W3WZoomOption
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
@@ -139,7 +138,8 @@ class W3WMapManager(
             gridCalculationFlow
                 .filterNotNull()
                 .collect { newGridBound ->
-                    if (shouldCalculateGrid(newGridBound, lastProcessedGridBound)) {
+                    val visibleBound = _mapState.value.cameraState?.visibleBound
+                    if (shouldCalculateGrid(lastProcessedGridBound, visibleBound)) {
                         calculateAndUpdateGrid(newGridBound)
                     }
                 }
@@ -147,17 +147,17 @@ class W3WMapManager(
     }
 
     private fun shouldCalculateGrid(
-        newGridBound: W3WRectangle,
         oldGridBound: W3WRectangle?,
-        areaOverlapThreshold: Double = 0.5,
-        zoomOutThreshold: Double = 1.2
+        visibleBound: W3WRectangle?,
     ): Boolean {
         // Always calculate if there's no previous grid
-        if (oldGridBound == null) return true
-
-        // Check if the view has zoomed out significantly
-        if (isSignificantZoomOut(newGridBound, oldGridBound, zoomOutThreshold)) {
+        if (oldGridBound == null) {
             return true
+        }
+
+        // No visible bound, no need to calculate
+        if (visibleBound == null) {
+            return false
         }
 
         // Check if we're below the minimum zoom level for grid calculation
@@ -165,30 +165,38 @@ class W3WMapManager(
             return false
         }
 
-        // Check if the view has moved significantly
-        return hasSignificantMovement(newGridBound, oldGridBound, areaOverlapThreshold)
+        return !isVisibleBoundFullyInsideGridBound(visibleBound, oldGridBound)
     }
 
-    private fun isSignificantZoomOut(
-        newGridBound: W3WRectangle,
-        oldGridBound: W3WRectangle,
-        zoomOutThreshold: Double
+    /**
+     * Determines if the visible bound is fully inside the grid bound and not near its borders.
+     *
+     * This function checks if the visible bound (typically representing the camera's current view)
+     * is completely contained within the grid bound, with an additional threshold to ensure it's
+     * not too close to the edges. This helps in deciding whether to recalculate the grid or not.
+     *
+     */
+    private fun isVisibleBoundFullyInsideGridBound(
+        visibleBound: W3WRectangle,
+        gridBound: W3WRectangle,
+        threshold: Double = 0.1
     ): Boolean {
-        return newGridBound.area / oldGridBound.area > zoomOutThreshold
+        val gridWidth = gridBound.northeast.lng - gridBound.southwest.lng
+        val gridHeight = gridBound.northeast.lat - gridBound.southwest.lat
+
+        val thresholdLng = gridWidth * threshold
+        val thresholdLat = gridHeight * threshold
+
+        return visibleBound.southwest.lng >= gridBound.southwest.lng + thresholdLng &&
+                visibleBound.southwest.lat >= gridBound.southwest.lat + thresholdLat &&
+                visibleBound.northeast.lng <= gridBound.northeast.lng - thresholdLng &&
+                visibleBound.northeast.lat <= gridBound.northeast.lat - thresholdLat
     }
 
     private fun isBelowMinimumZoom(): Boolean {
         val zoomLevel = _mapState.value.cameraState?.getZoomLevel()
         val zoomSwitchLevel = mapConfig?.gridLineConfig?.zoomSwitchLevel
         return zoomLevel != null && zoomSwitchLevel != null && zoomLevel < zoomSwitchLevel
-    }
-
-    private fun hasSignificantMovement(
-        newGridBound: W3WRectangle,
-        oldGridBound: W3WRectangle,
-        areaOverlapThreshold: Double
-    ): Boolean {
-        return newGridBound.calculateAreaOverlap(oldGridBound) < areaOverlapThreshold
     }
 
     private suspend fun calculateAndUpdateGrid(gridBound: W3WRectangle) {
@@ -198,6 +206,7 @@ class W3WMapManager(
         }
 
         _mapState.update {
+            Log.d(TAG, "Update GridLines")
             it.copy(gridLines = newGridLines ?: W3WGridLines())
         }
     }

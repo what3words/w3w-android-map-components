@@ -34,49 +34,6 @@ val W3WRectangle.id: Long
         return (swLatBits shl 48) or (swLngBits shl 32) or (neLatBits shl 16) or neLngBits
     }
 
-/**
- * Area of the [W3WRectangle].
- */
-val W3WRectangle.area: Double
-    get() {
-        val width = this.northeast.lng - this.southwest.lng
-        val height = this.northeast.lat - this.southwest.lat
-        return width * height
-    }
-
-/**
- * Calculate the area of overlap between two rectangles.
- */
-fun W3WRectangle.calculateAreaOverlap(other: W3WRectangle): Double {
-    val overlapRect = W3WRectangle(
-        W3WCoordinates(
-            maxOf(this.southwest.lat, other.southwest.lat),
-            maxOf(this.southwest.lng, other.southwest.lng)
-        ),
-        W3WCoordinates(
-            minOf(this.northeast.lat, other.northeast.lat),
-            minOf(this.northeast.lng, other.northeast.lng)
-        )
-    )
-
-    if (overlapRect.southwest.lat >= overlapRect.northeast.lat ||
-        overlapRect.southwest.lng >= overlapRect.northeast.lng
-    ) {
-        return 0.0
-    }
-
-    val thisRectArea = this.area
-    val otherRectArea = other.area
-    val overlapArea = overlapRect.area
-
-    if (thisRectArea == 0.0 || otherRectArea == 0.0) {
-        return 0.0 // Consider zero-area rectangles as having low overlap
-    }
-
-    val overlapPercentage = overlapArea / minOf(thisRectArea, otherRectArea)
-    return overlapPercentage
-}
-
 /** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.
  * List of [Line]'s will come from [What3WordsAndroidWrapper] with the following logic:
  * 1     3      5
