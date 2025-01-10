@@ -5,6 +5,7 @@ on:
     branches:
       - 'staging'
       - 'epic/**'
+      - 'task/**'
     paths:
       - 'lib/**'
       - 'lib-compose/**'
@@ -83,7 +84,7 @@ jobs:
 
       - name: Snapshot Release Check
         run: |
-          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${{ github.ref_name }}" == task/* ]] && echo true || echo false )" >> ~/.gradle/gradle.properties
 
       - name: Publish to Maven
         run: ./gradlew lib:assemble publish
@@ -129,7 +130,8 @@ jobs:
 
       - name: Snapshot Release Check
         run: |
-          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${CIRCLE_BRANCH}" =~ ^epic.* ]] && echo true || echo false )" >> gradle.properties
+          echo -e "\nIS_SNAPSHOT_RELEASE=$( [[ "${{ github.ref_name }}" == task/* ]] && echo true || echo false )" >> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
 
       - name: Publish to Maven
         run: ./gradlew :lib-compose:assemble publish
