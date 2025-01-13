@@ -2,8 +2,10 @@ package com.what3words.components.compose.maps
 
 import android.annotation.SuppressLint
 import android.graphics.PointF
-import android.util.Log
 import androidx.annotation.RequiresPermission
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
@@ -63,9 +65,11 @@ import kotlinx.coroutines.withContext
  * through a [StateFlow]. It acts as a bridge between your application logic and the W3W map,
  * providing a convenient way to control the map's behavior and access its data.
  *
+ * In most cases, this will be created via [rememberW3WMapManager].
+ *
  * @param textDataSource An instance of [W3WTextDataSource], used for fetching what3words address information.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
- * @param mapState An optional [W3WMapState] object representing the initial state of the map. If not
+ * @param initialMapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
  *
  * @property mapState A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
@@ -73,16 +77,17 @@ import kotlinx.coroutines.withContext
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
     val mapProvider: MapProvider,
-    mapState: W3WMapState = W3WMapState(),
-    buttonState: W3WButtonsState = W3WButtonsState(),
+    val initialMapState: W3WMapState = W3WMapState(),
+    private val initialButtonState: W3WButtonsState = W3WButtonsState(),
     private val dispatcher: CoroutineDispatcher = IO,
 ) {
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
-    private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(mapState)
+    private val _mapState: MutableStateFlow<W3WMapState> = MutableStateFlow(initialMapState)
     val mapState: StateFlow<W3WMapState> = _mapState.asStateFlow()
 
-    private val _buttonState: MutableStateFlow<W3WButtonsState> = MutableStateFlow(buttonState)
+    private val _buttonState: MutableStateFlow<W3WButtonsState> =
+        MutableStateFlow(initialButtonState)
     val buttonState: StateFlow<W3WButtonsState> = _buttonState.asStateFlow()
 
     // This flow controls when the grid calculation should be performed.
@@ -107,6 +112,13 @@ class W3WMapManager(
     }
 
     private fun createMapboxCameraState(): W3WMapboxCameraState {
+        val initialCameraState = initialMapState.cameraState
+        if (initialCameraState != null) {
+            return W3WMapboxCameraState(
+                initialCameraState.cameraState as MapViewportState
+            )
+        }
+
         return W3WMapboxCameraState(
             MapViewportState(
                 initialCameraState = CameraState(
@@ -121,6 +133,12 @@ class W3WMapManager(
     }
 
     private fun createGoogleCameraState(): W3WGoogleCameraState {
+        val initialCameraState = initialMapState.cameraState
+        if (initialCameraState != null) {
+            return W3WGoogleCameraState(
+                initialCameraState.cameraState as CameraPositionState
+            )
+        }
         return W3WGoogleCameraState(
             CameraPositionState(
                 position = CameraPosition(
@@ -206,7 +224,6 @@ class W3WMapManager(
         }
 
         _mapState.update {
-            Log.d(TAG, "Update GridLines")
             it.copy(gridLines = newGridLines ?: W3WGridLines())
         }
     }
@@ -883,5 +900,84 @@ class W3WMapManager(
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
         const val TAG = "W3WMapManager"
+
+        /**
+         * The default saver implementation for [W3WMapManager].
+         */
+        val Saver: Saver<W3WMapManager, *> = Saver(
+            save = { manager: W3WMapManager ->
+                val cameraState = manager.mapState.value.cameraState
+                mapOf(
+                    "textDataSource" to manager.textDataSource,
+                    "mapProvider" to manager.mapProvider,
+                    "language" to manager.language,
+                    "mapState" to manager.mapState.value,
+                    "buttonState" to manager.buttonState.value,
+                    "mapConfig" to manager.mapConfig,
+                    "markersMap" to manager.markersMap.mapValues { (_, markers) ->
+                        markers.toList()
+                    },
+                    "cameraState" to when (cameraState) {
+                        is W3WGoogleCameraState -> mapOf(
+                            "type" to "google",
+                            "position" to cameraState.cameraState.position
+                        )
+
+                        is W3WMapboxCameraState -> mapOf(
+                            "type" to "mapbox",
+                            "position" to cameraState.cameraState.cameraState
+                        )
+
+                        else -> null
+                    }
+                )
+            },
+            restore = { savedMap: Map<String, Any?> ->
+                val mapProvider = savedMap["mapProvider"] as MapProvider
+                val restoredCameraState = savedMap["cameraState"] as? Map<String, Any>
+                val cameraState = when (restoredCameraState?.get("type") as? String) {
+                    "google" -> W3WGoogleCameraState(CameraPositionState(restoredCameraState["position"] as CameraPosition))
+                    "mapbox" -> W3WMapboxCameraState(MapViewportState(restoredCameraState["position"] as CameraState))
+                    else -> when (mapProvider) {
+                        MapProvider.GOOGLE_MAP -> W3WGoogleCameraState(CameraPositionState())
+                        MapProvider.MAPBOX -> W3WMapboxCameraState(MapViewportState())
+                    }
+                }
+                val restoredMapState =
+                    (savedMap["mapState"] as W3WMapState).copy(cameraState = cameraState)
+                val restoredButtonState = savedMap["buttonState"] as W3WButtonsState
+
+                W3WMapManager(
+                    textDataSource = savedMap["textDataSource"] as W3WTextDataSource,
+                    mapProvider = mapProvider,
+                    initialMapState = restoredMapState,
+                    initialButtonState = restoredButtonState
+                ).apply {
+                    language = savedMap["language"] as W3WRFC5646Language
+                    mapConfig = savedMap["mapConfig"] as W3WMapDefaults.MapConfig?
+                    markersMap.clear()
+                    markersMap.putAll(
+                        (savedMap["markersMap"] as Map<String, List<W3WMarker>>).mapValues {
+                            it.value.toMutableList()
+                        }
+                    )
+                }
+            }
+        )
     }
+}
+
+/**
+ * Create and [rememberSaveable] a [W3WMapManager] using [W3WMapManager.Saver].
+ * [init] will be called when the [W3WMapManager] is first created to configure its
+ * initial state.
+ */
+@Composable
+inline fun rememberW3WMapManager(
+    key: String? = null,
+    textDataSource: W3WTextDataSource,
+    mapProvider: MapProvider,
+    crossinline init: W3WMapManager.() -> Unit = {}
+): W3WMapManager = rememberSaveable(key = key, saver = W3WMapManager.Saver) {
+    W3WMapManager(textDataSource = textDataSource, mapProvider = mapProvider).apply(init)
 }

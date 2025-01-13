@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,8 +22,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
-import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
+import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -265,10 +266,14 @@ internal fun W3WMapContent(
 
         var bounds by remember { mutableStateOf(Rect.Zero) }
 
-        // Fetch current location when launch
-        LaunchedEffect(Unit) {
-            if (mapState.isMyLocationEnabled) {
+        // Check if the map is initialized, use to prevent LaunchedEffect to re-run on configuration changes
+        val isInitialized = rememberSaveable { mutableStateOf(false) }
+
+        // // Fetch current location when launch, but not on configuration changes
+        LaunchedEffect(isInitialized) {
+            if (!isInitialized.value && mapState.isMyLocationEnabled) {
                 onMyLocationClicked.invoke()
+                isInitialized.value = true
             }
         }
 
