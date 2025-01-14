@@ -51,6 +51,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,7 +79,7 @@ import kotlinx.coroutines.withContext
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
-    val mapProvider: MapProvider,
+    internal var mapProvider: MapProvider,
     val initialMapState: W3WMapState = W3WMapState(),
     private val initialButtonState: W3WButtonsState = W3WButtonsState(),
     private val dispatcher: CoroutineDispatcher = IO,
@@ -104,49 +106,51 @@ class W3WMapManager(
         _mapState.update {
             it.copy(
                 cameraState = when (mapProvider) {
-                    MapProvider.MAPBOX -> createMapboxCameraState()
-                    MapProvider.GOOGLE_MAP -> createGoogleCameraState()
+                    MapProvider.MAPBOX -> createMapboxCameraState(initialMapState.cameraState)
+                    MapProvider.GOOGLE_MAP -> createGoogleCameraState(initialMapState.cameraState)
                 }
             )
         }
         observeGridCalculation()
     }
 
-    private fun createMapboxCameraState(): W3WMapboxCameraState {
-        val initialCameraState = initialMapState.cameraState
-        if (initialCameraState != null) {
-            return W3WMapboxCameraState(
-                initialCameraState.cameraState as MapViewportState
-            )
-        }
+    private fun createMapboxCameraState(
+        currentCameraState: W3WCameraState<*>? = null,
+    ): W3WMapboxCameraState {
+        val center = currentCameraState?.getCenter()
+        val zoom = currentCameraState?.getZoomLevel()
+        val bearing = currentCameraState?.getBearing()
+        val tilt = currentCameraState?.getTilt()
 
         return W3WMapboxCameraState(
             MapViewportState(
                 initialCameraState = CameraState(
-                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
+                    center?.let { Point.fromLngLat(it.lng, it.lat) }
+                        ?: Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
                     EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
-                    0.0,
-                    0.0
+                    zoom?.toDouble() ?: W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                    bearing?.toDouble() ?: 0.0,
+                    tilt?.toDouble() ?: 0.0
                 )
             )
         )
     }
 
-    private fun createGoogleCameraState(): W3WGoogleCameraState {
-        val initialCameraState = initialMapState.cameraState
-        if (initialCameraState != null) {
-            return W3WGoogleCameraState(
-                initialCameraState.cameraState as CameraPositionState
-            )
-        }
+    private fun createGoogleCameraState(
+        currentCameraState: W3WCameraState<*>? = null,
+    ): W3WGoogleCameraState {
+        val center = currentCameraState?.getCenter()
+        val zoom = currentCameraState?.getZoomLevel()
+        val bearing = currentCameraState?.getBearing()
+        val tilt = currentCameraState?.getTilt()
+
         return W3WGoogleCameraState(
             CameraPositionState(
                 position = CameraPosition(
-                    LOCATION_DEFAULT.toGoogleLatLng(),
-                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
-                    0f,
-                    0f
+                    center?.toGoogleLatLng() ?: LOCATION_DEFAULT.toGoogleLatLng(),
+                    zoom ?: W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                    tilt ?: 0f,
+                    bearing ?: 0f
                 )
             )
         )
@@ -247,6 +251,36 @@ class W3WMapManager(
             verticalLines = value.lines.computeVerticalLines().toImmutableList(),
             horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
         )
+    }
+
+    /**
+     * Sets the map provider while preserving the current camera state.
+     *
+     * This function updates the map provider and adjusts the camera state accordingly.
+     * If the new provider is different from the current one, it creates a new camera state
+     * based on the new provider type while maintaining the current camera position, zoom level,
+     * bearing, and tilt.
+     *
+     * @param mapProvider The new [MapProvider] to be set (either [MapProvider.MAPBOX] or [MapProvider.GOOGLE_MAP]).
+     */
+    fun setMapProvider(mapProvider: MapProvider) {
+        if (this.mapProvider != mapProvider) {
+            this.mapProvider = mapProvider
+
+            _mapState.update { currentState ->
+                currentState.copy(
+                    cameraState = when (mapProvider) {
+                        MapProvider.MAPBOX -> createMapboxCameraState(
+                            _mapState.value.cameraState
+                        )
+
+                        MapProvider.GOOGLE_MAP -> createGoogleCameraState(
+                            _mapState.value.cameraState
+                        )
+                    }
+                )
+            }
+        }
     }
 
     /**
@@ -680,7 +714,7 @@ class W3WMapManager(
 
             is W3WResult.Success -> {
                 val marker = result.value.toW3WMarker(markerColor)
-                addMakerInternal(marker, listName, zoomOption, zoomLevel)
+                addMarkerInternal(listOf(marker), listName, zoomOption, zoomLevel)
                 return@withContext W3WResult.Success(marker)
             }
         }
@@ -720,19 +754,109 @@ class W3WMapManager(
 
             is W3WResult.Success -> {
                 val marker = result.value.toW3WMarker(markerColor)
-                addMakerInternal(marker, listName, zoomOption, zoomLevel)
+                addMarkerInternal(listOf(marker), listName, zoomOption, zoomLevel)
                 return@withContext W3WResult.Success(marker)
             }
         }
     }
 
-    private suspend fun addMakerInternal(
-        marker: W3WMarker,
+    /**
+     * Adds a batch of markers to the map at the specified what3words addresses.
+     *
+     * This suspend function asynchronously converts each provided what3words address to coordinates,
+     * creates markers, and adds them to the map.
+     *
+     * @param addresses A list of what3words addresses (as strings) where markers should be placed.
+     * @param listName The name of the list to which these markers should be added.
+     * @param markerColor The color to be used for these markers.
+     *
+     * @see W3WAddress
+     * @see W3WMarker
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     *
+     * Note: This function filters out any addresses that fail to convert to coordinates.
+     *       Only successfully converted addresses will result in markers being added to the map.
+     *
+     * Usage:
+     * ```
+     * val addresses = listOf("index.home.raft", "filled.count.soap", "daring.lion.race")
+     * mapManager.addMarkersAt(addresses)
+     * ```
+     */
+    @JvmName("addMarkersAtAddresses")
+    suspend fun addMarkersAt(
+        addresses: List<String>,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    ) = withContext(dispatcher) {
+        val results = addresses.map {
+            async {
+                textDataSource.convertToCoordinates(it)
+            }
+        }.awaitAll()
+
+        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>()
+            .map { it.value.toW3WMarker(markerColor) }
+
+        addMarkerInternal(markers = markers, listName = listName, zoomOption = W3WZoomOption.NONE)
+    }
+
+    /**
+     * Adds a batch of markers to the map at the specified coordinates.
+     *
+     * This suspend function asynchronously converts each provided coordinate to a what3words address,
+     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     *
+     * @param coordinates A list of [W3WCoordinates] where markers should be placed.
+     * @param listName The name of the list to which these markers should be added.
+     * @param markerColor The color to be used for these markers.
+     *
+     * @see W3WCoordinates
+     * @see W3WAddress
+     * @see W3WMarker
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     *
+     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
+     *       Only successfully converted coordinates will result in markers being added to the map.
+     *
+     * Usage:
+     * ```
+     * val coordinates = listOf(
+     *     W3WCoordinates(11.521251, -0.203586),
+     *     W3WCoordinates(25.521252, -0.203587)
+     * )
+     * mapManager.addMarkersAt(coordinates)
+     * ```
+     */
+    @JvmName("addMarkersAtCoordinates")
+    suspend fun addMarkersAt(
+        coordinates: List<W3WCoordinates>,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+    ) = withContext(dispatcher) {
+        val results = coordinates.map {
+            async {
+                textDataSource.convertTo3wa(it, language)
+            }
+        }.awaitAll()
+
+        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>()
+            .map { it.value.toW3WMarker(markerColor) }
+
+        addMarkerInternal(markers = markers, listName = listName, zoomOption = W3WZoomOption.NONE)
+    }
+
+    private suspend fun addMarkerInternal(
+        markers: List<W3WMarker>,
         listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ) = withContext(dispatcher) {
-        markersMap.addMarker(listName = listName, marker = marker)
+        markers.forEach {
+            markersMap.addMarker(listName = listName, marker = it)
+        }
 
         // Update the map state
         _mapState.update { currentState ->
@@ -742,9 +866,7 @@ class W3WMapManager(
         }
 
         // Handle zoom options
-        handleZoomOption(marker.center, zoomOption, zoomLevel)
-
-//        logMarkersMap()
+        handleZoomOption(markers.last().center, zoomOption, zoomLevel)
     }
 
     /**
