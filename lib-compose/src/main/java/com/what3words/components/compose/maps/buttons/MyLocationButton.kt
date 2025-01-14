@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.buttons
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +19,9 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,11 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.what3words.components.compose.maps.state.LocationStatus
 import com.what3words.design.library.ui.theme.W3WTheme
-import com.what3words.design.library.ui.theme.w3wColorScheme
+import com.what3words.map.components.compose.R
 import kotlinx.coroutines.delay
 
 const val SAFE_ACCURACY_DISTANCE = 100
@@ -48,26 +53,39 @@ const val VISIBLE_TIME = 2000L
  *
  * @param modifier The modifier for the button.
  * @param accuracyDistance The accuracy of the current location in meters.
- * @param isLocationEnabled Whether the location permission is enabled or not.
- * @param isLocationActive Whether my location is active or not.
+ * @param isButtonEnabled Whether the location button is enabled or not.
+ * @param locationStatus The status of the location service.
  * @param unitMetrics The unit of accuracy distance, default is "m".
- * @param accuracyMessage The message to display when the accuracy is not good enough, default is "GPS Accuracy (${accuracyDistance}$unitMetrics)".
- * @param locationButtonConfig The configuration for the button, default is [W3WMapButtonsDefault.defaultLocationButtonConfig].
+ * @param buttonConfig The configuration for the button, default is [W3WMapButtonsDefault.defaultLocationButtonConfig].
+ * @param resourceString The resource string for the button, default is [W3WMapButtonsDefault.defaultResourceString].
+ * @param contentDescription The content description for the button, default is [W3WMapButtonsDefault.defaultContentDescription].
  * @param onMyLocationClicked The callback when the button is clicked.
  */
 @Composable
 fun MyLocationButton(
     modifier: Modifier = Modifier,
     accuracyDistance: Int,
-    isLocationEnabled: Boolean,
-    isLocationActive: Boolean,
+    isButtonEnabled: Boolean,
+    locationStatus: LocationStatus,
     unitMetrics: String = METER,
-    accuracyMessage: String = "GPS Accuracy (${accuracyDistance}$unitMetrics)",
-    locationButtonConfig: W3WMapButtonsDefault.LocationButtonConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
+    buttonConfig: W3WMapButtonsDefault.LocationButtonConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
+    resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
+    contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onMyLocationClicked: () -> Unit
 ) {
 
     var isShowingAccuracy by remember { mutableStateOf(false) }
+
+    val locationIconVector = when (locationStatus) {
+        LocationStatus.ACTIVE -> rememberVectorPainter(Icons.Filled.MyLocation)
+        LocationStatus.INACTIVE -> painterResource(id = R.drawable.ic_my_location_outlined)
+        LocationStatus.SEARCHING -> rememberVectorPainter(Icons.Filled.LocationSearching)
+    }
+
+    val locationIconColor = when (locationStatus) {
+        LocationStatus.ACTIVE -> buttonConfig.locationButtonColor.locationIconColorActive
+        else -> buttonConfig.locationButtonColor.locationIconColorInactive
+    }
 
     LaunchedEffect(isShowingAccuracy) {
         if (isShowingAccuracy) {
@@ -83,32 +101,34 @@ fun MyLocationButton(
         Row {
             AnimatedVisibility(
                 visible = isShowingAccuracy,
-                enter = locationButtonConfig.enterAnimation,
-                exit = locationButtonConfig.exitAnimation
+                enter = buttonConfig.enterAnimation,
+                exit = buttonConfig.exitAnimation
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End, // Align Row content to end to control animation direction
                     modifier = Modifier
-                        .height(locationButtonConfig.locationButtonSize)
+                        .height(buttonConfig.locationButtonSize)
                         .clip(
                             RoundedCornerShape(
                                 topStartPercent = 50,
-                                bottomStartPercent = 50
+                                bottomStartPercent = 50,
                             )
                         ) // Rounded on the start side
-                        .background(Color.White.copy(alpha = 0.7f)) // TODO: The alpha is too much transparent, original is 0.16
+                        // TODO: The alpha for light mode is too much transparent, original is 0.16
+                        .background(buttonConfig.locationButtonColor.accuracyBackgroundColor)
                         .padding(start = 12.dp, end = 4.dp)
                 ) {
                     Text(
-                        text = accuracyMessage,
-                        style = locationButtonConfig.accuracyTextStyle,
+                        text = resourceString.accuracyMessage.format(accuracyDistance, unitMetrics),
+                        style = buttonConfig.accuracyTextStyle,
+                        color = buttonConfig.locationButtonColor.accuracyTextColor,
                         maxLines = 1 // Prevent text overflow
                     )
-                    Spacer(Modifier.size(locationButtonConfig.locationButtonSize / 2))
+                    Spacer(Modifier.size(buttonConfig.locationButtonSize / 2))
                 }
             }
-            Spacer(Modifier.size(locationButtonConfig.locationButtonSize / 2))
+            Spacer(Modifier.size(buttonConfig.locationButtonSize / 2))
         }
 
         Box {
@@ -117,52 +137,86 @@ fun MyLocationButton(
                     .align(Alignment.CenterEnd)
                     .shadow(elevation = 3.dp, shape = CircleShape)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .size(locationButtonConfig.locationButtonSize),
+                    .background(buttonConfig.locationButtonColor.locationBackgroundColor)
+                    .size(buttonConfig.locationButtonSize),
                 onClick = {
                     onMyLocationClicked()
-                    if (isLocationActive) {
+                    if (locationStatus == LocationStatus.ACTIVE) {
                         isShowingAccuracy = true
                     }
                 },
-                enabled = isLocationEnabled
+                enabled = isButtonEnabled
             ) {
                 Icon(
-                    imageVector = if (isLocationActive) Icons.Default.MyLocation else Icons.Default.LocationSearching,
-                    contentDescription = "Location icon",
-                    tint = if (isLocationActive) Color(0xFF14B5FF) else Color.Black, // TODO: Define 0xFF14B5FF color name
-                    modifier = Modifier.size(locationButtonConfig.locationIconSize)
+                    painter = locationIconVector,
+                    contentDescription = contentDescription.locationButtonDescription,
+                    tint = locationIconColor,
+                    modifier = Modifier.size(buttonConfig.locationIconSize)
                 )
             }
             if (accuracyDistance >= SAFE_ACCURACY_DISTANCE) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = 4.dp, y = (-4).dp)
-                        .size(locationButtonConfig.accuracyIndicatorSize)
-                        .clip(CircleShape)
-                        .background(
-                            color = when {
-                                accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> MaterialTheme.w3wColorScheme.warning
-                                accuracyDistance >= WARNING_ACCURACY_DISTANCE -> MaterialTheme.colorScheme.error
-                                else -> return
-                            }
-                        )
-                        .align(Alignment.TopEnd),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.WarningAmber,
-                        contentDescription = null,
-                        modifier = Modifier.padding(4.dp),
-                        tint = MaterialTheme.colorScheme.onError
-                    )
-                }
+                WarningIndicator(
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    accuracyDistance = accuracyDistance,
+                    buttonConfig = buttonConfig,
+                    contentDescription = contentDescription
+                )
             }
         }
     }
 }
 
-@Preview
+@Composable
+private fun WarningIndicator(
+    modifier: Modifier,
+    accuracyDistance: Int,
+    buttonConfig: W3WMapButtonsDefault.LocationButtonConfig,
+    contentDescription: W3WMapButtonsDefault.ContentDescription,
+) {
+
+    val indicatorBackgroundColor = when {
+        accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
+            buttonConfig.locationButtonColor.warningLowBackgroundColor
+        }
+
+        accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
+            buttonConfig.locationButtonColor.warningHighBackgroundColor
+        }
+
+        else -> return
+    }
+
+    val indicatorIconColor = when {
+        accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
+            buttonConfig.locationButtonColor.warningLowIconColor
+        }
+
+        accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
+            buttonConfig.locationButtonColor.warningHighIconColor
+        }
+
+        else -> return
+    }
+
+    Box(
+        modifier = modifier
+            .offset(x = 4.dp, y = (-4).dp)
+            .size(buttonConfig.accuracyIndicatorSize)
+            .clip(CircleShape)
+            .background(color = indicatorBackgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.WarningAmber,
+            contentDescription = contentDescription.warningIconDescription,
+            modifier = Modifier.padding(4.dp),
+            tint = indicatorIconColor
+        )
+    }
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun A1() {
     W3WTheme {
@@ -170,15 +224,15 @@ private fun A1() {
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 0,
-            isLocationEnabled = false,
-            isLocationActive = false,
-            unitMetrics = METER
+            isButtonEnabled = true,
+            unitMetrics = METER,
+            locationStatus = LocationStatus.SEARCHING
         )
     }
-
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun A2() {
     W3WTheme {
@@ -186,44 +240,47 @@ private fun A2() {
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 0,
+            isButtonEnabled = true,
             unitMetrics = METER,
-            isLocationEnabled = true,
-            isLocationActive = true,
+            locationStatus = LocationStatus.INACTIVE
         )
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun A3() {
     W3WTheme {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 110,
+            accuracyDistance = 70,
+            isButtonEnabled = true,
             unitMetrics = METER,
-            isLocationEnabled = true,
-            isLocationActive = true,
+            locationStatus = LocationStatus.ACTIVE
         )
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun A4() {
     W3WTheme {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 220,
+            accuracyDistance = 120,
+            isButtonEnabled = true,
             unitMetrics = METER,
-            isLocationEnabled = true,
-            isLocationActive = true,
+            locationStatus = LocationStatus.ACTIVE
         )
     }
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun A5() {
     W3WTheme {
@@ -231,9 +288,27 @@ private fun A5() {
             modifier = Modifier,
             onMyLocationClicked = {},
             accuracyDistance = 220,
-            unitMetrics = FEET,
-            isLocationEnabled = true,
-            isLocationActive = true,
+            isButtonEnabled = true,
+            unitMetrics = METER,
+            locationStatus = LocationStatus.ACTIVE
         )
+    }
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
+@Composable
+private fun A6() {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        W3WTheme {
+            MyLocationButton(
+                modifier = Modifier,
+                onMyLocationClicked = {},
+                accuracyDistance = 220,
+                isButtonEnabled = true,
+                unitMetrics = METER,
+                locationStatus = LocationStatus.ACTIVE
+            )
+        }
     }
 }

@@ -43,7 +43,7 @@ googleMapPlayService = "19.0.0"
 
 #What3words Library
 what3wordsWrapper = "4.0.2"
-what3wordsDesignLibrary = "2.0.3"
+what3wordsDesignLibrary = "2.0.4-SNAPSHOT"
 
 #Maven Publish
 dokka = "2.0.0"

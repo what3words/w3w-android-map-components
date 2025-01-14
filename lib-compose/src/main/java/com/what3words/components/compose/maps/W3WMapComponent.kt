@@ -85,9 +85,11 @@ fun W3WMapComponent(
         mapManager.setMapConfig(currentMapConfig.value)
     }
 
-    // TODO: Find optimal way to set isRecallButtonEnabled
-    LaunchedEffect(mapConfig.buttonConfig.isRecallButtonUsed) {
-        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonUsed)
+    LaunchedEffect(Unit) {
+        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonAvailable)
+        locationSource?.locationStatus?.collect { status ->
+            mapManager.updateLocationStatus(status)
+        }
     }
 
     LaunchedEffect(mapState.selectedAddress) {
@@ -466,15 +468,11 @@ private fun fetchCurrentLocation(
                     animate = true
                 )
 
-
                 if (location.hasAccuracy()) {
                     mapManager.updateAccuracyDistance(location.accuracy)
                 }
             } catch (e: Exception) {
                 onError?.invoke(W3WError("Location fetch failed: ${e.message}"))
-            }
-            it.isActive.collect { isActive ->
-                mapManager.updateIsLocationActive(isActive)
             }
         }
     }

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
  * @param backgroundColor The background color of the button.
  * @param arrowColor The color of the arrow icon.
  * @param isVisible Whether the button is visible or not.
+ * @param contentDescription The content description for the button.
  * @param onRecallClicked The callback when the button is clicked.
  * @param onRecallButtonPositionProvided The callback providing the button's position as a PointF.
  */
@@ -44,6 +45,7 @@ fun RecallButton(
     backgroundColor: Color = Color(0xFFE11F26),
     arrowColor: Color = Color.White,
     isVisible: Boolean = false,
+    contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onRecallClicked: () -> Unit,
     onRecallButtonPositionProvided: (PointF) -> Unit,
 ) {
@@ -75,7 +77,7 @@ fun RecallButton(
                 .padding(1.25.dp)
                 .offset(x = (-2).dp),
             imageVector = Icons.Default.ArrowBackIosNew,
-            contentDescription = null, // TODO: Add content description later
+            contentDescription = contentDescription.recallButtonDescription,
             tint = arrowColor
         )
     }

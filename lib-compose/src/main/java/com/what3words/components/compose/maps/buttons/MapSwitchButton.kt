@@ -24,12 +24,14 @@ import com.what3words.map.components.compose.R
  *
  * @param modifier The modifier for the button.
  * @param w3wMapType The current map type.
+ * @param contentDescription The content description for the button.
  * @param onMapTypeChange The callback function to be invoked when the map type is changed.
  */
 @Composable
 fun MapSwitchButton(
     modifier: Modifier = Modifier,
     w3wMapType: W3WMapType = W3WMapType.NORMAL,
+    contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onMapTypeChange: (W3WMapType) -> Unit
 ) {
     var mapType by remember { mutableStateOf(w3wMapType) }
@@ -55,7 +57,7 @@ fun MapSwitchButton(
                     else -> R.drawable.ic_map_satellite
                 }
             ),
-            contentDescription = null, // TODO: Add content description later
+            contentDescription = contentDescription.mapSwitchButtonDescription,
         )
     }
 }
