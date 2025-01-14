@@ -65,6 +65,23 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         return cameraState.cameraState?.zoom?.toFloat() ?: run { 0f }
     }
 
+    override fun getBearing(): Float {
+        return cameraState.cameraState?.bearing?.toFloat() ?: run { 0f }
+    }
+
+    override fun getTilt(): Float {
+        return cameraState.cameraState?.pitch?.toFloat() ?: run { 0f }
+    }
+
+    override fun getCenter(): W3WCoordinates? {
+        return cameraState.cameraState?.center?.let {
+            W3WCoordinates(
+                lat = it.latitude(),
+                lng = it.longitude()
+            )
+        }
+    }
+
     private fun updateCameraPosition(cameraOptions: CameraOptions, animate: Boolean) {
         if (animate) {
             cameraState.flyTo(

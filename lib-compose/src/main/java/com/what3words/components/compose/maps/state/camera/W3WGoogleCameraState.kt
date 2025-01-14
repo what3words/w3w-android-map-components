@@ -78,6 +78,22 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         return cameraState.position.zoom
     }
 
+    override fun getBearing(): Float {
+        return cameraState.position.bearing
+    }
+
+    override fun getTilt(): Float {
+        return cameraState.position.tilt
+    }
+
+    override fun getCenter(): W3WCoordinates? {
+        return try {
+            cameraState.position.target.let { W3WCoordinates(it.latitude, it.longitude) }
+        } catch (ex: NullPointerException) {
+            null
+        }
+    }
+
     private suspend fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
         withContext(Main) {
             if (animate) {

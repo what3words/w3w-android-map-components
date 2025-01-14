@@ -76,7 +76,7 @@ import kotlinx.coroutines.withContext
  */
 class W3WMapManager(
     private val textDataSource: W3WTextDataSource,
-    val mapProvider: MapProvider,
+    internal var mapProvider: MapProvider,
     val initialMapState: W3WMapState = W3WMapState(),
     private val initialButtonState: W3WButtonsState = W3WButtonsState(),
     private val dispatcher: CoroutineDispatcher = IO,
@@ -103,49 +103,51 @@ class W3WMapManager(
         _mapState.update {
             it.copy(
                 cameraState = when (mapProvider) {
-                    MapProvider.MAPBOX -> createMapboxCameraState()
-                    MapProvider.GOOGLE_MAP -> createGoogleCameraState()
+                    MapProvider.MAPBOX -> createMapboxCameraState(initialMapState.cameraState)
+                    MapProvider.GOOGLE_MAP -> createGoogleCameraState(initialMapState.cameraState)
                 }
             )
         }
         observeGridCalculation()
     }
 
-    private fun createMapboxCameraState(): W3WMapboxCameraState {
-        val initialCameraState = initialMapState.cameraState
-        if (initialCameraState != null) {
-            return W3WMapboxCameraState(
-                initialCameraState.cameraState as MapViewportState
-            )
-        }
+    private fun createMapboxCameraState(
+        currentCameraState: W3WCameraState<*>? = null,
+    ): W3WMapboxCameraState {
+        val center = currentCameraState?.getCenter()
+        val zoom = currentCameraState?.getZoomLevel()
+        val bearing = currentCameraState?.getBearing()
+        val tilt = currentCameraState?.getTilt()
 
         return W3WMapboxCameraState(
             MapViewportState(
                 initialCameraState = CameraState(
-                    Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
+                    center?.let { Point.fromLngLat(it.lng, it.lat) }
+                        ?: Point.fromLngLat(LOCATION_DEFAULT.lng, LOCATION_DEFAULT.lat),
                     EdgeInsets(0.0, 0.0, 0.0, 0.0),
-                    W3WMapboxCameraState.MY_LOCATION_ZOOM,
-                    0.0,
-                    0.0
+                    zoom?.toDouble() ?: W3WMapboxCameraState.MY_LOCATION_ZOOM,
+                    bearing?.toDouble() ?: 0.0,
+                    tilt?.toDouble() ?: 0.0
                 )
             )
         )
     }
 
-    private fun createGoogleCameraState(): W3WGoogleCameraState {
-        val initialCameraState = initialMapState.cameraState
-        if (initialCameraState != null) {
-            return W3WGoogleCameraState(
-                initialCameraState.cameraState as CameraPositionState
-            )
-        }
+    private fun createGoogleCameraState(
+        currentCameraState: W3WCameraState<*>? = null,
+    ): W3WGoogleCameraState {
+        val center = currentCameraState?.getCenter()
+        val zoom = currentCameraState?.getZoomLevel()
+        val bearing = currentCameraState?.getBearing()
+        val tilt = currentCameraState?.getTilt()
+
         return W3WGoogleCameraState(
             CameraPositionState(
                 position = CameraPosition(
-                    LOCATION_DEFAULT.toGoogleLatLng(),
-                    W3WGoogleCameraState.MY_LOCATION_ZOOM,
-                    0f,
-                    0f
+                    center?.toGoogleLatLng() ?: LOCATION_DEFAULT.toGoogleLatLng(),
+                    zoom ?: W3WGoogleCameraState.MY_LOCATION_ZOOM,
+                    tilt ?: 0f,
+                    bearing ?: 0f
                 )
             )
         )
@@ -246,6 +248,36 @@ class W3WMapManager(
             verticalLines = value.lines.computeVerticalLines().toImmutableList(),
             horizontalLines = value.lines.computeHorizontalLines().toImmutableList()
         )
+    }
+
+    /**
+     * Sets the map provider while preserving the current camera state.
+     *
+     * This function updates the map provider and adjusts the camera state accordingly.
+     * If the new provider is different from the current one, it creates a new camera state
+     * based on the new provider type while maintaining the current camera position, zoom level,
+     * bearing, and tilt.
+     *
+     * @param mapProvider The new [MapProvider] to be set (either [MapProvider.MAPBOX] or [MapProvider.GOOGLE_MAP]).
+     */
+    fun setMapProvider(mapProvider: MapProvider) {
+        if (this.mapProvider != mapProvider) {
+            this.mapProvider = mapProvider
+
+            _mapState.update { currentState ->
+                currentState.copy(
+                    cameraState = when (mapProvider) {
+                        MapProvider.MAPBOX -> createMapboxCameraState(
+                            _mapState.value.cameraState
+                        )
+
+                        MapProvider.GOOGLE_MAP -> createGoogleCameraState(
+                            _mapState.value.cameraState
+                        )
+                    }
+                )
+            }
+        }
     }
 
     /**

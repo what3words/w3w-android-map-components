@@ -56,4 +56,10 @@ interface W3WCameraState<T> {
      * @return The current zoom level.
      */
     fun getZoomLevel(): Float
+
+    fun getBearing(): Float
+
+    fun getTilt(): Float
+
+    fun getCenter(): W3WCoordinates?
 }
