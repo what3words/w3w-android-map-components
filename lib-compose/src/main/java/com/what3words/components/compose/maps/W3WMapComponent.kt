@@ -316,7 +316,6 @@ internal fun W3WMapContent(
                 buttonConfig = mapConfig.buttonConfig,
                 buttonState = buttonState,
                 isLocationEnabled = mapState.isMyLocationEnabled,
-                isDarkMode = mapState.isDarkMode,
                 onMapTypeClicked = onMapTypeClicked,
                 onMyLocationClicked = onMyLocationClicked,
                 onRecallClicked = onRecallClicked,
