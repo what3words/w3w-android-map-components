@@ -55,6 +55,7 @@ fun RecallButton(
     IconButton(
         onClick = { onRecallClicked() },
         modifier = modifier
+            .padding(4.dp)
             .alpha(if (isVisible) 1f else 0f)
             .rotate(rotation)
             .shadow(elevation = 3.dp, shape = CircleShape)
