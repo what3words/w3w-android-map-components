@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.util.Log
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.PathParser
 import com.what3words.components.compose.maps.models.W3WMarkerColor
@@ -23,6 +24,8 @@ fun getMarkerBitmap(
             DrawPath(context.getString(R.string.path_marker_background),
                 Paint().apply {
                     color = colorMarker.background.toArgb()
+                    // Draw shadow with radius 4dp = 4 * density
+                    setShadowLayer(4 * density, 0f, 0f, Color(0x29000000).toArgb())
                 }
             ),
             DrawPath(context.getString(R.string.path_marker_slashes),
@@ -61,7 +64,6 @@ fun getFillGridMarkerBitmap(
         size,
         scale
     )
-
 }
 
 fun getPinBitmap(
