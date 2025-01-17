@@ -112,7 +112,7 @@ fun W3WMapComponent(
         },
         onMapClicked = {
             coroutineScope.launch {
-                mapManager.setSelectedAddress(it)
+                mapManager.setSelectedAt(it)
             }
         },
         onMyLocationClicked =
@@ -137,7 +137,7 @@ fun W3WMapComponent(
         onMarkerClicked =
         { marker ->
             coroutineScope.launch {
-                mapManager.setSelectedAddress(marker.center)
+                mapManager.setSelectedAt(marker.center)
             }
         },
         onCameraUpdated = {

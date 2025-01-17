@@ -449,17 +449,13 @@ class W3WMapManager(
      * @param suggestion The [W3WSuggestion] to select.
      */
     @JvmName("setSelectedAddressAtSuggestion")
-    suspend fun setSelectedAddress(
+    suspend fun setSelectedAtAddress(
         suggestion: W3WSuggestion
     ) = withContext(dispatcher) {
-        _mapState.update {
-            it.copy(
-                selectedAddress = suggestion.w3wAddress
-            )
-        }
-
-        if (_buttonState.value.isRecallButtonEnabled) {
-            handleRecallButton()
+        suggestion.w3wAddress.center?.let {
+            setSelectedInternal(suggestion.w3wAddress)
+        }?:run {
+            setSelectedAt(suggestion.w3wAddress.words)
         }
     }
 
@@ -469,17 +465,13 @@ class W3WMapManager(
      * @param address The [W3WAddress] to select.
      */
     @JvmName("setSelectedAddressAtAddress")
-    suspend fun setSelectedAddress(
+    suspend fun setSelectedAt(
         address: W3WAddress
     ) = withContext(dispatcher) {
-        _mapState.update {
-            it.copy(
-                selectedAddress = address
-            )
-        }
-
-        if (_buttonState.value.isRecallButtonEnabled) {
-            handleRecallButton()
+        address.center?.let {
+            setSelectedInternal(address)
+        }?:run {
+            setSelectedAt(address.words)
         }
     }
 
@@ -489,7 +481,7 @@ class W3WMapManager(
      * @param words The what3words address as a [String].
      */
     @JvmName("setSelectedAddressAtWords")
-    suspend fun setSelectedAddress(
+    suspend fun setSelectedAt(
         words: String
     ) = withContext(dispatcher) {
         when (val result = textDataSource.convertToCoordinates(words)) {
@@ -498,7 +490,7 @@ class W3WMapManager(
             }
 
             is W3WResult.Success -> {
-                setSelectedAddress(result.value)
+                setSelectedInternal(result.value)
             }
         }
     }
@@ -509,7 +501,7 @@ class W3WMapManager(
      * @param coordinates The [W3WCoordinates] to be selected.
      */
     @JvmName("setSelectedAddressAtCoordinates")
-    suspend fun setSelectedAddress(
+    suspend fun setSelectedAt(
         coordinates: W3WCoordinates
     ) = withContext(dispatcher) {
         when (val result = textDataSource.convertTo3wa(
@@ -521,8 +513,22 @@ class W3WMapManager(
             }
 
             is W3WResult.Success -> {
-                setSelectedAddress(result.value)
+                setSelectedInternal(result.value)
             }
+        }
+    }
+
+    private suspend fun setSelectedInternal(
+        address: W3WAddress
+    ) {
+        _mapState.update {
+            it.copy(
+                selectedAddress = address
+            )
+        }
+
+        if (_buttonState.value.isRecallButtonEnabled) {
+            handleRecallButton()
         }
     }
 
@@ -565,6 +571,7 @@ class W3WMapManager(
      * @param words The What3Words address as a [String].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtWords")
     suspend fun removeMarkerAt(
         words: String,
         listName: String? = null
@@ -609,6 +616,7 @@ class W3WMapManager(
      * @param coordinates The [W3WCoordinates] to remove markers from.
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtCoordinates")
     suspend fun removeMarkerAt(
         coordinates: W3WCoordinates,
         listName: String? = null
@@ -653,11 +661,16 @@ class W3WMapManager(
      * @param address The What3Words address as a [W3WAddress].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtAddress")
     suspend fun removeMarkerAt(
         address: W3WAddress,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
-        removeMarkerAt(address.words, listName)
+        address.center?.let {
+            removeMarkerAt(it, listName)
+        }?:run {
+            removeMarkerAt(address.words, listName)
+        }
     }
 
     /**
@@ -666,11 +679,16 @@ class W3WMapManager(
      * @param suggestion The What3Words address as a [W3WSuggestion].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtSuggestion")
     suspend fun removeMarkerAt(
         suggestion: W3WSuggestion,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
-        removeMarkerAt(suggestion.w3wAddress.words, listName)
+        suggestion.w3wAddress.center?.let {
+            removeMarkerAt(it, listName)
+        }?:run {
+            removeMarkerAt(suggestion.w3wAddress.words, listName)
+        }
     }
 
     /**
@@ -679,14 +697,41 @@ class W3WMapManager(
      * @param listWords list of The What3Words address as a [String].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtListWords")
     suspend fun removeMarkersAt(
         listWords: List<String>,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
         val removedMarkers = mutableListOf<W3WMarker>()
-        listWords.forEach {
-            val markers = removeMarker(it, listName)
-            removedMarkers.addAll(markers)
+        listWords.forEach { words ->
+            if (listName == null) {
+                // Remove markers from all lists
+                markersMap.forEach { (_, markers) ->
+                    val toRemove = markers.filter { it.words == words }
+                    removedMarkers.addAll(toRemove)
+                    markers.removeAll(toRemove)
+                }
+
+                markersMap.entries.removeIf { it.value.isEmpty() }
+            } else {
+                // Remove markers only from the specified list
+                val markers = markersMap[listName]
+                if (markers != null) {
+                    val toRemove = markers.filter { it.words == words }
+                    removedMarkers.addAll(toRemove)
+                    markers.removeAll(toRemove)
+
+                    if (markers.isEmpty()) {
+                        markersMap.remove(listName)
+                    }
+                }
+            }
+        }
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
         }
 
         return@withContext removedMarkers
@@ -698,14 +743,41 @@ class W3WMapManager(
      * @param listCoordinates list of The [W3WCoordinates] to remove markers from.
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtListCoordinates")
     suspend fun removeMarkersAt(
         listCoordinates: List<W3WCoordinates>,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
         val removedMarkers = mutableListOf<W3WMarker>()
-        listCoordinates.forEach {
-            val markers = removeMarker(it, listName)
-            removedMarkers.addAll(markers)
+        listCoordinates.forEach { coordinates ->
+            if (listName == null) {
+                // Remove markers from all lists
+                markersMap.forEach { (_, markers) ->
+                    val toRemove = markers.filter { it.square.contains(coordinates) }
+                    removedMarkers.addAll(toRemove)
+                    markers.removeAll(toRemove)
+                }
+
+                markersMap.entries.removeIf { it.value.isEmpty() }
+            } else {
+                // Remove markers only from the specified list
+                val markers = markersMap[listName]
+                if (markers != null) {
+                    val toRemove = markers.filter { it.square.contains(coordinates) }
+                    removedMarkers.addAll(toRemove)
+                    markers.removeAll(toRemove)
+
+                    if (markers.isEmpty()) {
+                        markersMap.remove(listName)
+                    }
+                }
+            }
+        }
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
         }
 
         return@withContext removedMarkers
@@ -717,11 +789,27 @@ class W3WMapManager(
      * @param addresses list of The What3Words address as a [W3WAddress].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtAddresses")
     suspend fun removeMarkersAt(
         addresses: List<W3WAddress>,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
-        removeMarkersAt(addresses.map { it.words }, listName)
+        val removedMarkers = mutableListOf<W3WMarker>()
+
+        addresses.forEach { address ->
+            val markersToRemove = address.center?.let {
+                removeMarkerAt(it, listName)
+            } ?: removeMarkerAt(address.words, listName)
+            removedMarkers.addAll(markersToRemove)
+        }
+
+        _mapState.update {
+            it.copy(
+                markers = markersMap.toMarkers().toImmutableList()
+            )
+        }
+
+        return@withContext removedMarkers
     }
 
     /**
@@ -730,11 +818,12 @@ class W3WMapManager(
      * @param suggestions list of The What3Words address as a [W3WSuggestion].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
+    @JvmName("removeMarkerAtSuggestions")
     suspend fun removeMarkersAt(
         suggestions: List<W3WSuggestion>,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
-        removeMarkersAt(suggestions.map { it.w3wAddress.words }, listName)
+        removeMarkersAt(suggestions.map { it.w3wAddress },listName)
     }
 
     /**
