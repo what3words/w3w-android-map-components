@@ -40,6 +40,7 @@ import com.what3words.components.compose.maps.utils.angleOfPoints
 import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.domain.W3WSuggestion
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
 import com.what3words.core.types.geometry.W3WRectangle
@@ -445,8 +446,29 @@ class W3WMapManager(
     /**
      * Selects an what3words address on the map.
      *
+     * @param suggestion The [W3WSuggestion] to select.
+     */
+    @JvmName("setSelectedAddressAtSuggestion")
+    suspend fun setSelectedAddress(
+        suggestion: W3WSuggestion
+    ) = withContext(dispatcher) {
+        _mapState.update {
+            it.copy(
+                selectedAddress = suggestion.w3wAddress
+            )
+        }
+
+        if (_buttonState.value.isRecallButtonEnabled) {
+            handleRecallButton()
+        }
+    }
+
+    /**
+     * Selects an what3words address on the map.
+     *
      * @param address The [W3WAddress] to select.
      */
+    @JvmName("setSelectedAddressAtAddress")
     suspend fun setSelectedAddress(
         address: W3WAddress
     ) = withContext(dispatcher) {
@@ -464,12 +486,13 @@ class W3WMapManager(
     /**
      * Selects an what3words address on the map at a specific what3words address.
      *
-     * @param address The what3words address as a [String].
+     * @param words The what3words address as a [String].
      */
+    @JvmName("setSelectedAddressAtWords")
     suspend fun setSelectedAddress(
-        address: String,
+        words: String
     ) = withContext(dispatcher) {
-        when (val result = textDataSource.convertToCoordinates(address)) {
+        when (val result = textDataSource.convertToCoordinates(words)) {
             is W3WResult.Failure -> {
                 throw result.error
             }
@@ -485,6 +508,7 @@ class W3WMapManager(
      *
      * @param coordinates The [W3WCoordinates] to be selected.
      */
+    @JvmName("setSelectedAddressAtCoordinates")
     suspend fun setSelectedAddress(
         coordinates: W3WCoordinates
     ) = withContext(dispatcher) {
@@ -538,11 +562,11 @@ class W3WMapManager(
     /**
      * Removes markers from the map at a specific what3words address.
      *
-     * @param address The What3Words address as a [String].
+     * @param words The What3Words address as a [String].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      */
     suspend fun removeMarkerAt(
-        address: String,
+        words: String,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
         val removedMarkers = mutableListOf<W3WMarker>()
@@ -550,7 +574,7 @@ class W3WMapManager(
         if (listName == null) {
             // Remove markers from all lists
             markersMap.forEach { (_, markers) ->
-                val toRemove = markers.filter { it.words == address }
+                val toRemove = markers.filter { it.words == words }
                 removedMarkers.addAll(toRemove)
                 markers.removeAll(toRemove)
             }
@@ -560,7 +584,7 @@ class W3WMapManager(
             // Remove markers only from the specified list
             val markers = markersMap[listName]
             if (markers != null) {
-                val toRemove = markers.filter { it.words == address }
+                val toRemove = markers.filter { it.words == words }
                 removedMarkers.addAll(toRemove)
                 markers.removeAll(toRemove)
 
@@ -624,6 +648,96 @@ class W3WMapManager(
     }
 
     /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param address The What3Words address as a [W3WAddress].
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkerAt(
+        address: W3WAddress,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        removeMarkerAt(address.words, listName)
+    }
+
+    /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param suggestion The What3Words address as a [W3WSuggestion].
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkerAt(
+        suggestion: W3WSuggestion,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        removeMarkerAt(suggestion.w3wAddress.words, listName)
+    }
+
+    /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param listWords list of The What3Words address as a [String].
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkersAt(
+        listWords: List<String>,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        val removedMarkers = mutableListOf<W3WMarker>()
+        listWords.forEach {
+            val markers = removeMarker(it, listName)
+            removedMarkers.addAll(markers)
+        }
+
+        return@withContext removedMarkers
+    }
+
+    /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param listCoordinates list of The [W3WCoordinates] to remove markers from.
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkersAt(
+        listCoordinates: List<W3WCoordinates>,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        val removedMarkers = mutableListOf<W3WMarker>()
+        listCoordinates.forEach {
+            val markers = removeMarker(it, listName)
+            removedMarkers.addAll(markers)
+        }
+
+        return@withContext removedMarkers
+    }
+
+    /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param addresses list of The What3Words address as a [W3WAddress].
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkersAt(
+        addresses: List<W3WAddress>,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        removeMarkersAt(addresses.map { it.words }, listName)
+    }
+
+    /**
+     * Removes markers from the map at a specific what3words address.
+     *
+     * @param suggestions list of The What3Words address as a [W3WSuggestion].
+     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     */
+    suspend fun removeMarkersAt(
+        suggestions: List<W3WSuggestion>,
+        listName: String? = null
+    ): List<W3WMarker> = withContext(dispatcher) {
+        removeMarkersAt(suggestions.map { it.w3wAddress.words }, listName)
+    }
+
+    /**
      * Removes all markers from a specific list.
      *
      * @param listName The name of the list from which markers should be removed.
@@ -651,6 +765,7 @@ class W3WMapManager(
      *
      * @see W3WMarker
      */
+    @JvmName("getMarkersAtCoordinates")
     fun getMarkersAt(
         coordinates: W3WCoordinates
     ): List<W3WMarkerWithList> {
@@ -667,16 +782,65 @@ class W3WMapManager(
      * a list of markers that have the given what3Words address.
      * Each marker is paired with the name of the list it belongs to.
      *
-     * @param address The What3Words address to search for markers.
+     * @param words The What3Words address to search for markers.
      * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
      *         The list is empty if no markers are found at the given address.
      */
+    @JvmName("getMarkersAtWords")
     fun getMarkersAt(
-        address: String
+        words: String
     ): List<W3WMarkerWithList> {
         return markersMap.flatMap { (listName, markers) ->
-            markers.filter { it.words == address }
+            markers.filter { it.words == words }
                 .map { marker -> W3WMarkerWithList(listName, marker) }
+        }
+    }
+
+    /**
+     * Retrieves all markers at a specific [W3WAddress].
+     *
+     * This method searches through all marker collections in the map and returns
+     * a list of markers that contain the given coordinates within their square.
+     * Each marker is paired with the name of the list it belongs to.
+     *
+     * @param address The address [W3WAddress] to search for markers.
+     * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
+     *         The list is empty if no markers are found at the given location.
+     *
+     * @see W3WMarker
+     */
+    @JvmName("getMarkersAddress")
+    fun getMarkersAt(
+        address: W3WAddress
+    ): List<W3WMarkerWithList> {
+        return address.center?.let {
+            getMarkersAt(it)
+        }?:run{
+            getMarkersAt(address.words)
+        }
+    }
+
+    /**
+     * Retrieves all markers at a specific [W3WSuggestion].
+     *
+     * This method searches through all marker collections in the map and returns
+     * a list of markers that contain the given coordinates within their square.
+     * Each marker is paired with the name of the list it belongs to.
+     *
+     * @param suggestion The address [W3WSuggestion] to search for markers.
+     * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
+     *         The list is empty if no markers are found at the given location.
+     *
+     * @see W3WMarker
+     */
+    @JvmName("getMarkersAtSuggestion")
+    fun getMarkersAt(
+        suggestion: W3WSuggestion
+    ): List<W3WMarkerWithList> {
+        return suggestion.w3wAddress.center?.let {
+            getMarkersAt(it)
+        }?:run{
+            getMarkersAt(suggestion.w3wAddress.words)
         }
     }
 
@@ -693,31 +857,29 @@ class W3WMapManager(
     /**
      * Adds a marker at the specified what3words address on the map. It also updates the map view based on the specified zoom options.
      *
-     * @param address The what3words address where the marker should be placed.
+     * @param words The what3words address where the marker should be placed.
      * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
      * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
      * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
      * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. If not provided, the default zoom level will be used.
      * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
      */
+    @JvmName("addMarkerAtWords")
     suspend fun addMarkerAt(
-        address: String,
+        words: String,
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WMarker> = withContext(dispatcher) {
-        when (val result = textDataSource.convertToCoordinates(address)) {
-            is W3WResult.Failure -> {
-                return@withContext W3WResult.Failure(result.error)
-            }
-
-            is W3WResult.Success -> {
-                val marker = result.value.toW3WMarker(markerColor)
-                addMarkerInternal(listOf(marker), listName, zoomOption, zoomLevel)
-                return@withContext W3WResult.Success(marker)
-            }
-        }
+        return@withContext addMarkerInternal(
+            listName = listName,
+            input = words,
+            markerColor = markerColor,
+            convertFunction = { textDataSource.convertToCoordinates(words) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
     }
 
     /**
@@ -736,6 +898,7 @@ class W3WMapManager(
      * @see W3WMarker
      * @see W3WResult
      */
+    @JvmName("addMarkerAtCoordinates")
     suspend fun addMarkerAt(
         coordinates: W3WCoordinates,
         listName: String = LIST_DEFAULT_ID,
@@ -743,21 +906,125 @@ class W3WMapManager(
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
         zoomLevel: Float? = null
     ): W3WResult<W3WMarker> = withContext(dispatcher) {
-        when (val result =
-            textDataSource.convertTo3wa(
-                W3WCoordinates(lat = coordinates.lat, lng = coordinates.lng),
-                language
-            )) {
-            is W3WResult.Failure -> {
-                return@withContext W3WResult.Failure(result.error)
-            }
+        return@withContext addMarkerInternal(
+            listName = listName,
+            input = coordinates,
+            markerColor = markerColor,
+            convertFunction = { textDataSource.convertTo3wa(coordinates, language) },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
 
+    /**
+     * Adds a marker at the specified address [W3WAddress]. It also updates the map view based on the specified zoom options.
+     *
+     * @param address The address [W3WAddress] where the marker should be placed.
+     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
+     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
+     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
+     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
+     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     *
+     * @see W3WAddress
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     * @see W3WMarker
+     * @see W3WResult
+     */
+    @JvmName("addMarkerAtAddress")
+    suspend fun addMarkerAt(
+        address: W3WAddress,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarkerInternal(
+            listName = listName,
+            input = address,
+            markerColor = markerColor,
+            convertFunction = {
+                if(address.center == null) {
+                    textDataSource.convertToCoordinates(address.words)
+                } else
+                {
+                    W3WResult.Success(address)
+                }
+            },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    /**
+     * Adds a marker at the specified address [W3WSuggestion]. It also updates the map view based on the specified zoom options.
+     *
+     * @param suggestion The address [W3WSuggestion] where the marker should be placed.
+     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
+     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
+     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
+     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
+     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     *
+     * @see W3WSuggestion
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     * @see W3WMarker
+     * @see W3WResult
+     */
+    @JvmName("addMarkerAtSuggestion")
+    suspend fun addMarkerAt(
+        suggestion: W3WSuggestion,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext addMarkerInternal(
+            listName = listName,
+            input = suggestion.w3wAddress,
+            markerColor = markerColor,
+            convertFunction = {
+                if(suggestion.w3wAddress.center == null) {
+                    textDataSource.convertToCoordinates(suggestion.w3wAddress.words)
+                } else
+                {
+                    W3WResult.Success(suggestion.w3wAddress)
+                }
+            },
+            zoomOption = zoomOption,
+            zoomLevel = zoomLevel
+        )
+    }
+
+    private suspend fun <T> addMarkerInternal(
+        input: T,
+        convertFunction: suspend (T) -> W3WResult<W3WAddress>,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        listName: String = LIST_DEFAULT_ID,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
+        zoomLevel: Float? = null
+    ): W3WResult<W3WMarker> = withContext(dispatcher) {
+        return@withContext when (val result = convertFunction(input)) {
             is W3WResult.Success -> {
                 val marker = result.value.toW3WMarker(markerColor)
-                addMarkerInternal(listOf(marker), listName, zoomOption, zoomLevel)
-                return@withContext W3WResult.Success(marker)
+                markersMap.addMarker(listName = listName, marker = marker)
+
+                // Update the map state
+                _mapState.update { currentState ->
+                    currentState.copy(
+                        markers = markersMap.toMarkers().toImmutableList()
+                    )
+                }
+
+                handleZoomOption(marker.center, zoomOption, zoomLevel)
+                W3WResult.Success(marker)
             }
+
+            is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
         }
+
     }
 
     /**
@@ -766,40 +1033,39 @@ class W3WMapManager(
      * This suspend function asynchronously converts each provided what3words address to coordinates,
      * creates markers, and adds them to the map.
      *
-     * @param addresses A list of what3words addresses (as strings) where markers should be placed.
+     * @param listWords A list of what3words addresses (as strings) where markers should be placed.
      * @param listName The name of the list to which these markers should be added.
      * @param markerColor The color to be used for these markers.
      *
-     * @see W3WAddress
      * @see W3WMarker
      * @see W3WMarkerColor
      * @see W3WZoomOption
      *
-     * Note: This function filters out any addresses that fail to convert to coordinates.
+     * Note: This function filters out any listWords that fail to convert to coordinates.
      *       Only successfully converted addresses will result in markers being added to the map.
      *
      * Usage:
      * ```
-     * val addresses = listOf("index.home.raft", "filled.count.soap", "daring.lion.race")
-     * mapManager.addMarkersAt(addresses)
+     * val listWords = listOf("index.home.raft", "filled.count.soap", "daring.lion.race")
+     * mapManager.addMarkersAt(listWords)
      * ```
      */
-    @JvmName("addMarkersAtAddresses")
+    @JvmName("addMarkersAtListWords")
     suspend fun addMarkersAt(
-        addresses: List<String>,
+        listWords: List<String>,
         listName: String = LIST_DEFAULT_ID,
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-    ) = withContext(dispatcher) {
-        val results = addresses.map {
-            async {
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addMarkersInternal(
+            listName = listName,
+            inputs = listWords,
+            markerColor = markerColor,
+            convertFunction = {
                 textDataSource.convertToCoordinates(it)
-            }
-        }.awaitAll()
-
-        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>()
-            .map { it.value.toW3WMarker(markerColor) }
-
-        addMarkerInternal(markers = markers, listName = listName, zoomOption = W3WZoomOption.NONE)
+            },
+            zoomOption = zoomOption,
+        )
     }
 
     /**
@@ -808,11 +1074,105 @@ class W3WMapManager(
      * This suspend function asynchronously converts each provided coordinate to a what3words address,
      * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
      *
-     * @param coordinates A list of [W3WCoordinates] where markers should be placed.
+     * @param listCoordinates A list of [W3WCoordinates] where markers should be placed.
      * @param listName The name of the list to which these markers should be added.
      * @param markerColor The color to be used for these markers.
      *
      * @see W3WCoordinates
+     * @see W3WMarker
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     *
+     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
+     *       Only successfully converted coordinates will result in markers being added to the map.
+     *
+     * Usage:
+     * ```
+     * val coordinates = listOf(
+     *     W3WCoordinates(11.521251, -0.203586),
+     *     W3WCoordinates(25.521252, -0.203587)
+     * )
+     * mapManager.addMarkersAt(coordinates)
+     * ```
+     */
+    @JvmName("addMarkersAtListCoordinates")
+    suspend fun addMarkersAt(
+        listCoordinates: List<W3WCoordinates>,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addMarkersInternal(
+            listName = listName,
+            inputs = listCoordinates,
+            markerColor = markerColor,
+            convertFunction = {
+                textDataSource.convertTo3wa(it,language)
+            },
+            zoomOption = zoomOption,
+        )
+    }
+
+    /**
+     * Adds a batch of markers to the map at the specified coordinates.
+     *
+     * This suspend function asynchronously converts each provided coordinate to a what3words address,
+     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     *
+     * @param suggestions A list of [W3WSuggestion] where markers should be placed.
+     * @param listName The name of the list to which these markers should be added.
+     * @param markerColor The color to be used for these markers.
+     *
+     * @see W3WSuggestion
+     * @see W3WMarker
+     * @see W3WMarkerColor
+     * @see W3WZoomOption
+     *
+     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
+     *       Only successfully converted coordinates will result in markers being added to the map.
+     *
+     * Usage:
+     * ```
+     * val coordinates = listOf(
+     *     W3WCoordinates(11.521251, -0.203586),
+     *     W3WCoordinates(25.521252, -0.203587)
+     * )
+     * mapManager.addMarkersAt(coordinates)
+     * ```
+     */
+    @JvmName("addMarkersAtAddresses")
+    suspend fun addMarkersAt(
+        suggestions: List<W3WSuggestion>,
+        listName: String = LIST_DEFAULT_ID,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addMarkersInternal(
+            listName = listName,
+            inputs = suggestions,
+            markerColor = markerColor,
+            convertFunction = {
+                if(it.w3wAddress.center == null) {
+                    textDataSource.convertToCoordinates(it.w3wAddress.words)
+                } else
+                {
+                    W3WResult.Success(it.w3wAddress)
+                }
+            },
+            zoomOption = zoomOption,
+        )
+    }
+
+    /**
+     * Adds a batch of markers to the map at the specified coordinates.
+     *
+     * This suspend function asynchronously converts each provided coordinate to a what3words address,
+     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     *
+     * @param addresses A list of [W3WAddress] where markers should be placed.
+     * @param listName The name of the list to which these markers should be added.
+     * @param markerColor The color to be used for these markers.
+     *
      * @see W3WAddress
      * @see W3WMarker
      * @see W3WMarkerColor
@@ -830,32 +1190,50 @@ class W3WMapManager(
      * mapManager.addMarkersAt(coordinates)
      * ```
      */
-    @JvmName("addMarkersAtCoordinates")
+    @JvmName("addMarkersAtSuggestions")
     suspend fun addMarkersAt(
-        coordinates: List<W3WCoordinates>,
+        addresses: List<W3WAddress>,
         listName: String = LIST_DEFAULT_ID,
         markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-    ) = withContext(dispatcher) {
-        val results = coordinates.map {
-            async {
-                textDataSource.convertTo3wa(it, language)
-            }
-        }.awaitAll()
-
-        val markers = results.filterIsInstance<W3WResult.Success<W3WAddress>>()
-            .map { it.value.toW3WMarker(markerColor) }
-
-        addMarkerInternal(markers = markers, listName = listName, zoomOption = W3WZoomOption.NONE)
+        zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        return@withContext addMarkersInternal(
+            listName = listName,
+            inputs = addresses,
+            markerColor = markerColor,
+            convertFunction = {
+                if(it.center == null) {
+                    textDataSource.convertToCoordinates(it.words)
+                } else
+                {
+                    W3WResult.Success(it)
+                }
+            },
+            zoomOption = zoomOption,
+        )
     }
 
-    private suspend fun addMarkerInternal(
-        markers: List<W3WMarker>,
+    private suspend fun <T> addMarkersInternal(
+        inputs: List<T>,
+        convertFunction: suspend (T) -> W3WResult<W3WAddress>,
+        markerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
-        zoomLevel: Float? = null
-    ) = withContext(dispatcher) {
+    ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
+        val results = inputs.map { input -> async { convertFunction(input) } }.awaitAll().map { result ->
+            when (result) {
+                is W3WResult.Success -> {
+                    W3WResult.Success(result.value.toW3WMarker(markerColor))
+                }
+                is W3WResult.Failure -> {
+                    W3WResult.Failure(result.error, result.message)
+                }
+            }
+        }
+
+        val markers = results.filterIsInstance<W3WResult.Success<W3WMarker>>()
         markers.forEach {
-            markersMap.addMarker(listName = listName, marker = it)
+            markersMap.addMarker(listName = listName, marker = it.value)
         }
 
         // Update the map state
@@ -865,8 +1243,9 @@ class W3WMapManager(
             )
         }
 
-        // Handle zoom options
-        handleZoomOption(markers.last().center, zoomOption, zoomLevel)
+        handleZoomOption(markers.map { it.value.center }, zoomOption)
+
+        return@withContext results
     }
 
     /**
@@ -890,6 +1269,19 @@ class W3WMapManager(
                     zoom,
                     animate = true
                 )
+            }
+        }
+    }
+
+    /**
+     * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
+     * if it's provided or the default zoom level.
+     */
+    private suspend fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
+        when (zoomOption) {
+            W3WZoomOption.NONE -> {}
+            W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
+                mapState.value.cameraState?.moveToPosition(listCoordinates)
             }
         }
     }
