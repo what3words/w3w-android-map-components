@@ -444,12 +444,12 @@ class W3WMapManager(
     }
 
     /**
-     * Sets the selected marker at a specific What3Words address.
+     * Sets the selected marker at a specific what3Words address.
      *
      * Selects a marker using its geographical center (latitude and longitude) if available.
      * If the center is null, the selection is made using the three-word address (`words`).
      *
-     * @param suggestion The What3Words suggestion as a [W3WSuggestion], which contains an address with optional center.
+     * @param suggestion The what3Words suggestion as a [W3WSuggestion], which contains an address with optional center.
      */
     @JvmName("setSelectedAtSuggestion")
     suspend fun setSelectedAt(
@@ -463,12 +463,12 @@ class W3WMapManager(
     }
 
     /**
-     * Sets the selected marker at a specific What3Words address.
+     * Sets the selected marker at a specific what3Words address.
      *
      * Selects a marker based on its geographical center (latitude and longitude) or its three-word address.
      * If the `W3WAddress` has a valid center, it is used for selection; otherwise, the three-word address (`words`) is used.
      *
-     * @param address The What3Words address as a [W3WAddress], which may or may not have a center (latitude and longitude).
+     * @param address The what3Words address as a [W3WAddress], which may or may not have a center (latitude and longitude).
      */
     @JvmName("setSelectedAtAtAddress")
     suspend fun setSelectedAt(
@@ -574,7 +574,7 @@ class W3WMapManager(
     /**
      * Removes markers from the map at a specific what3words address.
      *
-     * @param words The What3Words address as a [String].
+     * @param words The what3Words address as a [String].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      *
      * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list is returned.
@@ -680,7 +680,7 @@ class W3WMapManager(
      * - If the center is null, the function uses the three-word address (e.g., "filled.count.soap") [W3WAddress.words]
      *   to identify and remove the marker instead.
      *
-     * @param address The What3Words address as a [W3WAddress].
+     * @param address The what3Words address as a [W3WAddress].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
      *
      * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list is returned.
@@ -702,14 +702,14 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific What3Words address contained in a [W3WSuggestion].
+     * Removes markers from the map at a specific what3Words address contained in a [W3WSuggestion].
      *
      * The process is as follows:
      * - If the address has a valid center (latitude and longitude) [W3WAddress.center], the marker is removed using those coordinates.
      * - If the center is null, the function uses the three-word address (e.g., "filled.count.soap") [W3WAddress.words]
      *   to identify and remove the marker instead.
      *
-     * @param suggestion The What3Words address as a [W3WSuggestion], which contains a [W3WAddress] with optional center (latitude and longitude) and three-word address.
+     * @param suggestion The what3Words address as a [W3WSuggestion], which contains a [W3WAddress] with optional center (latitude and longitude) and three-word address.
      * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, markers will only be removed from that list.
      *
      * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list will be returned.
@@ -731,13 +731,13 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at specific What3Words addresses based on a list of [String] addresses.
+     * Removes markers from the map at specific what3Words addresses based on a list of [String] addresses.
      *
      * The function will iterate over each address in the `listWords` and remove any corresponding markers.
      * - If `listName` is `null`, it will remove markers from all lists in the map.
      * - If `listName` is provided, only markers from that specific list will be removed.
      *
-     * @param listWords A list of What3Words address strings (e.g., "filled.count.soap").
+     * @param listWords A list of what3Words address strings (e.g., "filled.count.soap").
      * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, only markers from that list will be removed.
      *
      * @return A list of [W3WMarker] objects that were removed. If no markers are found for the provided words, an empty list will be returned.
@@ -841,13 +841,13 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at specific What3Words addresses based on a list of [W3WAddress].
+     * Removes markers from the map at specific what3Words addresses based on a list of [W3WAddress].
      *
      * The removal behavior is as follows:
      * - If `listName` is `null`, markers will be removed from all lists.
      * - If a specific `listName` is provided, markers will only be removed from that list.
      *
-     * @param addresses A list of [W3WAddress] objects, each representing a specific What3Words address.
+     * @param addresses A list of [W3WAddress] objects, each representing a specific what3Words address.
      *                  The address can be identified by its center (latitude and longitude) or words.
      * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists.
      *
@@ -880,7 +880,7 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at specific What3Words addresses contained in a list of [W3WSuggestion].
+     * Removes markers from the map at specific what3Words addresses contained in a list of [W3WSuggestion].
      *
      * The function will iterate over each [W3WSuggestion] in the `suggestions` list and remove the corresponding markers:
      * - If `listName` is `null`, markers will be removed from all lists in the map.
@@ -948,7 +948,7 @@ class W3WMapManager(
      * a list of markers that have the given what3Words address.
      * Each marker is paired with the name of the list it belongs to.
      *
-     * @param words The What3Words address to search for markers.
+     * @param words The what3Words address to search for markers.
      * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
      *         The list is empty if no markers are found at the given address.
      */
@@ -1033,14 +1033,14 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker to the map at a specific What3Words address represented by a string (e.g., "filled.count.soap").
+     * Adds a marker to the map at a specific what3Words address represented by a string (e.g., "filled.count.soap").
      *
      * The function attempts to convert the provided three-word address (`words`) into [W3WAddress] using [textDataSource].
      * If successful, it creates a marker at the corresponding location on the map.
      *
      * After adding the marker, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
      *
-     * @param words The What3Words address as a string (e.g., "filled.count.soap") to locate and add a marker at.
+     * @param words The what3Words address as a string (e.g., "filled.count.soap") to locate and add a marker at.
      * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
      * @param listName The name of the list to which the marker will be added. Defaults to [LIST_DEFAULT_ID].
      * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
@@ -1110,7 +1110,7 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker to the map at a specific What3Words address.
+     * Adds a marker to the map at a specific what3Words address.
      *
      * The function checks if the provided [W3WAddress] has a valid center (latitude and longitude):
      * - If the center is available, the marker is created using those [W3WAddress].
@@ -1165,7 +1165,7 @@ class W3WMapManager(
      *
      * After the marker is added, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
      *
-     * @param suggestion The [W3WSuggestion] that contains the What3Words address to be used.
+     * @param suggestion The [W3WSuggestion] that contains the what3Words address to be used.
      * @param listName The name of the list to which the marker will be added. If `null`, markers will be added to all lists.
      * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
      * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
@@ -1205,7 +1205,7 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker to the map at a specific What3Words address.
+     * Adds a marker to the map at a specific what3Words address.
      *
      * The process is as follows:
      * - The function converts the input into a [W3WAddress] using the provided [convertFunction].
@@ -1266,15 +1266,15 @@ class W3WMapManager(
     }
 
     /**
-     * Adds markers to the map for a list of What3Words addresses (provided as strings).
+     * Adds markers to the map for a list of what3Words addresses (provided as strings).
      *
-     * The function will convert each What3Words address (e.g., "filled.count.soap") to coordinates
+     * The function will convert each what3Words address (e.g., "filled.count.soap") to coordinates
      * and add a corresponding marker to the map.
      * - If `listName` is specified, markers will be added to that specific list.
      * - If no `listName` is provided, markers will be added to the default list.
      * - The function handles the conversion of each address to coordinates and adds markers at those locations.
      *
-     * @param listWords A list of What3Words address strings (e.g., "filled.count.soap") to which markers should be added.
+     * @param listWords A list of what3Words address strings (e.g., "filled.count.soap") to which markers should be added.
      * @param listName The name of the list to which the markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) will be used.
      * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) will be used.
      * @param zoomOption The zoom option for the map. If not specified, the default option (`CENTER_AND_ZOOM`) will be used.
@@ -1309,11 +1309,11 @@ class W3WMapManager(
     /**
      * Adds markers to the map for a list of [W3WCoordinates].
      *
-     * This function converts each [W3WCoordinates] object into a What3Words address using the `convertTo3wa` function
+     * This function converts each [W3WCoordinates] object into a what3Words address using the `convertTo3wa` function
      * and then adds the corresponding marker to the map at the specified coordinates.
      * - If `listName` is specified, markers will be added to that specific list.
      * - If no `listName` is provided, markers will be added to the default list (`LIST_DEFAULT_ID`).
-     * - The function handles the conversion of each coordinate to a What3Words address and adds markers at the corresponding locations.
+     * - The function handles the conversion of each coordinate to a what3Words address and adds markers at the corresponding locations.
      *
      * @param listCoordinates A list of [W3WCoordinates] objects that specify the coordinates where markers should be placed.
      * @param listName The name of the list to which the markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) will be used.
@@ -1351,11 +1351,11 @@ class W3WMapManager(
      *
      * This function processes each suggestion in the list and:
      * - If the suggestion contains a valid center (latitude and longitude), it uses that address to add a marker.
-     * - If the suggestion does not contain a valid center, it converts the three-word address (e.g., "filled.count.soap") to What3Words address and then adds the marker.
+     * - If the suggestion does not contain a valid center, it converts the three-word address (e.g., "filled.count.soap") to what3Words address and then adds the marker.
      *
      * The markers will be added to the specified list if `listName` is provided. If `listName` is `null`, the markers will be added to the default list (`LIST_DEFAULT_ID`).
      *
-     * @param suggestions A list of [W3WSuggestion] objects, each containing a What3Words address with optional center (latitude and longitude).
+     * @param suggestions A list of [W3WSuggestion] objects, each containing a what3Words address with optional center (latitude and longitude).
      * @param listName The name of the list to which markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) is used.
      * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) is used.
      * @param zoomOption The zoom option for the map after markers are added. If not specified, the default option (`CENTER_AND_ZOOM`) is used.
@@ -1394,15 +1394,15 @@ class W3WMapManager(
     }
 
     /**
-     * Adds markers to the map at specific What3Words addresses.
+     * Adds markers to the map at specific what3Words addresses.
      *
      * This function processes a list of [W3WAddress] objects, and:
      * - If the address contains a valid center (latitude and longitude), the marker is added using those coordinates.
-     * - If the address does not contain a valid center, it will convert the three-word address (e.g., "filled.count.soap") to What3Words address and then add the marker.
+     * - If the address does not contain a valid center, it will convert the three-word address (e.g., "filled.count.soap") to what3Words address and then add the marker.
      *
      * Markers are added to the specified list. If `listName` is not provided, the markers will be added to the default list (`LIST_DEFAULT_ID`).
      *
-     * @param addresses A list of [W3WAddress] objects, each containing a What3Words address. The address may either have a center (coordinates) or a three-word address.
+     * @param addresses A list of [W3WAddress] objects, each containing a what3Words address. The address may either have a center (coordinates) or a three-word address.
      * @param listName The name of the list to which markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) is used.
      * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) is used.
      * @param zoomOption The zoom option for the map after markers are added. If not specified, the default option (`CENTER_AND_ZOOM`) is used.
