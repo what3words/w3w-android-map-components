@@ -444,12 +444,15 @@ class W3WMapManager(
     }
 
     /**
-     * Selects an what3words address on the map.
+     * Sets the selected marker at a specific What3Words address.
      *
-     * @param suggestion The [W3WSuggestion] to select.
+     * Selects a marker using its geographical center (latitude and longitude) if available.
+     * If the center is null, the selection is made using the three-word address (`words`).
+     *
+     * @param suggestion The What3Words suggestion as a [W3WSuggestion], which contains an address with optional center.
      */
-    @JvmName("setSelectedAddressAtSuggestion")
-    suspend fun setSelectedAtAddress(
+    @JvmName("setSelectedAtSuggestion")
+    suspend fun setSelectedAt(
         suggestion: W3WSuggestion
     ) = withContext(dispatcher) {
         suggestion.w3wAddress.center?.let {
@@ -460,11 +463,14 @@ class W3WMapManager(
     }
 
     /**
-     * Selects an what3words address on the map.
+     * Sets the selected marker at a specific What3Words address.
      *
-     * @param address The [W3WAddress] to select.
+     * Selects a marker based on its geographical center (latitude and longitude) or its three-word address.
+     * If the `W3WAddress` has a valid center, it is used for selection; otherwise, the three-word address (`words`) is used.
+     *
+     * @param address The What3Words address as a [W3WAddress], which may or may not have a center (latitude and longitude).
      */
-    @JvmName("setSelectedAddressAtAddress")
+    @JvmName("setSelectedAtAtAddress")
     suspend fun setSelectedAt(
         address: W3WAddress
     ) = withContext(dispatcher) {
@@ -480,7 +486,7 @@ class W3WMapManager(
      *
      * @param words The what3words address as a [String].
      */
-    @JvmName("setSelectedAddressAtWords")
+    @JvmName("setSelectedAtWords")
     suspend fun setSelectedAt(
         words: String
     ) = withContext(dispatcher) {
@@ -500,7 +506,7 @@ class W3WMapManager(
      *
      * @param coordinates The [W3WCoordinates] to be selected.
      */
-    @JvmName("setSelectedAddressAtCoordinates")
+    @JvmName("setSelectedAtCoordinates")
     suspend fun setSelectedAt(
         coordinates: W3WCoordinates
     ) = withContext(dispatcher) {
