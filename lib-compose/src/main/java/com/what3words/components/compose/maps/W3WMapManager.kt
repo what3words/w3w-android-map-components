@@ -570,6 +570,11 @@ class W3WMapManager(
      *
      * @param words The What3Words address as a [String].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list is returned.
+     *
+     * @see [W3WMarker]
+     *
      */
     @JvmName("removeMarkerAtWords")
     suspend fun removeMarkerAt(
@@ -615,6 +620,12 @@ class W3WMapManager(
      *
      * @param coordinates The [W3WCoordinates] to remove markers from.
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list is returned.
+     *
+     * @see [W3WCoordinates]
+     * @see [W3WMarker]
+     *
      */
     @JvmName("removeMarkerAtCoordinates")
     suspend fun removeMarkerAt(
@@ -658,8 +669,19 @@ class W3WMapManager(
     /**
      * Removes markers from the map at a specific what3words address.
      *
+     * The process is as follows:
+     * - If the address has a valid center (latitude and longitude) [W3WAddress.center], the marker is removed using those coordinates.
+     * - If the center is null, the function uses the three-word address (e.g., "filled.count.soap") [W3WAddress.words]
+     *   to identify and remove the marker instead.
+     *
      * @param address The What3Words address as a [W3WAddress].
      * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list is returned.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     *
      */
     @JvmName("removeMarkerAtAddress")
     suspend fun removeMarkerAt(
@@ -674,10 +696,21 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific what3words address.
+     * Removes markers from the map at a specific What3Words address contained in a [W3WSuggestion].
      *
-     * @param suggestion The What3Words address as a [W3WSuggestion].
-     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     * The process is as follows:
+     * - If the address has a valid center (latitude and longitude) [W3WAddress.center], the marker is removed using those coordinates.
+     * - If the center is null, the function uses the three-word address (e.g., "filled.count.soap") [W3WAddress.words]
+     *   to identify and remove the marker instead.
+     *
+     * @param suggestion The What3Words address as a [W3WSuggestion], which contains a [W3WAddress] with optional center (latitude and longitude) and three-word address.
+     * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, markers will only be removed from that list.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found, an empty list will be returned.
+     *
+     * @see [W3WSuggestion]
+     * @see [W3WAddress]
+     * @see [W3WMarker]
      */
     @JvmName("removeMarkerAtSuggestion")
     suspend fun removeMarkerAt(
@@ -692,10 +725,18 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific what3words address.
+     * Removes markers from the map at specific What3Words addresses based on a list of [String] addresses.
      *
-     * @param listWords list of The What3Words address as a [String].
-     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     * The function will iterate over each address in the `listWords` and remove any corresponding markers.
+     * - If `listName` is `null`, it will remove markers from all lists in the map.
+     * - If `listName` is provided, only markers from that specific list will be removed.
+     *
+     * @param listWords A list of What3Words address strings (e.g., "filled.count.soap").
+     * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, only markers from that list will be removed.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found for the provided words, an empty list will be returned.
+     *
+     * @see [W3WMarker]
      */
     @JvmName("removeMarkerAtListWords")
     suspend fun removeMarkersAt(
@@ -738,10 +779,20 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific what3words address.
+     * Removes markers from the map at specific coordinates based on a list of [W3WCoordinates].
      *
-     * @param listCoordinates list of The [W3WCoordinates] to remove markers from.
-     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     * The function will iterate over each set of coordinates in `listCoordinates` and remove any markers whose
+     * location matches those coordinates. The removal behavior is as follows:
+     * - If `listName` is `null`, markers will be removed from all lists.
+     * - If a specific `listName` is provided, markers will only be removed from that list.
+     *
+     * @param listCoordinates A list of [W3WCoordinates] for which markers should be removed.
+     * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, markers from that list will be removed.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found for the given coordinates, an empty list will be returned.
+     *
+     * @see [W3WCoordinates]
+     * @see [W3WMarker]
      */
     @JvmName("removeMarkerAtListCoordinates")
     suspend fun removeMarkersAt(
@@ -784,10 +835,20 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific what3words address.
+     * Removes markers from the map at specific What3Words addresses based on a list of [W3WAddress].
      *
-     * @param addresses list of The What3Words address as a [W3WAddress].
-     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     * The removal behavior is as follows:
+     * - If `listName` is `null`, markers will be removed from all lists.
+     * - If a specific `listName` is provided, markers will only be removed from that list.
+     *
+     * @param addresses A list of [W3WAddress] objects, each representing a specific What3Words address.
+     *                  The address can be identified by its center (latitude and longitude) or words.
+     * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found for the given addresses, an empty list will be returned.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarker]
      */
     @JvmName("removeMarkerAtAddresses")
     suspend fun removeMarkersAt(
@@ -813,10 +874,20 @@ class W3WMapManager(
     }
 
     /**
-     * Removes markers from the map at a specific what3words address.
+     * Removes markers from the map at specific What3Words addresses contained in a list of [W3WSuggestion].
      *
-     * @param suggestions list of The What3Words address as a [W3WSuggestion].
-     * @param listName The name of the list from which markers should be removed. If null, markers will be removed from all lists.
+     * The function will iterate over each [W3WSuggestion] in the `suggestions` list and remove the corresponding markers:
+     * - If `listName` is `null`, markers will be removed from all lists in the map.
+     * - If `listName` is provided, only markers from that specific list will be removed.
+     *
+     * @param suggestions A list of [W3WSuggestion] objects, where each suggestion contains a [W3WAddress] (either with a center or words).
+     * @param listName The name of the list from which markers should be removed. If `null`, markers will be removed from all lists. If a specific list name is provided, only markers from that list will be removed.
+     *
+     * @return A list of [W3WMarker] objects that were removed. If no markers are found for the provided suggestions, an empty list will be returned.
+     *
+     * @see [W3WSuggestion]
+     * @see [W3WAddress]
+     * @see [W3WMarker]
      */
     @JvmName("removeMarkerAtSuggestions")
     suspend fun removeMarkersAt(
@@ -886,17 +957,23 @@ class W3WMapManager(
     }
 
     /**
-     * Retrieves all markers at a specific [W3WAddress].
+     * Retrieves markers from the map at a specific location based on a [W3WAddress].
      *
-     * This method searches through all marker collections in the map and returns
-     * a list of markers that contain the given coordinates within their square.
-     * Each marker is paired with the name of the list it belongs to.
+     * The function checks if the [W3WAddress] contains a valid center (latitude and longitude):
+     * - If the center is available, it retrieves markers using the coordinates.
+     * - If the center is not available (i.e., `null`), it retrieves markers using the three-word address (e.g., "filled.count.soap").
      *
-     * @param address The address [W3WAddress] to search for markers.
-     * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
-     *         The list is empty if no markers are found at the given location.
+     * @param address The [W3WAddress] containing the [W3WAddress]. The address may either have a valid center (latitude and longitude)
+     * or just the three-word address (words).
      *
-     * @see W3WMarker
+     * @return A list of [W3WMarkerWithList] objects. This list consists of pairs, where each pair contains:
+     * - The name of the marker's list.
+     * - The marker itself ([W3WMarker]).
+     *
+     * If no markers are found for the provided address, an empty list is returned.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarkerWithList]
      */
     @JvmName("getMarkersAddress")
     fun getMarkersAt(
@@ -910,17 +987,23 @@ class W3WMapManager(
     }
 
     /**
-     * Retrieves all markers at a specific [W3WSuggestion].
+     * Retrieves markers from the map at a specific location based on a [W3WSuggestion].
      *
-     * This method searches through all marker collections in the map and returns
-     * a list of markers that contain the given coordinates within their square.
-     * Each marker is paired with the name of the list it belongs to.
+     * The function checks if the [W3WSuggestion] contains a valid center (latitude and longitude):
+     * - If the center is available, it retrieves markers using the coordinates.
+     * - If the center is not available (i.e., `null`), it retrieves markers using the three-word address (e.g., "filled.count.soap").
      *
-     * @param suggestion The address [W3WSuggestion] to search for markers.
-     * @return A list of pairs, where each pair contains the name of the marker's list and the marker itself.
-     *         The list is empty if no markers are found at the given location.
+     * @param suggestion The [W3WSuggestion] containing the [W3WAddress]. The address may either have a valid center (latitude and longitude)
+     * or just the three-word address (words).
      *
-     * @see W3WMarker
+     * @return A list of [W3WMarkerWithList] objects. This list consists of pairs, where each pair contains:
+     * - The name of the marker's list.
+     * - The marker itself ([W3WMarker]).
+     *
+     * If no markers are found for the provided address, an empty list is returned.
+     *
+     * @see [W3WSuggestion]
+     * @see [W3WMarkerWithList]
      */
     @JvmName("getMarkersAtSuggestion")
     fun getMarkersAt(
@@ -944,14 +1027,24 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker at the specified what3words address on the map. It also updates the map view based on the specified zoom options.
+     * Adds a marker to the map at a specific What3Words address represented by a string (e.g., "filled.count.soap").
      *
-     * @param words The what3words address where the marker should be placed.
-     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
-     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
-     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
-     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. If not provided, the default zoom level will be used.
-     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     * The function attempts to convert the provided three-word address (`words`) into [W3WAddress] using [textDataSource].
+     * If successful, it creates a marker at the corresponding location on the map.
+     *
+     * After adding the marker, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
+     *
+     * @param words The What3Words address as a string (e.g., "filled.count.soap") to locate and add a marker at.
+     * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param listName The name of the list to which the marker will be added. Defaults to [LIST_DEFAULT_ID].
+     * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     * @param zoomLevel The zoom level to apply if zooming is enabled. If `null`, the default zoom behavior is applied.
+     *
+     * @return A [W3WResult] containing either the added [W3WMarker] or a failure result with an error message if the conversion fails.
+     *
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [textDataSource]
      */
     @JvmName("addMarkerAtWords")
     suspend fun addMarkerAt(
@@ -972,20 +1065,25 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker at the specified coordinates [W3WCoordinates]. It also updates the map view based on the specified zoom options.
+     * Adds a marker to the map at a specific [W3WCoordinates] location.
      *
-     * @param coordinates The coordinates [W3WCoordinates] where the marker should be placed.
-     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
-     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
-     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
-     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
-     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     * This function attempts to convert the provided [W3WCoordinates] into [W3WAddress] using [textDataSource].
+     * If the conversion is successful, a marker is created at the corresponding coordinates.
      *
-     * @see W3WCoordinates
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
-     * @see W3WMarker
-     * @see W3WResult
+     * After adding the marker, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
+     *
+     * @param coordinates The [W3WCoordinates] to add as a marker.
+     * @param listName The name of the list to which the marker will be added. Defaults to [LIST_DEFAULT_ID].
+     * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     * @param zoomLevel The zoom level to apply if zooming is enabled. If `null`, the default zoom behavior is applied.
+     *
+     * @return A [W3WResult] containing either the added [W3WMarker] or a failure result with an error message.
+     *
+     * @see [W3WCoordinates]
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [textDataSource]
      */
     @JvmName("addMarkerAtCoordinates")
     suspend fun addMarkerAt(
@@ -1006,20 +1104,26 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker at the specified address [W3WAddress]. It also updates the map view based on the specified zoom options.
+     * Adds a marker to the map at a specific What3Words address.
      *
-     * @param address The address [W3WAddress] where the marker should be placed.
-     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
-     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
-     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
-     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
-     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     * The function checks if the provided [W3WAddress] has a valid center (latitude and longitude):
+     * - If the center is available, the marker is created using those [W3WAddress].
+     * - If the center is `null`, the function attempts to convert the three-word address into coordinates using [textDataSource].
      *
-     * @see W3WAddress
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
-     * @see W3WMarker
-     * @see W3WResult
+     * After the marker is added, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
+     *
+     * @param address The [W3WAddress] to add as a marker. It may contain coordinates or a three-word address.
+     * @param listName The name of the list to which the marker will be added. Defaults to [LIST_DEFAULT_ID].
+     * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     * @param zoomLevel The zoom level to apply if zooming is enabled. If `null`, the default zoom behavior is applied.
+     *
+     * @return A [W3WResult] containing either the added [W3WMarker] or a failure result with an error message.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [textDataSource]
      */
     @JvmName("addMarkerAtAddress")
     suspend fun addMarkerAt(
@@ -1047,20 +1151,27 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a marker at the specified address [W3WSuggestion]. It also updates the map view based on the specified zoom options.
+     * Adds a marker to the map at a specific [W3WSuggestion].
      *
-     * @param suggestion The address [W3WSuggestion] where the marker should be placed.
-     * @param listName The name of the list to which the marker should be added. Defaults to LIST_DEFAULT_ID.
-     * @param markerColor The color of the marker. Defaults to MARKER_COLOR_DEFAULT.
-     * @param zoomOption Specifies how the map should adjust its view after adding the marker. Defaults to CENTER_AND_ZOOM.
-     * @param zoomLevel The zoom level to set if zooming is specified in zoomOption. Can be null.
-     * @return A W3WResult containing either the created W3WMarker on success, or a W3WError on failure.
+     * The function will attempt to use the [W3WAddress] contained in the [W3WSuggestion].
+     * - If the address has a valid center (latitude and longitude), it will add the marker using those [W3WAddress].
+     * - If the center is `null`, the function will convert the three-word address to coordinates using [textDataSource].
      *
-     * @see W3WSuggestion
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
-     * @see W3WMarker
-     * @see W3WResult
+     * After the marker is added, the map state is updated, and the zoom behavior is applied based on the provided [zoomOption] and [zoomLevel].
+     *
+     * @param suggestion The [W3WSuggestion] that contains the What3Words address to be used.
+     * @param listName The name of the list to which the marker will be added. If `null`, markers will be added to all lists.
+     * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param zoomOption The zoom behavior after the marker is added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     * @param zoomLevel The zoom level to apply if zooming is enabled. If `null`, the default zoom behavior is applied.
+     *
+     * @return A [W3WResult] containing either the added [W3WMarker] or a failure result with an error message.
+     *
+     * @see [W3WSuggestion]
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [textDataSource]
      */
     @JvmName("addMarkerAtSuggestion")
     suspend fun addMarkerAt(
@@ -1087,6 +1198,34 @@ class W3WMapManager(
         )
     }
 
+    /**
+     * Adds a marker to the map at a specific What3Words address.
+     *
+     * The process is as follows:
+     * - The function converts the input into a [W3WAddress] using the provided [convertFunction].
+     * - If the conversion is successful:
+     *     - A marker is created from the address.
+     *     - The marker is added to the map (associated with a specific list if given).
+     *     - The map state is updated to reflect the newly added marker.
+     *     - If a zoom option is specified, the map is zoomed to include the marker.
+     * - If the conversion fails, a failure result is returned.
+     *
+     * @param input The input to be converted into a [W3WAddress] (e.g., a string or coordinates).
+     * @param convertFunction A suspend function that converts the input into a [W3WResult] containing a [W3WAddress].
+     *                        The function may return either a successful address or a failure.
+     * @param markerColor The color of the marker to be added. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param listName The name of the list in which the marker will be added. Defaults to [LIST_DEFAULT_ID].
+     * @param zoomOption Defines the zoom behavior after adding the marker. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     * @param zoomLevel The zoom level to apply if zooming is enabled. If `null`, the default zoom behavior is applied.
+     *
+     * @return A [W3WResult] indicating whether the marker was successfully added or if there was an error.
+     *         If successful, it contains the added [W3WMarker]. If failed, it contains an error message and error code.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
+     */
     private suspend fun <T> addMarkerInternal(
         input: T,
         convertFunction: suspend (T) -> W3WResult<W3WAddress>,
@@ -1121,27 +1260,27 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a batch of markers to the map at the specified what3words addresses.
+     * Adds markers to the map for a list of What3Words addresses (provided as strings).
      *
-     * This suspend function asynchronously converts each provided what3words address to coordinates,
-     * creates markers, and adds them to the map.
+     * The function will convert each What3Words address (e.g., "filled.count.soap") to coordinates
+     * and add a corresponding marker to the map.
+     * - If `listName` is specified, markers will be added to that specific list.
+     * - If no `listName` is provided, markers will be added to the default list.
+     * - The function handles the conversion of each address to coordinates and adds markers at those locations.
      *
-     * @param listWords A list of what3words addresses (as strings) where markers should be placed.
-     * @param listName The name of the list to which these markers should be added.
-     * @param markerColor The color to be used for these markers.
+     * @param listWords A list of What3Words address strings (e.g., "filled.count.soap") to which markers should be added.
+     * @param listName The name of the list to which the markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) will be used.
+     * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) will be used.
+     * @param zoomOption The zoom option for the map. If not specified, the default option (`CENTER_AND_ZOOM`) will be used.
      *
-     * @see W3WMarker
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
+     * @return A list of [W3WResult] objects representing the result of adding each marker.
+     *         - [W3WResult.Success] will contain the successfully added [W3WMarker].
+     *         - [W3WResult.Failure] will contain the error if any marker failed to be added.
      *
-     * Note: This function filters out any listWords that fail to convert to coordinates.
-     *       Only successfully converted addresses will result in markers being added to the map.
-     *
-     * Usage:
-     * ```
-     * val listWords = listOf("index.home.raft", "filled.count.soap", "daring.lion.race")
-     * mapManager.addMarkersAt(listWords)
-     * ```
+     * @see [W3WMarker]
+     * @see [W3WResult]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
      */
     @JvmName("addMarkersAtListWords")
     suspend fun addMarkersAt(
@@ -1162,31 +1301,26 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a batch of markers to the map at the specified coordinates.
+     * Adds markers to the map for a list of [W3WCoordinates].
      *
-     * This suspend function asynchronously converts each provided coordinate to a what3words address,
-     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     * This function converts each [W3WCoordinates] object into a What3Words address using the `convertTo3wa` function
+     * and then adds the corresponding marker to the map at the specified coordinates.
+     * - If `listName` is specified, markers will be added to that specific list.
+     * - If no `listName` is provided, markers will be added to the default list (`LIST_DEFAULT_ID`).
+     * - The function handles the conversion of each coordinate to a What3Words address and adds markers at the corresponding locations.
      *
-     * @param listCoordinates A list of [W3WCoordinates] where markers should be placed.
-     * @param listName The name of the list to which these markers should be added.
-     * @param markerColor The color to be used for these markers.
+     * @param listCoordinates A list of [W3WCoordinates] objects that specify the coordinates where markers should be placed.
+     * @param listName The name of the list to which the markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) will be used.
+     * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) will be used.
+     * @param zoomOption The zoom option for the map. If not specified, the default option (`CENTER_AND_ZOOM`) will be used.
      *
-     * @see W3WCoordinates
-     * @see W3WMarker
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
-     *
-     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
-     *       Only successfully converted coordinates will result in markers being added to the map.
-     *
-     * Usage:
-     * ```
-     * val coordinates = listOf(
-     *     W3WCoordinates(11.521251, -0.203586),
-     *     W3WCoordinates(25.521252, -0.203587)
-     * )
-     * mapManager.addMarkersAt(coordinates)
-     * ```
+     * @return A list of [W3WResult] objects representing the result of adding each marker.
+     *         - [W3WResult.Success] will contain the successfully added [W3WMarker].
+     *         - [W3WResult.Failure] will contain the error if any marker failed to be added.
+     * @see [W3WCoordinates]
+     * @see [W3WResult]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
      */
     @JvmName("addMarkersAtListCoordinates")
     suspend fun addMarkersAt(
@@ -1207,31 +1341,28 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a batch of markers to the map at the specified coordinates.
+     * Adds markers to the map for a list of [W3WSuggestion] objects.
      *
-     * This suspend function asynchronously converts each provided coordinate to a what3words address,
-     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     * This function processes each suggestion in the list and:
+     * - If the suggestion contains a valid center (latitude and longitude), it uses that address to add a marker.
+     * - If the suggestion does not contain a valid center, it converts the three-word address (e.g., "filled.count.soap") to What3Words address and then adds the marker.
      *
-     * @param suggestions A list of [W3WSuggestion] where markers should be placed.
-     * @param listName The name of the list to which these markers should be added.
-     * @param markerColor The color to be used for these markers.
+     * The markers will be added to the specified list if `listName` is provided. If `listName` is `null`, the markers will be added to the default list (`LIST_DEFAULT_ID`).
      *
-     * @see W3WSuggestion
-     * @see W3WMarker
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
+     * @param suggestions A list of [W3WSuggestion] objects, each containing a What3Words address with optional center (latitude and longitude).
+     * @param listName The name of the list to which markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) is used.
+     * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) is used.
+     * @param zoomOption The zoom option for the map after markers are added. If not specified, the default option (`CENTER_AND_ZOOM`) is used.
      *
-     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
-     *       Only successfully converted coordinates will result in markers being added to the map.
+     * @return A list of [W3WResult] objects representing the result of adding each marker.
+     *         - [W3WResult.Success] contains the successfully added [W3WMarker].
+     *         - [W3WResult.Failure] contains the error if any marker failed to be added.
      *
-     * Usage:
-     * ```
-     * val coordinates = listOf(
-     *     W3WCoordinates(11.521251, -0.203586),
-     *     W3WCoordinates(25.521252, -0.203587)
-     * )
-     * mapManager.addMarkersAt(coordinates)
-     * ```
+     * @see [W3WSuggestion]
+     * @see [W3WResult]
+     * @see [W3WMarker]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
      */
     @JvmName("addMarkersAtAddresses")
     suspend fun addMarkersAt(
@@ -1257,31 +1388,28 @@ class W3WMapManager(
     }
 
     /**
-     * Adds a batch of markers to the map at the specified coordinates.
+     * Adds markers to the map at specific What3Words addresses.
      *
-     * This suspend function asynchronously converts each provided coordinate to a what3words address,
-     * creates markers, and adds them to the map. It uses coroutines for efficient parallel processing.
+     * This function processes a list of [W3WAddress] objects, and:
+     * - If the address contains a valid center (latitude and longitude), the marker is added using those coordinates.
+     * - If the address does not contain a valid center, it will convert the three-word address (e.g., "filled.count.soap") to What3Words address and then add the marker.
      *
-     * @param addresses A list of [W3WAddress] where markers should be placed.
-     * @param listName The name of the list to which these markers should be added.
-     * @param markerColor The color to be used for these markers.
+     * Markers are added to the specified list. If `listName` is not provided, the markers will be added to the default list (`LIST_DEFAULT_ID`).
      *
-     * @see W3WAddress
-     * @see W3WMarker
-     * @see W3WMarkerColor
-     * @see W3WZoomOption
+     * @param addresses A list of [W3WAddress] objects, each containing a What3Words address. The address may either have a center (coordinates) or a three-word address.
+     * @param listName The name of the list to which markers will be added. If not specified, the default list (`LIST_DEFAULT_ID`) is used.
+     * @param markerColor The color of the markers. If not specified, the default color (`MARKER_COLOR_DEFAULT`) is used.
+     * @param zoomOption The zoom option for the map after markers are added. If not specified, the default option (`CENTER_AND_ZOOM`) is used.
+
+     * @return A list of [W3WResult] objects representing the result of adding each marker.
+     *         - [W3WResult.Success] contains the successfully added [W3WMarker].
+     *         - [W3WResult.Failure] contains the error if any marker failed to be added.
      *
-     * Note: This function filters out any coordinates that fail to convert to what3words addresses.
-     *       Only successfully converted coordinates will result in markers being added to the map.
-     *
-     * Usage:
-     * ```
-     * val coordinates = listOf(
-     *     W3WCoordinates(11.521251, -0.203586),
-     *     W3WCoordinates(25.521252, -0.203587)
-     * )
-     * mapManager.addMarkersAt(coordinates)
-     * ```
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     * @see [W3WResult]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
      */
     @JvmName("addMarkersAtSuggestions")
     suspend fun addMarkersAt(
@@ -1306,6 +1434,34 @@ class W3WMapManager(
         )
     }
 
+    /**
+     * Adds markers to the map for a list of inputs by converting each input to a [W3WMarker] using the provided [convertFunction].
+     * The function processes each input asynchronously and adds the corresponding marker to the map.
+     *
+     * The function will:
+     * - Convert each input into a [W3WAddress] using the [convertFunction].
+     * - If the conversion is successful, it adds the corresponding [W3WMarker] to the map.
+     * - If the conversion fails, it returns a failure result for that specific input.
+     *
+     * Once all markers are added, the map state is updated, and the zoom option is applied.
+     *
+     * @param inputs The list of inputs to be processed. Each input will be passed to the [convertFunction].
+     * @param convertFunction A suspend function that converts each input into a [W3WResult] containing a [W3WAddress].
+     *                        The conversion can either succeed (providing a valid address) or fail.
+     * @param markerColor The color of the marker to be added to the map. Defaults to [MARKER_COLOR_DEFAULT].
+     * @param listName The name of the list in which markers will be added. Defaults to [LIST_DEFAULT_ID].
+     * @param zoomOption Defines the zoom behavior after the markers are added. Defaults to [W3WZoomOption.CENTER_AND_ZOOM].
+     *
+     * @return A list of [W3WResult] where each result represents the outcome of the marker addition.
+     *         - [W3WResult.Success] contains the added marker.
+     *         - [W3WResult.Failure] contains an error if the marker couldn't be added.
+     *
+     * @see [W3WAddress]
+     * @see [W3WMarker]
+     * @see [W3WResult]
+     * @see [W3WZoomOption]
+     * @see [W3WMarkerColor]
+     */
     private suspend fun <T> addMarkersInternal(
         inputs: List<T>,
         convertFunction: suspend (T) -> W3WResult<W3WAddress>,

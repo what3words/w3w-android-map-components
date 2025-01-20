@@ -75,7 +75,9 @@ fun W3WMapBox(
 
     var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
     val density = LocalDensity.current.density
-    val cameraForCoordinatesPadding = EdgeInsets(0.0,10.0 * density,0.0,10.0 * density)
+    val cameraForCoordinatesPadding = remember(density) {
+        EdgeInsets(0.0,10.0 * density,0.0,10.0 * density)
+    }
 
     LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
