@@ -226,10 +226,9 @@ class W3WMapManager(
         val newGridLines = calculateGridPolylines(gridBound)
         if (newGridLines != null) {
             lastProcessedGridBound = gridBound
-        }
-
-        _mapState.update {
-            it.copy(gridLines = newGridLines ?: W3WGridLines())
+            _mapState.update {
+                it.copy(gridLines = newGridLines)
+            }
         }
     }
 
