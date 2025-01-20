@@ -1,28 +1,27 @@
 package com.what3words.components.compose.maps.extensions
 
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.core.types.common.W3WError
+import com.what3words.core.types.common.W3WResult
 
 internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
     listName: String,
     marker: W3WMarker,
-) {
+): W3WResult<W3WMarker> {
     // Get or create the current list of markers (using MutableList for in-place updates)
-    val currentList = this[listName] ?: mutableListOf()
+    val currentList = this.getOrPut(listName) { mutableListOf() }
 
-    // Create a new list by either updating or adding the marker
-    if (marker in currentList) {
-        // Replace the existing marker if it exists (by id)
-        val index = currentList.indexOfFirst { it.square.id == marker.square.id }
-        if (index != -1) {
-            currentList[index] = marker
-        }
+    // Check if a marker with the same ID already exists
+    val index = currentList.indexOfFirst { it.square.id == marker.square.id }
+
+    return if (index != -1) {
+        // If a marker already exists, throw an exception
+        W3WResult.Failure(W3WError("Marker with coordinates ${marker.center} already exists in the list '$listName'."))
     } else {
         // Marker doesn't exist, add it to the list
         currentList.add(marker)
+        W3WResult.Success(marker)
     }
-
-    // Update the map with the modified list
-    this[listName] = currentList
 }
 
 /**

@@ -1098,17 +1098,21 @@ class W3WMapManager(
         return@withContext when (val result = convertFunction(input)) {
             is W3WResult.Success -> {
                 val marker = result.value.toW3WMarker(markerColor)
-                markersMap.addMarker(listName = listName, marker = marker)
+                val addMarkerResult = markersMap.addMarker(listName = listName, marker = marker)
 
-                // Update the map state
-                _mapState.update { currentState ->
-                    currentState.copy(
-                        markers = markersMap.toMarkers().toImmutableList()
-                    )
+                if(addMarkerResult is W3WResult.Success) {
+                    // Update the map state
+                    _mapState.update { currentState ->
+                        currentState.copy(
+                            markers = markersMap.toMarkers().toImmutableList()
+                        )
+                    }
+
+                    // Handle zoom option
+                    handleZoomOption(marker.center, zoomOption, zoomLevel)
                 }
 
-                handleZoomOption(marker.center, zoomOption, zoomLevel)
-                W3WResult.Success(marker)
+                addMarkerResult
             }
 
             is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
@@ -1309,21 +1313,19 @@ class W3WMapManager(
         listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
     ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
-        val results = inputs.map { input -> async { convertFunction(input) } }.awaitAll().map { result ->
-            when (result) {
-                is W3WResult.Success -> {
-                    W3WResult.Success(result.value.toW3WMarker(markerColor))
-                }
-                is W3WResult.Failure -> {
-                    W3WResult.Failure(result.error, result.message)
+        val results = inputs.map { input ->
+            async {
+                // Convert and add marker
+                when (val result = convertFunction(input)) {
+                    is W3WResult.Success -> {
+                        val marker = result.value.toW3WMarker(markerColor)
+                        markersMap.addMarker(listName = listName, marker = marker)
+                    }
+
+                    is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
                 }
             }
-        }
-
-        val markers = results.filterIsInstance<W3WResult.Success<W3WMarker>>()
-        markers.forEach {
-            markersMap.addMarker(listName = listName, marker = it.value)
-        }
+        }.awaitAll()
 
         // Update the map state
         _mapState.update { currentState ->
@@ -1332,7 +1334,7 @@ class W3WMapManager(
             )
         }
 
-        handleZoomOption(markers.map { it.value.center }, zoomOption)
+        handleZoomOption(results.filterIsInstance<W3WResult.Success<W3WMarker>>().map { it.value.center }, zoomOption)
 
         return@withContext results
     }
