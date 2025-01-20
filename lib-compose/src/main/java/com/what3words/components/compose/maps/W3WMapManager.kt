@@ -670,7 +670,7 @@ class W3WMapManager(
      * Removes markers from the map at a specific what3words address.
      *
      * The process is as follows:
-     * - If the address has a valid center (latitude and longitude) [W3WAddress.center], the marker is removed using those coordinates.
+     * - If the address has a valid center (latitude and longitude) [W3WAddress.center], the marker is removed using those coordinates3.
      * - If the center is null, the function uses the three-word address (e.g., "filled.count.soap") [W3WAddress.words]
      *   to identify and remove the marker instead.
      *
@@ -1490,7 +1490,8 @@ class W3WMapManager(
             )
         }
 
-        handleZoomOption(results.filterIsInstance<W3WResult.Success<W3WMarker>>().map { it.value.center }, zoomOption)
+        val successResults = results.filterIsInstance<W3WResult.Success<W3WMarker>>()
+        handleZoomOption(successResults.map { it.value.center }, zoomOption)
 
         return@withContext results
     }
