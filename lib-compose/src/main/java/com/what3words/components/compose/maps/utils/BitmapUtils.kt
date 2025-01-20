@@ -77,20 +77,24 @@ fun getPinBitmap(
         listOf(
             DrawPath(context.getString(R.string.path_pin_circle),
                 Paint().apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = 2f * density
-                    isAntiAlias = true
-                    color = android.graphics.Color.WHITE
-                }
-            ),
-            DrawPath(context.getString(R.string.path_pin_circle),
-                Paint().apply {
                     color = colorMarker.background.toArgb()
+                    // Draw shadow with radius 3dp (+2dp) of the stroke
+                    // The design has 2 shadow layers
+                    setShadowLayer(5 * density, 0f, 0f, Color(0x26000000).toArgb())
+                    setShadowLayer(4 * density, 0f, 0f, Color(0x4D000000).toArgb())
                 }
             ),
             DrawPath(context.getString(R.string.path_pin_slashes),
                 Paint().apply {
                     color = colorMarker.slash.toArgb()
+                }
+            ),
+            DrawPath(context.getString(R.string.path_pin_circle),
+                Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f * density
+                    isAntiAlias = true
+                    color = android.graphics.Color.WHITE
                 }
             )
         ),
@@ -109,15 +113,17 @@ fun getBitMapFromPathData(
     listDrawPath: List<DrawPath>,
     width: Int,
     height: Int,
-    scaleFactor: Float
+    scaleFactor: Float,
+    padding: Int = 4, // Default padding for shadow in dp
 ): Bitmap {
     // Calculate scaled dimensions
     val widthScaled = (width * scaleFactor).toInt()
     val heightScaled = (height * scaleFactor).toInt()
+    val paddingPx = (padding * scaleFactor).toInt()
 
     // Create a Bitmap of the target size
     val bitmap = try {
-        Bitmap.createBitmap(widthScaled, heightScaled, Bitmap.Config.ARGB_8888)
+        Bitmap.createBitmap(widthScaled + paddingPx * 2, heightScaled + paddingPx * 2, Bitmap.Config.ARGB_8888)
     } catch (e: OutOfMemoryError) {
         throw IllegalArgumentException("Bitmap too large to allocate", e)
     }
@@ -127,6 +133,9 @@ fun getBitMapFromPathData(
 
     // Create and apply scaling transformation
     val matrix = Matrix().apply { setScale(scaleFactor, scaleFactor) }
+
+    // Translate canvas to account for padding
+    canvas.translate(paddingPx.toFloat(), paddingPx.toFloat())
 
     // Draw each path onto the canvas
     listDrawPath.forEach { drawPath ->
