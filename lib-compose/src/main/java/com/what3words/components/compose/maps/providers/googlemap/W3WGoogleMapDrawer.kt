@@ -231,7 +231,12 @@ fun W3WGoogleMapDrawSelectedAddress(
             isDarkMode = isDarkMode
         )
     } else {
-        DrawZoomOutSelectedAddress(markerConfig, selectedAddress, markersInSelectedAddress)
+        DrawZoomOutSelectedAddress(
+            markerConfig = markerConfig,
+            selectedAddress = selectedAddress,
+            markersInSelectedSquare = markersInSelectedAddress,
+            isDarkMode = isDarkMode
+        )
     }
 }
 
@@ -241,12 +246,19 @@ private fun DrawZoomOutSelectedAddress(
     markerConfig: W3WMapDefaults.MarkerConfig,
     selectedAddress: W3WAddress,
     markersInSelectedSquare: ImmutableList<W3WMarker>,
+    isDarkMode: Boolean
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
+    val selectedZoomOutColor = if (isDarkMode) {
+        markerConfig.selectedZoomOutColorDarkMode
+    } else {
+        markerConfig.selectedZoomOutColorLightMode
+    }
+
     val color = when (markersInSelectedSquare.size) {
-        0 -> markerConfig.selectedZoomOutColor
+        0 -> selectedZoomOutColor
         1 -> markersInSelectedSquare.first().color
         else -> markerConfig.defaultMarkerColor
     }

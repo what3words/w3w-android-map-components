@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -24,8 +25,6 @@ enum class MapProvider {
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT =
-        W3WMarkerColor(background = Color(0xFF0A3049), slash = Color.White)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
@@ -102,7 +101,8 @@ object W3WMapDefaults {
     @Immutable
     data class MarkerConfig(
         val defaultMarkerColor: W3WMarkerColor,
-        val selectedZoomOutColor: W3WMarkerColor,
+        val selectedZoomOutColorLightMode: W3WMarkerColor,
+        val selectedZoomOutColorDarkMode: W3WMarkerColor,
         val selectedZoomInColor: Color,
         val selectedZoomInColorDarkMode: Color,
     )
@@ -116,6 +116,7 @@ object W3WMapDefaults {
         )
     }
 
+    @Composable
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         isBuildingEnable: Boolean = false,
@@ -162,14 +163,23 @@ object W3WMapDefaults {
         )
     }
 
+    @Composable
     fun defaultMarkerConfig(
-        selectedZoomOutColor: W3WMarkerColor = SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT,
+        selectedZoomOutColorLightMode: W3WMarkerColor = W3WMarkerColor(
+            background = MaterialTheme.colorScheme.primaryContainer,
+            slash = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        selectedZoomOutColorDarkMode: W3WMarkerColor = W3WMarkerColor(
+            background = MaterialTheme.colorScheme.onPrimaryContainer,
+            slash = MaterialTheme.colorScheme.onPrimary,
+        ),
         defaultMarkerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
         selectedColor: Color = Color.Black,
         selectedColorDarkMode: Color = Color.White
     ): MarkerConfig {
         return MarkerConfig(
-            selectedZoomOutColor = selectedZoomOutColor,
+            selectedZoomOutColorLightMode = selectedZoomOutColorLightMode,
+            selectedZoomOutColorDarkMode = selectedZoomOutColorDarkMode,
             defaultMarkerColor = defaultMarkerColor,
             selectedZoomInColor = selectedColor,
             selectedZoomInColorDarkMode = selectedColorDarkMode

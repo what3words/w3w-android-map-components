@@ -228,9 +228,10 @@ fun W3WMapBoxDrawSelectedAddress(
         )
     } else {
         DrawZoomOutSelectedAddress(
-            markerConfig,
-            selectedAddress,
-            markersInSelectedSquare
+            markerConfig = markerConfig,
+            selectedAddress = selectedAddress,
+            markersInSelectedSquare = markersInSelectedSquare,
+            isDarkMode = isDarkMode
         )
     }
 }
@@ -390,12 +391,19 @@ private fun DrawZoomOutSelectedAddress(
     markerConfig: W3WMapDefaults.MarkerConfig,
     selectedAddress: W3WAddress,
     markersInSelectedSquare: ImmutableList<W3WMarker>,
+    isDarkMode: Boolean
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
+    val selectedZoomOutColor = if (isDarkMode) {
+        markerConfig.selectedZoomOutColorDarkMode
+    } else {
+        markerConfig.selectedZoomOutColorLightMode
+    }
+
     val color = when (markersInSelectedSquare.size) {
-        0 -> markerConfig.selectedZoomOutColor
+        0 -> selectedZoomOutColor
         1 -> markersInSelectedSquare.first().color
         else -> markerConfig.defaultMarkerColor
     }
