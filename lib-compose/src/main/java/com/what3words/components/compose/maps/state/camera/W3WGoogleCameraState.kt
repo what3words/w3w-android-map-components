@@ -68,7 +68,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
             cameraState.animate(
                 update =
                 CameraUpdateFactory.newLatLngBounds(
-                    latLngBounds.build(), 0
+                    latLngBounds.build(), 10
                 )
             )
         }
