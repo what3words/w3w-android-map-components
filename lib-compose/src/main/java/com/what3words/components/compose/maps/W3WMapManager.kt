@@ -1475,19 +1475,21 @@ class W3WMapManager(
         listName: String = LIST_DEFAULT_ID,
         zoomOption: W3WZoomOption = W3WZoomOption.CENTER_AND_ZOOM,
     ): List<W3WResult<W3WMarker>> = withContext(dispatcher) {
-        val results = inputs.map { input ->
+        val conversionResults = inputs.map { input ->
             async {
-                // Convert and add marker
-                when (val result = convertFunction(input)) {
-                    is W3WResult.Success -> {
-                        val marker = result.value.toW3WMarker(markerColor)
-                        markersMap.addMarker(listName = listName, marker = marker)
-                    }
-
-                    is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
-                }
+                convertFunction(input)
             }
         }.awaitAll()
+
+        val results = conversionResults.map { result ->
+            when (result) {
+                is W3WResult.Success -> {
+                    val marker = result.value.toW3WMarker(markerColor)
+                    markersMap.addMarker(listName = listName, marker = marker)
+                }
+                is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
+            }
+        }
 
         // Update the map state
         _mapState.update { currentState ->
