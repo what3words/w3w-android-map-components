@@ -1605,27 +1605,20 @@ class W3WMapManager(
     private suspend fun updateRecallButtonColor() {
         withContext(dispatcher) {
             val selectedLatLng = getSelectedAddress()?.center ?: return@withContext
-
-            val markersAtSelectedSquare =
-                getMarkersAt(selectedLatLng)
-
-            val markerSlashColor = if (markersAtSelectedSquare.size == 1) {
-                markersAtSelectedSquare.first().marker.color.slash
-            } else {
-                Color.White
+            val markersAtSelectedSquare = getMarkersAt(selectedLatLng)
+            val markerColor = when (markersAtSelectedSquare.size) {
+                0 -> mapConfig?.markerConfig?.selectedZoomOutColor
+                1 -> markersAtSelectedSquare.first().marker.color
+                else -> mapConfig?.markerConfig?.defaultMarkerColor
             }
 
-            val markerBackgroundColor = if (markersAtSelectedSquare.size == 1) {
-                markersAtSelectedSquare.first().marker.color.background
-            } else {
-                Color(0xFFE11F26) // TODO: Define name for this color
-            }
-
-            _buttonState.update {
-                it.copy(
-                    recallArrowColor = markerSlashColor,
-                    recallBackgroundColor = markerBackgroundColor
-                )
+            markerColor?.let { color ->
+                _buttonState.update {
+                    it.copy(
+                        recallArrowColor = color.slash,
+                        recallBackgroundColor = color.background,
+                    )
+                }
             }
         }
     }
