@@ -62,7 +62,8 @@ fun getFillGridMarkerBitmap(
         ),
         size,
         size,
-        scale
+        scale,
+        0
     )
 }
 
