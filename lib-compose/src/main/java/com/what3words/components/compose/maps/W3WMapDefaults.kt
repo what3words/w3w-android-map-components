@@ -94,12 +94,6 @@ object W3WMapDefaults {
     )
 
     @Immutable
-    data class Colors(
-        val buttonColors: W3WMapButtonsDefault.ButtonColors,
-        val mapColors: MapColors,
-    )
-
-    @Immutable
     data class MapColors(
         val normalMapColor: MapColor,
         val darkMapColor: MapColor,
@@ -165,17 +159,6 @@ object W3WMapDefaults {
             isMapSwitchButtonAvailable = isMapSwitchButtonAvailable,
             isMyLocationButtonAvailable = isMyLocationButtonAvailable,
             isRecallButtonAvailable = isRecallButtonAvailable
-        )
-    }
-
-    @Composable
-    fun defaultColors(
-        buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
-        mapColors: MapColors = defaultMapColors()
-    ): Colors {
-        return Colors(
-            buttonColors = buttonColors,
-            mapColors = mapColors
         )
     }
 
