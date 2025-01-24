@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 fun RecallButton(
     modifier: Modifier = Modifier,
     rotation: Float = 0F,
-    backgroundColor: Color = Color(0xFFE11F26),
-    arrowColor: Color = Color.White,
+    backgroundColor: Color,
+    arrowColor: Color,
     isVisible: Boolean = false,
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onRecallClicked: () -> Unit,

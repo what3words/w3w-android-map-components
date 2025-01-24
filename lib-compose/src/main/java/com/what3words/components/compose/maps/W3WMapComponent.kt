@@ -21,7 +21,11 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
+import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultButtonColors
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WLocationSource
 import com.what3words.components.compose.maps.models.W3WMapProjection
@@ -50,6 +54,13 @@ import kotlinx.coroutines.launch
  * @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance such as custom dark mode, grid line config.
+ * Determines the map's color scheme based on the current map type and dark mode setting.
+ * - If the `mapType` is `NORMAL` or `TERRAIN`:
+ *     - If `isDarkMode` is `true`, the dark color scheme (`darkMapColor`) is used.
+ *     - If `isDarkMode` is `false`, the normal color scheme (`normalMapColor`) is used.
+ * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
+ * @param mapColors [W3WMapDefaults.MapColor] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
+ * @param buttonColors [W3WMapButtonsDefault.ButtonColors] Configuration for the button's color which are applied according to the current theme
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
  * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param content Optional composable content to be displayed on the map.
@@ -60,6 +71,8 @@ fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
+    mapColors: MapColors = defaultMapColors(),
     mapManager: W3WMapManager,
     onSelectedSquareChanged: (W3WAddress) -> Unit,
     locationSource: W3WLocationSource? = null,
@@ -102,6 +115,8 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = currentLayoutConfig.value,
         mapConfig = currentMapConfig.value,
+        mapColors = mapColors,
+        buttonColors = buttonColors,
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
@@ -157,6 +172,13 @@ fun W3WMapComponent(
  * @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * Determines the map's color scheme based on the current map type and dark mode setting.
+ * - If the `mapType` is `NORMAL` or `TERRAIN`:
+ *     - If `isDarkMode` is `true`, the dark color scheme (`darkMapColor`) is used.
+ *     - If `isDarkMode` is `false`, the normal color scheme (`normalMapColor`) is used.
+ * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
+ * @param mapColors [W3WMapDefaults.MapColor] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
+ * @param buttonColors [W3WMapButtonsDefault.ButtonColors] Configuration for the button's color which are applied according to the current theme
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -172,6 +194,8 @@ fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
+    mapColors: MapColors = defaultMapColors(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
@@ -191,6 +215,8 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = layoutConfig,
         mapConfig = mapConfig,
+        mapColors = mapColors,
+        buttonColors = buttonColors,
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
@@ -233,6 +259,13 @@ fun W3WMapComponent(
  ** @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * Determines the map's color scheme based on the current map type and dark mode setting.
+ * - If the `mapType` is `NORMAL` or `TERRAIN`:
+ *     - If `isDarkMode` is `true`, the dark color scheme (`darkMapColor`) is used.
+ *     - If `isDarkMode` is `false`, the normal color scheme (`normalMapColor`) is used.
+ * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
+ * @param mapColors [W3WMapDefaults.MapColors] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
+ * @param buttonColors [W3WMapButtonsDefault.ButtonColors] Configuration for the button's color which are applied according to the current theme
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -248,6 +281,8 @@ internal fun W3WMapContent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
+    mapColors: MapColors = defaultMapColors(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
@@ -279,6 +314,19 @@ internal fun W3WMapContent(
             }
         }
 
+        val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
+            when(mapState.mapType) {
+                W3WMapType.NORMAL,
+                W3WMapType.TERRAIN -> {
+                    if(mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
+                }
+                W3WMapType.HYBRID,
+                W3WMapType.SATELLITE -> {
+                    mapColors.satelliteMapColor
+                }
+            }
+        }
+
         LaunchedEffect(bounds) {
             bounds.let {
                 val leftTop = PointF(it.left, it.top)
@@ -305,6 +353,7 @@ internal fun W3WMapContent(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 mapProvider = mapProvider,
                 mapState = mapState,
                 onMarkerClicked = onMarkerClicked,
@@ -320,6 +369,7 @@ internal fun W3WMapContent(
                     .padding(layoutConfig.contentPadding),
                 buttonConfig = mapConfig.buttonConfig,
                 buttonState = buttonState,
+                buttonColors = buttonColors,
                 isLocationEnabled = mapState.isMyLocationEnabled,
                 onMapTypeClicked = onMapTypeClicked,
                 onMyLocationClicked = onMyLocationClicked,
@@ -386,6 +436,7 @@ internal fun MapPermissionsHandler(
  * @param modifier Modifier for styling and layout of the map view.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * @param mapColor [W3WMapDefaults.MapColor] Configuration for the map's appearance color such gridLine, marker.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param content Optional composable content to be displayed on the map.
@@ -397,6 +448,7 @@ internal fun W3WMapView(
     modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
+    mapColor: W3WMapDefaults.MapColor,
     mapProvider: MapProvider,
     mapState: W3WMapState,
     content: (@Composable () -> Unit)? = null,
@@ -411,6 +463,7 @@ internal fun W3WMapView(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 state = mapState,
                 content = content,
                 onMapClicked = onMapClicked,
@@ -425,6 +478,7 @@ internal fun W3WMapView(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 state = mapState,
                 content = content,
                 onMapClicked = onMapClicked,

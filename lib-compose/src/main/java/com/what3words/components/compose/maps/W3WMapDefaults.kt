@@ -6,6 +6,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultButtonColors
 import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
@@ -24,8 +26,6 @@ enum class MapProvider {
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
-    private val SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT =
-        W3WMarkerColor(background = Color(0xFF0A3049), slash = Color.White)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
@@ -41,9 +41,6 @@ object W3WMapDefaults {
         val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
         val isBuildingEnable: Boolean,
 
-        // Marker
-        val markerConfig: MarkerConfig,
-
         // Grid view
         val gridLineConfig: GridLinesConfig,
 
@@ -55,7 +52,6 @@ object W3WMapDefaults {
      * Data class representing the configuration for grid lines on the map.
      *
      * @property isGridEnabled Whether the grid is enabled or not.
-     * @property gridColor The color of the grid lines.
      * @property gridLineWidth The width of the grid lines.
      * @property zoomSwitchLevel The zoom level at which the grid appearance changes.
      * @property gridScale The scale factor for the grid. Determines how much larger the grid is
@@ -65,8 +61,6 @@ object W3WMapDefaults {
     @Immutable
     data class GridLinesConfig(
         val isGridEnabled: Boolean,
-        val gridColor: Color,
-        val gridColorDarkMode: Color,
         val gridLineWidth: Dp,
         val zoomSwitchLevel: Float,
         val gridScale: Float
@@ -100,11 +94,23 @@ object W3WMapDefaults {
     )
 
     @Immutable
-    data class MarkerConfig(
-        val defaultMarkerColor: W3WMarkerColor,
+    data class MapColors(
+        val normalMapColor: MapColor,
+        val darkMapColor: MapColor,
+        val satelliteMapColor: MapColor
+    )
+
+    @Immutable
+    data class MapColor(
+        val gridLineColor: Color,
+        val markerColors: MarkerColors
+    )
+
+    @Immutable
+    data class MarkerColors(
+        val selectedColor: Color,
         val selectedZoomOutColor: W3WMarkerColor,
-        val selectedZoomInColor: Color,
-        val selectedZoomInColorDarkMode: Color,
+        val defaultMarkerColor: W3WMarkerColor
     )
 
     @Composable
@@ -121,29 +127,23 @@ object W3WMapDefaults {
         isBuildingEnable: Boolean = false,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
-        markerConfig: MarkerConfig = defaultMarkerConfig()
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
             isBuildingEnable = isBuildingEnable,
             gridLineConfig = gridLineConfig,
             buttonConfig = buttonConfig,
-            markerConfig = markerConfig
         )
     }
 
     fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
-        gridColor: Color = Color(0xB3697F8D),
-        gridColorDarkMode: Color = Color(0xB3697F8D),
         zoomSwitchLevel: Float = 19f,
         gridLineWidth: Dp = 2.dp,
         gridScale: Float = 6f
     ): GridLinesConfig {
         return GridLinesConfig(
             isGridEnabled = isGridEnabled,
-            gridColor = gridColor,
-            gridColorDarkMode = gridColorDarkMode,
             zoomSwitchLevel = zoomSwitchLevel,
             gridLineWidth = gridLineWidth,
             gridScale = gridScale
@@ -162,17 +162,63 @@ object W3WMapDefaults {
         )
     }
 
-    fun defaultMarkerConfig(
-        selectedZoomOutColor: W3WMarkerColor = SELECTED_ZOOM_OUT_MARKER_COLOR_DEFAULT,
-        defaultMarkerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT,
-        selectedColor: Color = Color.Black,
-        selectedColorDarkMode: Color = Color.White
-    ): MarkerConfig {
-        return MarkerConfig(
+    fun defaultMapColors(
+        normalMapColor: MapColor = defaultNormalMapColor(),
+        darkMapColor: MapColor = defaultDarkMapColor(),
+        satelliteMapColor: MapColor = defaultSatelliteMapColor()
+    ): MapColors {
+        return MapColors(
+            normalMapColor = normalMapColor,
+            satelliteMapColor = satelliteMapColor,
+            darkMapColor = darkMapColor
+        )
+    }
+
+    fun defaultNormalMapColor(
+        gridLineColor: Color = Color(0x29697F8D),
+        markerColors: MarkerColors = defaultMarkerColor()
+    ): MapColor {
+        return MapColor(
+            gridLineColor = gridLineColor,
+            markerColors = markerColors
+        )
+    }
+
+    fun defaultSatelliteMapColor(
+        gridLineColor: Color = Color(0x29FFFFFF),
+        markerColors: MarkerColors = defaultMarkerColor(
+            selectedZoomOutColor = W3WMarkerColor(background = Color(0xffdbeffa), slash = Color(0xff0a3049)),
+            selectedColor = Color(0xfffcfcff)
+        )
+    ): MapColor {
+        return MapColor(
+            gridLineColor = gridLineColor,
+            markerColors = markerColors
+        )
+    }
+
+    fun defaultDarkMapColor(
+        gridLineColor: Color = Color(0x29FFFFFF),
+        markerColors: MarkerColors = defaultMarkerColor(
+            selectedZoomOutColor = W3WMarkerColor(background = Color(0xffdbeffa), slash = Color(0xff0a3049)),
+            selectedColor = Color(0xfffcfcff)
+        )
+    ): MapColor {
+        return MapColor(
+            gridLineColor = gridLineColor,
+            markerColors = markerColors
+        )
+    }
+
+    fun defaultMarkerColor(
+        selectedZoomOutColor: W3WMarkerColor = W3WMarkerColor(background = Color(0xFF0A3049), slash = Color(0xFFFCFCFF)),
+        defaultMarkerColor: W3WMarkerColor = W3WMarkerColor(background = Color(0xffe11f26), slash = Color(0xfffffbff)),
+        selectedColor: Color = Color(0xFF0A3049),
+    ): MarkerColors {
+        return MarkerColors(
             selectedZoomOutColor = selectedZoomOutColor,
             defaultMarkerColor = defaultMarkerColor,
-            selectedZoomInColor = selectedColor,
-            selectedZoomInColorDarkMode = selectedColorDarkMode
+            selectedColor = selectedColor
         )
     }
 }

@@ -51,6 +51,7 @@ fun W3WGoogleMap(
     modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
+    mapColor: W3WMapDefaults.MapColor,
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
@@ -129,7 +130,12 @@ fun W3WGoogleMap(
         MapEffect(Unit) { map ->
             mapProjection = W3WGoogleMapProjection(map.projection)
         }
-        W3WGoogleMapDrawer(state = state, mapConfig, onMarkerClicked)
+        W3WGoogleMapDrawer(
+            state = state,
+            mapConfig = mapConfig,
+            mapColor = mapColor,
+            onMarkerClicked = onMarkerClicked
+        )
         content?.invoke()
     }
 }

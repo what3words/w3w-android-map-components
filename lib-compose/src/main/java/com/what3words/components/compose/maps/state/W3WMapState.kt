@@ -16,7 +16,7 @@ import kotlinx.collections.immutable.persistentListOf
  * status of the map, such as language, map type, dark mode, gestures,
  * selected address, markers, camera state, and grid lines.
  * @property mapType The type of map displayed.
- * @property isDarkMode Whether dark mode is enabled for the map.
+ * @property isDarkMode Whether dark mode is enabled for the raw map.
  * @property isMapGestureEnable Whether map gestures are enabled.
  * @property isMyLocationEnabled Whether the "My Location" feature is enabled.
  * @property selectedAddress The currently selected what3words address.
