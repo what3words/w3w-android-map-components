@@ -60,6 +60,7 @@ fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    colors: W3WMapDefaults.Colors = W3WMapDefaults.defaultColors(),
     mapManager: W3WMapManager,
     onSelectedSquareChanged: (W3WAddress) -> Unit,
     locationSource: W3WLocationSource? = null,
@@ -79,6 +80,19 @@ fun W3WMapComponent(
 
     val currentMapConfig = remember {
         derivedStateOf { mapConfig }
+    }
+
+    val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
+        when(mapState.mapType) {
+            W3WMapType.NORMAL,
+            W3WMapType.TERRAIN -> {
+                if(mapState.isDarkMode) colors.mapColors.darkMapColor else colors.mapColors.normalMapColor
+            }
+            W3WMapType.HYBRID,
+            W3WMapType.SATELLITE -> {
+                colors.mapColors.satelliteMapColor
+            }
+        }
     }
 
     LaunchedEffect(currentMapConfig) {
@@ -102,6 +116,7 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = currentLayoutConfig.value,
         mapConfig = currentMapConfig.value,
+        mapColor = mapColor,
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
@@ -172,6 +187,7 @@ fun W3WMapComponent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    mapColor: W3WMapDefaults.MapColor = W3WMapDefaults.defaultNormalMapColor(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
@@ -191,6 +207,7 @@ fun W3WMapComponent(
         modifier = modifier,
         layoutConfig = layoutConfig,
         mapConfig = mapConfig,
+        mapColor = mapColor,
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
@@ -248,6 +265,7 @@ internal fun W3WMapContent(
     modifier: Modifier = Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
+    mapColor: W3WMapDefaults.MapColor = W3WMapDefaults.defaultNormalMapColor(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
     mapProvider: MapProvider,
@@ -305,6 +323,7 @@ internal fun W3WMapContent(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 mapProvider = mapProvider,
                 mapState = mapState,
                 onMarkerClicked = onMarkerClicked,
@@ -397,6 +416,7 @@ internal fun W3WMapView(
     modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
+    mapColor: W3WMapDefaults.MapColor,
     mapProvider: MapProvider,
     mapState: W3WMapState,
     content: (@Composable () -> Unit)? = null,
@@ -411,6 +431,7 @@ internal fun W3WMapView(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 state = mapState,
                 content = content,
                 onMapClicked = onMapClicked,
@@ -425,6 +446,7 @@ internal fun W3WMapView(
                 modifier = modifier,
                 layoutConfig = layoutConfig,
                 mapConfig = mapConfig,
+                mapColor = mapColor,
                 state = mapState,
                 content = content,
                 onMapClicked = onMapClicked,

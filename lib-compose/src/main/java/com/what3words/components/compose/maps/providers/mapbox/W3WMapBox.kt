@@ -60,6 +60,7 @@ fun W3WMapBox(
     modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
+    mapColor: W3WMapDefaults.MapColor,
     state: W3WMapState,
     content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
@@ -215,7 +216,12 @@ fun W3WMapBox(
             }
         }
 
-        W3WMapBoxDrawer(state, mapConfig, onMarkerClicked)
+        W3WMapBoxDrawer(
+            state = state,
+            mapConfig = mapConfig,
+            mapColor = mapColor,
+            onMarkerClicked = onMarkerClicked
+        )
         content?.invoke()
     }
 }

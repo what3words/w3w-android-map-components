@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.dp
 import com.what3words.design.library.ui.theme.w3wColorScheme
 
 object W3WMapButtonsDefault {
+    @Immutable
+    data class ButtonColors(
+        val locationButtonColor: LocationButtonColor
+    )
 
     @Immutable
     data class LocationButtonConfig(
@@ -25,7 +29,6 @@ object W3WMapButtonsDefault {
         val locationIconSize: Dp,
         val accuracyIndicatorSize: Dp,
         val accuracyTextStyle: TextStyle,
-        val locationButtonColor: LocationButtonColor,
     )
 
     @Immutable
@@ -53,6 +56,15 @@ object W3WMapButtonsDefault {
         val recallButtonDescription: String,
         val mapSwitchButtonDescription: String,
     )
+
+    @Composable
+    fun defaultButtonColors(
+        locationButtonColor: LocationButtonColor = defaultLocationButtonColor()
+    ): ButtonColors {
+        return ButtonColors(
+            locationButtonColor = locationButtonColor
+        )
+    }
 
     @Composable
     fun defaultLocationButtonColor(
@@ -92,10 +104,7 @@ object W3WMapButtonsDefault {
         locationButtonSize: Dp = 50.dp,
         locationIconSize: Dp = 30.dp,
         accuracyIndicatorSize: Dp = 20.dp,
-        accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall.copy(
-            color = MaterialTheme.colorScheme.onSecondaryContainer
-        ),
-        locationButtonColor: LocationButtonColor = defaultLocationButtonColor(),
+        accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall
     ): LocationButtonConfig {
         return LocationButtonConfig(
             enterAnimation = enterAnimation,
@@ -104,7 +113,6 @@ object W3WMapButtonsDefault {
             locationIconSize = locationIconSize,
             accuracyIndicatorSize = accuracyIndicatorSize,
             accuracyTextStyle = accuracyTextStyle,
-            locationButtonColor = defaultLocationButtonColor()
         )
     }
 

@@ -69,6 +69,7 @@ fun MyLocationButton(
     locationStatus: LocationStatus,
     unitMetrics: String = METER,
     buttonConfig: W3WMapButtonsDefault.LocationButtonConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
+    colors: W3WMapButtonsDefault.LocationButtonColor = W3WMapButtonsDefault.defaultLocationButtonColor(),
     resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onMyLocationClicked: () -> Unit
@@ -83,8 +84,8 @@ fun MyLocationButton(
     }
 
     val locationIconColor = when (locationStatus) {
-        LocationStatus.ACTIVE -> buttonConfig.locationButtonColor.locationIconColorActive
-        else -> buttonConfig.locationButtonColor.locationIconColorInactive
+        LocationStatus.ACTIVE -> colors.locationIconColorActive
+        else -> colors.locationIconColorInactive
     }
 
     LaunchedEffect(isShowingAccuracy) {
@@ -116,13 +117,13 @@ fun MyLocationButton(
                             )
                         ) // Rounded on the start side
                         // TODO: The alpha for light mode is too much transparent, original is 0.16
-                        .background(buttonConfig.locationButtonColor.accuracyBackgroundColor)
+                        .background(colors.accuracyBackgroundColor)
                         .padding(start = 12.dp, end = 4.dp)
                 ) {
                     Text(
                         text = resourceString.accuracyMessage.format(accuracyDistance, unitMetrics),
                         style = buttonConfig.accuracyTextStyle,
-                        color = buttonConfig.locationButtonColor.accuracyTextColor,
+                        color = colors.accuracyTextColor,
                         maxLines = 1 // Prevent text overflow
                     )
                     Spacer(Modifier.size(buttonConfig.locationButtonSize / 2))
@@ -137,7 +138,7 @@ fun MyLocationButton(
                     .align(Alignment.CenterEnd)
                     .shadow(elevation = 3.dp, shape = CircleShape)
                     .clip(CircleShape)
-                    .background(buttonConfig.locationButtonColor.locationBackgroundColor)
+                    .background(colors.locationBackgroundColor)
                     .size(buttonConfig.locationButtonSize),
                 onClick = {
                     onMyLocationClicked()
@@ -159,6 +160,7 @@ fun MyLocationButton(
                     modifier = Modifier.align(Alignment.TopEnd),
                     accuracyDistance = accuracyDistance,
                     buttonConfig = buttonConfig,
+                    colors = colors,
                     contentDescription = contentDescription
                 )
             }
@@ -171,16 +173,17 @@ private fun WarningIndicator(
     modifier: Modifier,
     accuracyDistance: Int,
     buttonConfig: W3WMapButtonsDefault.LocationButtonConfig,
+    colors: W3WMapButtonsDefault.LocationButtonColor,
     contentDescription: W3WMapButtonsDefault.ContentDescription,
 ) {
 
     val indicatorBackgroundColor = when {
         accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
-            buttonConfig.locationButtonColor.warningLowBackgroundColor
+            colors.warningLowBackgroundColor
         }
 
         accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
-            buttonConfig.locationButtonColor.warningHighBackgroundColor
+            colors.warningHighBackgroundColor
         }
 
         else -> return
@@ -188,11 +191,11 @@ private fun WarningIndicator(
 
     val indicatorIconColor = when {
         accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
-            buttonConfig.locationButtonColor.warningLowIconColor
+            colors.warningLowIconColor
         }
 
         accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
-            buttonConfig.locationButtonColor.warningHighIconColor
+            colors.warningHighIconColor
         }
 
         else -> return

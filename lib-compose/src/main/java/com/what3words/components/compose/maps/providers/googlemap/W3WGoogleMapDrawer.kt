@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.google.android.gms.maps.model.BitmapDescriptor
@@ -22,11 +23,11 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
-import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerConfig
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.utils.getFillGridMarkerBitmap
 import com.what3words.components.compose.maps.utils.getMarkerBitmap
@@ -51,6 +52,7 @@ import kotlinx.collections.immutable.toPersistentList
 fun W3WGoogleMapDrawer(
     state: W3WMapState,
     mapConfig: W3WMapDefaults.MapConfig,
+    mapColor: W3WMapDefaults.MapColor,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
     state.cameraState?.let { cameraState ->
@@ -65,8 +67,7 @@ fun W3WGoogleMapDrawer(
             W3WGoogleMapDrawGridLines(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
-                gridLinesConfig = mapConfig.gridLineConfig,
-                isDarkMode = state.isDarkMode
+                gridLineColor = mapColor.gridLineColor
             )
         }
 
@@ -129,7 +130,7 @@ fun W3WGoogleMapDrawer(
 
             //Draw the markers
             W3WGoogleMapDrawMarkers(
-                markerConfig = mapConfig.markerConfig,
+                defaultMarkerColor = mapColor.markerColors.defaultMarkerColor,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 markers = state.markers,
@@ -147,11 +148,10 @@ fun W3WGoogleMapDrawer(
 
             //Draw the selected address
             W3WGoogleMapDrawSelectedAddress(
-                markerConfig = mapConfig.markerConfig,
+                markerColors = mapColor.markerColors,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedAddress = state.selectedAddress,
-                isDarkMode = state.isDarkMode,
                 markersInSelectedAddress = markersInSelectedAddress
             )
         }
@@ -164,15 +164,8 @@ fun W3WGoogleMapDrawer(
 fun W3WGoogleMapDrawGridLines(
     verticalLines: List<W3WCoordinates>,
     horizontalLines: List<W3WCoordinates>,
-    gridLinesConfig: W3WMapDefaults.GridLinesConfig,
-    isDarkMode: Boolean
+    gridLineColor: Color
 ) {
-    val gridLineColor = remember(isDarkMode) {
-        derivedStateOf {
-            if (isDarkMode) gridLinesConfig.gridColorDarkMode else gridLinesConfig.gridColor
-        }
-    }
-
     val horizontalPolylines = remember(horizontalLines) {
         horizontalLines.map { LatLng(it.lat, it.lng) }
     }
@@ -183,7 +176,7 @@ fun W3WGoogleMapDrawGridLines(
 
     Polyline(
         points = horizontalPolylines,
-        color = gridLineColor.value,
+        color = gridLineColor,
         width = 1f,
         clickable = false,
         zIndex = 1f
@@ -191,7 +184,7 @@ fun W3WGoogleMapDrawGridLines(
 
     Polyline(
         points = verticalPolylines,
-        color = gridLineColor.value,
+        color = gridLineColor,
         width = 1f,
         clickable = false,
         zIndex = 1f
@@ -201,12 +194,11 @@ fun W3WGoogleMapDrawGridLines(
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawSelectedAddress(
-    markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
+    markerColors: W3WMapDefaults.MarkerColors = W3WMapDefaults.defaultMarkerColor(),
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedAddress: W3WAddress,
-    markersInSelectedAddress: ImmutableList<W3WMarker>,
-    isDarkMode: Boolean
+    markersInSelectedAddress: ImmutableList<W3WMarker>
 ) {
 
     val density = LocalDensity.current.density
@@ -225,30 +217,29 @@ fun W3WGoogleMapDrawSelectedAddress(
 
     if (drawZoomIn.value) {
         DrawZoomInSelectedAddress(
-            markerConfig = markerConfig,
+            selectedMarkerColor = markerColors.selectedColor,
             gridLineWidth = gridLineWidth.value,
             selectedAddress = selectedAddress,
-            isDarkMode = isDarkMode
         )
     } else {
-        DrawZoomOutSelectedAddress(markerConfig, selectedAddress, markersInSelectedAddress)
+        DrawZoomOutSelectedAddress(markerColors, selectedAddress, markersInSelectedAddress)
     }
 }
 
 @Composable
 @GoogleMapComposable
 private fun DrawZoomOutSelectedAddress(
-    markerConfig: W3WMapDefaults.MarkerConfig,
+    markerColors: W3WMapDefaults.MarkerColors,
     selectedAddress: W3WAddress,
-    markersInSelectedSquare: ImmutableList<W3WMarker>,
+    markersInSelectedSquare: ImmutableList<W3WMarker>
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
 
     val color = when (markersInSelectedSquare.size) {
-        0 -> markerConfig.selectedZoomOutColor
+        0 -> markerColors.selectedZoomOutColor
         1 -> markersInSelectedSquare.first().color
-        else -> markerConfig.defaultMarkerColor
+        else -> markerColors.defaultMarkerColor
     }
 
     val markerState = rememberUpdatedMarkerState(selectedAddress.center!!.toGoogleLatLng())
@@ -276,15 +267,10 @@ private fun DrawZoomOutSelectedAddress(
 @Composable
 @GoogleMapComposable
 private fun DrawZoomInSelectedAddress(
-    markerConfig: W3WMapDefaults.MarkerConfig,
+    selectedMarkerColor: Color,
     selectedAddress: W3WAddress,
-    gridLineWidth: Float,
-    isDarkMode: Boolean
+    gridLineWidth: Float
 ) {
-    val color = remember(isDarkMode) {
-        derivedStateOf { if (isDarkMode) markerConfig.selectedZoomInColorDarkMode else markerConfig.selectedZoomInColor }
-    }
-
     selectedAddress.square?.let { square ->
         Polyline(
             points = listOf(
@@ -309,7 +295,7 @@ private fun DrawZoomInSelectedAddress(
                     square.southwest.lng
                 )
             ),
-            color = color.value,
+            color = selectedMarkerColor,
             width = gridLineWidth,
             clickable = false,
             zIndex = 1f
@@ -321,7 +307,7 @@ private fun DrawZoomInSelectedAddress(
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawMarkers(
-    markerConfig: W3WMapDefaults.MarkerConfig = defaultMarkerConfig(),
+    defaultMarkerColor: W3WMarkerColor,
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     markers: ImmutableList<W3WMarker>,
@@ -346,12 +332,12 @@ fun W3WGoogleMapDrawMarkers(
 
     if (drawZoomIn.value) {
         DrawZoomInMarkers(
-            markerConfig = markerConfig,
+            defaultMarkerColor = defaultMarkerColor,
             markers = markers
         )
     } else {
         DrawZoomOutMarkers(
-            markerConfig = markerConfig,
+            defaultMarkerColor = defaultMarkerColor,
             markers = zoomOutMarkers.value,
             onMarkerClicked = onMarkerClicked
         )
@@ -360,7 +346,7 @@ fun W3WGoogleMapDrawMarkers(
 
 @Composable
 private fun DrawZoomInMarkers(
-    markerConfig: W3WMapDefaults.MarkerConfig,
+    defaultMarkerColor: W3WMarkerColor,
     markers: ImmutableList<W3WMarker>
 ) {
     val context = LocalContext.current
@@ -375,7 +361,7 @@ private fun DrawZoomInMarkers(
 
     markersBySquareId.forEach { (_, markers) ->
         val color =
-            if (markers.size == 1) markers.first().color else markerConfig.defaultMarkerColor
+            if (markers.size == 1) markers.first().color else defaultMarkerColor
 
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
@@ -405,7 +391,7 @@ private fun DrawZoomInMarkers(
 
 @Composable
 private fun DrawZoomOutMarkers(
-    markerConfig: W3WMapDefaults.MarkerConfig,
+    defaultMarkerColor: W3WMarkerColor,
     markers: ImmutableList<W3WMarker>,
     onMarkerClicked: (W3WMarker) -> Unit
 ) {
@@ -422,7 +408,7 @@ private fun DrawZoomOutMarkers(
 
     markersBySquareId.forEach { (_, markers) ->
         val color =
-            if (markers.size == 1) markers.first().color else markerConfig.defaultMarkerColor
+            if (markers.size == 1) markers.first().color else defaultMarkerColor
 
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
