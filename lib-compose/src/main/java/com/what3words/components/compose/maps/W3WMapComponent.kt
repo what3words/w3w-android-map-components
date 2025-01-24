@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
  * @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance such as custom dark mode, grid line config.
+ * @param colors [W3WMapDefaults.Colors] Configuration for the map's color such as light, dark and satellite mode.
  * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
  * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
  * @param content Optional composable content to be displayed on the map.
@@ -172,6 +173,7 @@ fun W3WMapComponent(
  * @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * @param mapColor [W3WMapDefaults.MapColor] Configuration for the map's appearance color such gridLine, marker.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -250,6 +252,7 @@ fun W3WMapComponent(
  ** @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * @param mapColor [W3WMapDefaults.MapColor] Configuration for the map's appearance color such gridLine, marker.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -405,6 +408,7 @@ internal fun MapPermissionsHandler(
  * @param modifier Modifier for styling and layout of the map view.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
+ * @param mapColor [W3WMapDefaults.MapColor] Configuration for the map's appearance color such gridLine, marker.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param content Optional composable content to be displayed on the map.
