@@ -62,7 +62,7 @@ jobs:
         run: ./gradlew lib:testDebugUnitTest
 
       - name: Upload Lib Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lib-test-results
           path: lib/build/test-results/testDebugUnitTest
@@ -71,7 +71,7 @@ jobs:
         run: ./gradlew lib-compose:testDebugUnitTest
 
       - name: Upload Lib Compose Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lib-compose-test-results
           path: lib-compose/build/test-results/testDebugUnitTest
