@@ -2,7 +2,6 @@ package com.what3words.components.compose.maps.state
 
 import android.graphics.PointF
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.graphics.Color
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WMapProjection
 
@@ -16,8 +15,6 @@ data class W3WButtonsState(
     // Recall button
     val isRecallButtonVisible: Boolean = false,
     val isRecallButtonEnabled: Boolean = false,
-    val recallArrowColor: Color = Color.White,
-    val recallBackgroundColor: Color = Color(0xFFE11F26),
     val recallRotationDegree: Float = 0F,
     val recallButtonPosition: PointF = PointF(0F, 0F),
 

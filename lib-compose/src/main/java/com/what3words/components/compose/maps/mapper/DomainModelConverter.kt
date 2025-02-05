@@ -1,8 +1,8 @@
 package com.what3words.components.compose.maps.mapper
 
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
-import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.components.compose.maps.models.W3WMarker
+import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.domain.W3WAddress
 
 

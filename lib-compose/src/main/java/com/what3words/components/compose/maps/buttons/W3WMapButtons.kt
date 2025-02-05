@@ -8,8 +8,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultButtonLayoutConfig
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultLocationButtonColor
 import com.what3words.components.compose.maps.models.W3WMapType
 import com.what3words.components.compose.maps.state.W3WButtonsState
+import kotlin.math.ceil
 
 /**
  * W3WMapButtons is a composable that displays the buttons on the map.
@@ -26,12 +29,15 @@ import com.what3words.components.compose.maps.state.W3WButtonsState
 @Composable
 fun W3WMapButtons(
     modifier: Modifier = Modifier,
-    buttonConfig: W3WMapDefaults.ButtonConfig,
     buttonState: W3WButtonsState,
+    mapType: W3WMapType,
     isLocationEnabled: Boolean,
+    buttonConfig: W3WMapDefaults.ButtonConfig,
+    layoutConfig: W3WMapButtonsDefault.ButtonLayoutConfig = defaultButtonLayoutConfig(),
     resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
-    buttonColors: W3WMapButtonsDefault.ButtonColors = W3WMapButtonsDefault.defaultButtonColors(),
+    locationButtonColor: W3WMapButtonsDefault.LocationButtonColor = defaultLocationButtonColor(),
+    recallButtonColor: W3WMapButtonsDefault.RecallButtonColor,
     onMyLocationClicked: (() -> Unit),
     onMapTypeClicked: ((W3WMapType) -> Unit),
     onRecallClicked: (() -> Unit),
@@ -42,23 +48,23 @@ fun W3WMapButtons(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalAlignment = Alignment.End
     ) {
-        if (buttonConfig.isRecallButtonAvailable) {
+        if (buttonConfig.isRecallButtonAvailable && buttonState.isRecallButtonVisible) {
             RecallButton(
+                layoutConfig = layoutConfig.recallButtonLayoutConfig,
                 onRecallClicked = onRecallClicked,
                 onRecallButtonPositionProvided = onRecallButtonPositionProvided,
-                isVisible = buttonState.isRecallButtonVisible,
-                rotation = buttonState.recallRotationDegree,
-                arrowColor = buttonState.recallArrowColor,
-                backgroundColor = buttonState.recallBackgroundColor,
+                rotation = ceil(buttonState.recallRotationDegree),
+                recallButtonColor = recallButtonColor,
                 contentDescription = contentDescription,
             )
         }
         if (buttonConfig.isMyLocationButtonAvailable) {
             MyLocationButton(
+                layoutConfig = layoutConfig.locationButtonLayoutConfig,
                 accuracyDistance = buttonState.accuracyDistance.toInt(),
                 isButtonEnabled = isLocationEnabled,
                 locationStatus = buttonState.locationStatus,
-                colors = buttonColors.locationButtonColor,
+                colors = locationButtonColor,
                 onMyLocationClicked = onMyLocationClicked,
                 resourceString = resourceString,
                 contentDescription = contentDescription,
@@ -66,6 +72,7 @@ fun W3WMapButtons(
         }
         if (buttonConfig.isMapSwitchButtonAvailable) {
             MapSwitchButton(
+                w3wMapType = mapType,
                 onMapTypeChange = onMapTypeClicked,
                 contentDescription = contentDescription,
             )

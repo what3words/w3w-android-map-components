@@ -6,8 +6,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault
-import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultButtonColors
 import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
