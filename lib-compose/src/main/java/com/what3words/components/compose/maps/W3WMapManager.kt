@@ -71,7 +71,6 @@ import kotlinx.coroutines.withContext
  *
  * In most cases, this will be created via [rememberW3WMapManager].
  *
- * @param textDataSource An instance of [W3WTextDataSource], used for fetching what3words address information.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param initialMapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
@@ -79,7 +78,6 @@ import kotlinx.coroutines.withContext
  * @property mapState A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
  */
 class W3WMapManager(
-    private val textDataSource: W3WTextDataSource,
     internal var mapProvider: MapProvider,
     val initialMapState: W3WMapState = W3WMapState(),
     private val initialButtonState: W3WButtonsState = W3WButtonsState(),
@@ -102,6 +100,8 @@ class W3WMapManager(
     private val markersMap: MutableMap<String, MutableList<W3WMarker>> = mutableMapOf()
 
     private var mapConfig: W3WMapDefaults.MapConfig? = null
+
+    private lateinit var textDataSource: W3WTextDataSource
 
     init {
         _mapState.update {
@@ -457,7 +457,7 @@ class W3WMapManager(
     ) = withContext(dispatcher) {
         suggestion.w3wAddress.center?.let {
             setSelectedInternal(suggestion.w3wAddress)
-        }?:run {
+        } ?: run {
             setSelectedAt(suggestion.w3wAddress.words)
         }
     }
@@ -476,7 +476,7 @@ class W3WMapManager(
     ) = withContext(dispatcher) {
         address.center?.let {
             setSelectedInternal(address)
-        }?:run {
+        } ?: run {
             setSelectedAt(address.words)
         }
     }
@@ -696,7 +696,7 @@ class W3WMapManager(
     ): List<W3WMarker> = withContext(dispatcher) {
         address.center?.let {
             removeMarkerAt(it, listName)
-        }?:run {
+        } ?: run {
             removeMarkerAt(address.words, listName)
         }
     }
@@ -725,7 +725,7 @@ class W3WMapManager(
     ): List<W3WMarker> = withContext(dispatcher) {
         suggestion.w3wAddress.center?.let {
             removeMarkerAt(it, listName)
-        }?:run {
+        } ?: run {
             removeMarkerAt(suggestion.w3wAddress.words, listName)
         }
     }
@@ -900,7 +900,7 @@ class W3WMapManager(
         suggestions: List<W3WSuggestion>,
         listName: String? = null
     ): List<W3WMarker> = withContext(dispatcher) {
-        removeMarkersAt(suggestions.map { it.w3wAddress },listName)
+        removeMarkersAt(suggestions.map { it.w3wAddress }, listName)
     }
 
     /**
@@ -987,7 +987,7 @@ class W3WMapManager(
     ): List<W3WMarkerWithList> {
         return address.center?.let {
             getMarkersAt(it)
-        }?:run{
+        } ?: run {
             getMarkersAt(address.words)
         }
     }
@@ -1017,7 +1017,7 @@ class W3WMapManager(
     ): List<W3WMarkerWithList> {
         return suggestion.w3wAddress.center?.let {
             getMarkersAt(it)
-        }?:run{
+        } ?: run {
             getMarkersAt(suggestion.w3wAddress.words)
         }
     }
@@ -1144,10 +1144,9 @@ class W3WMapManager(
             input = address,
             markerColor = markerColor,
             convertFunction = {
-                if(address.center == null) {
+                if (address.center == null) {
                     textDataSource.convertToCoordinates(address.words)
-                } else
-                {
+                } else {
                     W3WResult.Success(address)
                 }
             },
@@ -1192,10 +1191,9 @@ class W3WMapManager(
             input = suggestion.w3wAddress,
             markerColor = markerColor,
             convertFunction = {
-                if(suggestion.w3wAddress.center == null) {
+                if (suggestion.w3wAddress.center == null) {
                     textDataSource.convertToCoordinates(suggestion.w3wAddress.words)
-                } else
-                {
+                } else {
                     W3WResult.Success(suggestion.w3wAddress)
                 }
             },
@@ -1245,7 +1243,7 @@ class W3WMapManager(
                 val marker = result.value.toW3WMarker(markerColor)
                 val addMarkerResult = markersMap.addMarker(listName = listName, marker = marker)
 
-                if(addMarkerResult is W3WResult.Success) {
+                if (addMarkerResult is W3WResult.Success) {
                     // Update the map state
                     _mapState.update { currentState ->
                         currentState.copy(
@@ -1340,7 +1338,7 @@ class W3WMapManager(
             inputs = listCoordinates,
             markerColor = markerColor,
             convertFunction = {
-                textDataSource.convertTo3wa(it,language)
+                textDataSource.convertTo3wa(it, language)
             },
             zoomOption = zoomOption,
         )
@@ -1382,10 +1380,9 @@ class W3WMapManager(
             inputs = suggestions,
             markerColor = markerColor,
             convertFunction = {
-                if(it.w3wAddress.center == null) {
+                if (it.w3wAddress.center == null) {
                     textDataSource.convertToCoordinates(it.w3wAddress.words)
-                } else
-                {
+                } else {
                     W3WResult.Success(it.w3wAddress)
                 }
             },
@@ -1429,10 +1426,9 @@ class W3WMapManager(
             inputs = addresses,
             markerColor = markerColor,
             convertFunction = {
-                if(it.center == null) {
+                if (it.center == null) {
                     textDataSource.convertToCoordinates(it.words)
-                } else
-                {
+                } else {
                     W3WResult.Success(it)
                 }
             },
@@ -1487,6 +1483,7 @@ class W3WMapManager(
                     val marker = result.value.toW3WMarker(markerColor)
                     markersMap.addMarker(listName = listName, marker = marker)
                 }
+
                 is W3WResult.Failure -> W3WResult.Failure(result.error, result.message)
             }
         }
@@ -1533,7 +1530,10 @@ class W3WMapManager(
      * Handle zoom option for a list of [W3WCoordinates] with multiple zoom options which will use the zoom level
      * if it's provided or the default zoom level.
      */
-    private suspend fun handleZoomOption(listCoordinates: List<W3WCoordinates>, zoomOption: W3WZoomOption) {
+    private suspend fun handleZoomOption(
+        listCoordinates: List<W3WCoordinates>,
+        zoomOption: W3WZoomOption
+    ) {
         when (zoomOption) {
             W3WZoomOption.NONE -> {}
             W3WZoomOption.CENTER, W3WZoomOption.CENTER_AND_ZOOM -> {
@@ -1672,6 +1672,10 @@ class W3WMapManager(
         this.mapConfig = mapConfig
     }
 
+    internal fun setTextDataSource(textDataSource: W3WTextDataSource) {
+        this.textDataSource = textDataSource
+    }
+
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
         const val TAG = "W3WMapManager"
@@ -1682,57 +1686,55 @@ class W3WMapManager(
         val Saver: Saver<W3WMapManager, *> = Saver(
             save = { manager: W3WMapManager ->
                 val cameraState = manager.mapState.value.cameraState
+
                 mapOf(
-                    "textDataSource" to manager.textDataSource,
                     "mapProvider" to manager.mapProvider,
                     "language" to manager.language,
-                    "mapState" to manager.mapState.value,
-                    "buttonState" to manager.buttonState.value,
-                    "mapConfig" to manager.mapConfig,
-                    "markersMap" to manager.markersMap.mapValues { (_, markers) ->
-                        markers.toList()
-                    },
-                    "cameraState" to when (cameraState) {
-                        is W3WGoogleCameraState -> mapOf(
-                            "type" to "google",
-                            "position" to cameraState.cameraState.position
-                        )
-
-                        is W3WMapboxCameraState -> mapOf(
-                            "type" to "mapbox",
-                            "position" to cameraState.cameraState.cameraState
-                        )
-
+                    "markersMap" to manager.markersMap,
+                    "mapType" to manager.mapState.value.mapType,
+                    "isDarkMode" to manager.mapState.value.isDarkMode,
+                    "isMapGestureEnabled" to manager.mapState.value.isMapGestureEnable,
+                    "isMyLocationEnabled" to manager.mapState.value.isMyLocationEnabled,
+                    "cameraPositionState" to when (cameraState) {
+                        is W3WGoogleCameraState -> cameraState.cameraState.position
+                        is W3WMapboxCameraState -> cameraState.cameraState.cameraState
                         else -> null
                     }
                 )
             },
             restore = { savedMap: Map<String, Any?> ->
                 val mapProvider = savedMap["mapProvider"] as MapProvider
-                val restoredCameraState = savedMap["cameraState"] as? Map<String, Any>
-                val cameraState = when (restoredCameraState?.get("type") as? String) {
-                    "google" -> W3WGoogleCameraState(CameraPositionState(restoredCameraState["position"] as CameraPosition))
-                    "mapbox" -> W3WMapboxCameraState(MapViewportState(restoredCameraState["position"] as CameraState))
-                    else -> when (mapProvider) {
-                        MapProvider.GOOGLE_MAP -> W3WGoogleCameraState(CameraPositionState())
-                        MapProvider.MAPBOX -> W3WMapboxCameraState(MapViewportState())
-                    }
+                val cameraState = when (mapProvider) {
+                    MapProvider.GOOGLE_MAP -> W3WGoogleCameraState(CameraPositionState().apply {
+                        this.position = savedMap["cameraPositionState"] as CameraPosition
+                    })
+
+                    MapProvider.MAPBOX -> W3WMapboxCameraState(MapViewportState(savedMap["cameraPositionState"] as CameraState))
                 }
-                val restoredMapState =
-                    (savedMap["mapState"] as W3WMapState).copy(cameraState = cameraState)
-                val restoredButtonState = savedMap["buttonState"] as W3WButtonsState
+                val mapType = savedMap["mapType"] as W3WMapType
+                val restoredMarkersMap = savedMap["markersMap"] as Map<String, List<W3WMarker>>
+                val isDarkMode = savedMap["isDarkMode"] as Boolean
+                val isMapGestureEnabled = savedMap["isMapGestureEnabled"] as Boolean
+                val isMyLocationEnabled = savedMap["isMyLocationEnabled"] as Boolean
+
+                val restoredMapState = W3WMapState().copy(
+                    cameraState = cameraState,
+                    markers = restoredMarkersMap.values.flatten().toImmutableList(),
+                    mapType = mapType,
+                    isDarkMode = isDarkMode,
+                    isMapGestureEnable = isMapGestureEnabled,
+                    isMyLocationEnabled = isMyLocationEnabled
+                )
 
                 W3WMapManager(
-                    textDataSource = savedMap["textDataSource"] as W3WTextDataSource,
                     mapProvider = mapProvider,
                     initialMapState = restoredMapState,
-                    initialButtonState = restoredButtonState
+                    initialButtonState = W3WButtonsState()
                 ).apply {
                     language = savedMap["language"] as W3WRFC5646Language
-                    mapConfig = savedMap["mapConfig"] as W3WMapDefaults.MapConfig?
                     markersMap.clear()
                     markersMap.putAll(
-                        (savedMap["markersMap"] as Map<String, List<W3WMarker>>).mapValues {
+                        restoredMarkersMap.mapValues {
                             it.value.toMutableList()
                         }
                     )
@@ -1750,9 +1752,8 @@ class W3WMapManager(
 @Composable
 inline fun rememberW3WMapManager(
     key: String? = null,
-    textDataSource: W3WTextDataSource,
     mapProvider: MapProvider,
     crossinline init: W3WMapManager.() -> Unit = {}
 ): W3WMapManager = rememberSaveable(key = key, saver = W3WMapManager.Saver) {
-    W3WMapManager(textDataSource = textDataSource, mapProvider = mapProvider).apply(init)
+    W3WMapManager(mapProvider = mapProvider).apply(init)
 }

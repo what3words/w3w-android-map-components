@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.what3words.androidwrapper.datasource.text.W3WApiTextDataSource
 import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
@@ -38,6 +39,7 @@ import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
+import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
@@ -74,6 +76,7 @@ fun W3WMapComponent(
     buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
     mapColors: MapColors = defaultMapColors(),
     mapManager: W3WMapManager,
+    textDataSource: W3WTextDataSource,
     onSelectedSquareChanged: (W3WAddress) -> Unit,
     locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
@@ -92,6 +95,10 @@ fun W3WMapComponent(
 
     val currentMapConfig = remember {
         derivedStateOf { mapConfig }
+    }
+
+    LaunchedEffect(textDataSource) {
+        mapManager.setTextDataSource(textDataSource)
     }
 
     LaunchedEffect(currentMapConfig) {
