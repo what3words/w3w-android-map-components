@@ -7,6 +7,7 @@ plugins {
     id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
     alias(libs.plugins.compose.compiler)
+    id(libs.plugins.kotlin.parcelize.get().pluginId)
 }
 
 /**
