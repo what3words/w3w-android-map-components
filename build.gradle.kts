@@ -4,6 +4,7 @@ buildscript {
         classpath(libs.secrets.gradle.plugin)
         classpath(libs.ktlint.gradle)
         classpath(libs.sonarqube.gradle.plugin)
+        classpath(libs.kotlin.gradle.plugin)
     }
 }
 

@@ -38,6 +38,7 @@ import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
+import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
@@ -74,6 +75,7 @@ fun W3WMapComponent(
     buttonColors: W3WMapButtonsDefault.ButtonColors = defaultButtonColors(),
     mapColors: MapColors = defaultMapColors(),
     mapManager: W3WMapManager,
+    textDataSource: W3WTextDataSource,
     onSelectedSquareChanged: (W3WAddress) -> Unit,
     locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
@@ -92,6 +94,10 @@ fun W3WMapComponent(
 
     val currentMapConfig = remember {
         derivedStateOf { mapConfig }
+    }
+
+    LaunchedEffect(textDataSource) {
+        mapManager.setTextDataSource(textDataSource)
     }
 
     LaunchedEffect(currentMapConfig) {
@@ -315,11 +321,12 @@ internal fun W3WMapContent(
         }
 
         val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
-            when(mapState.mapType) {
+            when (mapState.mapType) {
                 W3WMapType.NORMAL,
                 W3WMapType.TERRAIN -> {
-                    if(mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
+                    if (mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
                 }
+
                 W3WMapType.HYBRID,
                 W3WMapType.SATELLITE -> {
                     mapColors.satelliteMapColor
