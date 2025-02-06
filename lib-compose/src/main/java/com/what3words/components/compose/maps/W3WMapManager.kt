@@ -6,7 +6,6 @@ import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.CameraPositionState
 import com.mapbox.geojson.Point
@@ -1603,41 +1602,8 @@ class W3WMapManager(
         }
     }
 
-    private suspend fun updateRecallButtonColor() {
-        withContext(dispatcher) {
-            val selectedLatLng = getSelectedAddress()?.center ?: return@withContext
-            //TODO: Find solution to handle color in composable side due to manager no keep the color config
-//            val markerColor = when (markersAtSelectedSquare.size) {
-//                0 -> mapConfig?.markerConfig?.selectedZoomOutColor
-//                1 -> markersAtSelectedSquare.first().marker.color
-//                else -> mapConfig?.markerConfig?.defaultMarkerColor
-//            }
-
-            val markersAtSelectedSquare =
-                getMarkersAt(selectedLatLng)
-            val markerSlashColor = if (markersAtSelectedSquare.size == 1) {
-                markersAtSelectedSquare.first().marker.color.slash
-            } else {
-                Color.White
-            }
-            val markerBackgroundColor = if (markersAtSelectedSquare.size == 1) {
-                markersAtSelectedSquare.first().marker.color.background
-            } else {
-                Color(0xFFE11F26) // TODO: Define name for this color
-            }
-
-            _buttonState.update {
-                it.copy(
-                    recallArrowColor = markerSlashColor,
-                    recallBackgroundColor = markerBackgroundColor
-                )
-            }
-        }
-    }
-
     private suspend fun handleRecallButton() {
         updateSelectedScreenLocation()
-        updateRecallButtonColor()
 
         val buttonState = buttonState.value
         val selectedScreenLocation = buttonState.selectedScreenLocation

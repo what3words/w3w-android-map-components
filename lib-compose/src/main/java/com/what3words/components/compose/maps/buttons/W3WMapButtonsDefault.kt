@@ -5,6 +5,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -13,16 +14,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.design.library.ui.theme.w3wColorScheme
 
 object W3WMapButtonsDefault {
     @Immutable
-    data class ButtonColors(
-        val locationButtonColor: LocationButtonColor
+    data class ButtonLayoutConfig(
+        val recallButtonLayoutConfig: RecallButtonLayoutConfig,
+        val locationButtonLayoutConfig: LocationButtonLayoutConfig
     )
 
     @Immutable
-    data class LocationButtonConfig(
+    data class RecallButtonLayoutConfig(
+        val buttonSize: Dp,
+        val imageSize: Dp,
+        val buttonPadding: PaddingValues,
+        val imagePadding: PaddingValues
+    )
+
+    @Immutable
+    data class LocationButtonLayoutConfig(
         val enterAnimation: EnterTransition,
         val exitAnimation: ExitTransition,
         val locationButtonSize: Dp,
@@ -45,6 +56,12 @@ object W3WMapButtonsDefault {
     )
 
     @Immutable
+    data class RecallButtonColor(
+        val recallArrowColor: Color,
+        val recallBackgroundColor: Color
+    )
+
+    @Immutable
     data class ResourceString(
         val accuracyMessage: String
     )
@@ -58,11 +75,39 @@ object W3WMapButtonsDefault {
     )
 
     @Composable
-    fun defaultButtonColors(
-        locationButtonColor: LocationButtonColor = defaultLocationButtonColor()
-    ): ButtonColors {
-        return ButtonColors(
-            locationButtonColor = locationButtonColor
+    fun defaultButtonLayoutConfig(
+        recallButtonLayoutConfig: RecallButtonLayoutConfig = defaultRecallButtonLayoutConfig(),
+        locationButtonLayoutConfig: LocationButtonLayoutConfig = defaultLocationButtonConfig()
+    ): ButtonLayoutConfig {
+        return ButtonLayoutConfig(
+            recallButtonLayoutConfig = recallButtonLayoutConfig,
+            locationButtonLayoutConfig = locationButtonLayoutConfig
+        )
+    }
+
+    @Composable
+    fun defaultRecallButtonLayoutConfig(
+        buttonSize: Dp = 50.dp,
+        imageSize: Dp = 30.dp,
+        buttonPadding: PaddingValues = PaddingValues(4.dp),
+        imagePadding: PaddingValues = PaddingValues(1.25.dp)
+    ): RecallButtonLayoutConfig {
+        return RecallButtonLayoutConfig(
+            buttonSize = buttonSize,
+            imageSize = imageSize,
+            buttonPadding = buttonPadding,
+            imagePadding = imagePadding
+        )
+    }
+
+    @Composable
+    fun defaultRecallButtonColor(
+        recallArrowColor: Color = W3WMapDefaults.MARKER_COLOR_DEFAULT.slash,
+        recallBackgroundColor: Color = W3WMapDefaults.MARKER_COLOR_DEFAULT.background
+    ): RecallButtonColor {
+        return RecallButtonColor(
+            recallArrowColor = recallArrowColor,
+            recallBackgroundColor = recallBackgroundColor
         )
     }
 
@@ -105,8 +150,8 @@ object W3WMapButtonsDefault {
         locationIconSize: Dp = 30.dp,
         accuracyIndicatorSize: Dp = 20.dp,
         accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall
-    ): LocationButtonConfig {
-        return LocationButtonConfig(
+    ): LocationButtonLayoutConfig {
+        return LocationButtonLayoutConfig(
             enterAnimation = enterAnimation,
             exitAnimation = exitAnimation,
             locationButtonSize = locationButtonSize,

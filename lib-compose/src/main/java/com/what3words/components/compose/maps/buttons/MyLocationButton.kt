@@ -56,7 +56,8 @@ const val VISIBLE_TIME = 2000L
  * @param isButtonEnabled Whether the location button is enabled or not.
  * @param locationStatus The status of the location service.
  * @param unitMetrics The unit of accuracy distance, default is "m".
- * @param buttonConfig The configuration for the button, default is [W3WMapButtonsDefault.defaultLocationButtonConfig].
+ * @param layoutConfig Configuration for the button's layout, including positioning, size, and other layout properties. Defaults to [W3WMapButtonsDefault.defaultLocationButtonConfig].
+ * @param colors Defines the color scheme of the location button, such as background and icon colors. Defaults to [W3WMapButtonsDefault.defaultLocationButtonColor].
  * @param resourceString The resource string for the button, default is [W3WMapButtonsDefault.defaultResourceString].
  * @param contentDescription The content description for the button, default is [W3WMapButtonsDefault.defaultContentDescription].
  * @param onMyLocationClicked The callback when the button is clicked.
@@ -68,7 +69,7 @@ fun MyLocationButton(
     isButtonEnabled: Boolean,
     locationStatus: LocationStatus,
     unitMetrics: String = METER,
-    buttonConfig: W3WMapButtonsDefault.LocationButtonConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
+    layoutConfig: W3WMapButtonsDefault.LocationButtonLayoutConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
     colors: W3WMapButtonsDefault.LocationButtonColor = W3WMapButtonsDefault.defaultLocationButtonColor(),
     resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
@@ -102,14 +103,14 @@ fun MyLocationButton(
         Row {
             AnimatedVisibility(
                 visible = isShowingAccuracy,
-                enter = buttonConfig.enterAnimation,
-                exit = buttonConfig.exitAnimation
+                enter = layoutConfig.enterAnimation,
+                exit = layoutConfig.exitAnimation
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End, // Align Row content to end to control animation direction
                     modifier = Modifier
-                        .height(buttonConfig.locationButtonSize)
+                        .height(layoutConfig.locationButtonSize)
                         .clip(
                             RoundedCornerShape(
                                 topStartPercent = 50,
@@ -122,14 +123,14 @@ fun MyLocationButton(
                 ) {
                     Text(
                         text = resourceString.accuracyMessage.format(accuracyDistance, unitMetrics),
-                        style = buttonConfig.accuracyTextStyle,
+                        style = layoutConfig.accuracyTextStyle,
                         color = colors.accuracyTextColor,
                         maxLines = 1 // Prevent text overflow
                     )
-                    Spacer(Modifier.size(buttonConfig.locationButtonSize / 2))
+                    Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
                 }
             }
-            Spacer(Modifier.size(buttonConfig.locationButtonSize / 2))
+            Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
         }
 
         Box {
@@ -139,7 +140,7 @@ fun MyLocationButton(
                     .shadow(elevation = 3.dp, shape = CircleShape)
                     .clip(CircleShape)
                     .background(colors.locationBackgroundColor)
-                    .size(buttonConfig.locationButtonSize),
+                    .size(layoutConfig.locationButtonSize),
                 onClick = {
                     onMyLocationClicked()
                     if (locationStatus == LocationStatus.ACTIVE) {
@@ -152,14 +153,14 @@ fun MyLocationButton(
                     painter = locationIconVector,
                     contentDescription = contentDescription.locationButtonDescription,
                     tint = locationIconColor,
-                    modifier = Modifier.size(buttonConfig.locationIconSize)
+                    modifier = Modifier.size(layoutConfig.locationIconSize)
                 )
             }
             if (accuracyDistance >= SAFE_ACCURACY_DISTANCE) {
                 WarningIndicator(
                     modifier = Modifier.align(Alignment.TopEnd),
                     accuracyDistance = accuracyDistance,
-                    buttonConfig = buttonConfig,
+                    buttonConfig = layoutConfig,
                     colors = colors,
                     contentDescription = contentDescription
                 )
@@ -172,7 +173,7 @@ fun MyLocationButton(
 private fun WarningIndicator(
     modifier: Modifier,
     accuracyDistance: Int,
-    buttonConfig: W3WMapButtonsDefault.LocationButtonConfig,
+    buttonConfig: W3WMapButtonsDefault.LocationButtonLayoutConfig,
     colors: W3WMapButtonsDefault.LocationButtonColor,
     contentDescription: W3WMapButtonsDefault.ContentDescription,
 ) {
