@@ -22,6 +22,7 @@ import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.toMarkers
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.mapper.toW3WMarker
+import com.what3words.components.compose.maps.models.SelectedAddress
 import com.what3words.components.compose.maps.models.W3WGridLines
 import com.what3words.components.compose.maps.models.W3WGridScreenCell
 import com.what3words.components.compose.maps.models.W3WMapProjection
@@ -1678,7 +1679,6 @@ class W3WMapManager(
 
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
-        const val TAG = "W3WMapManager"
 
         /**
          * The default saver implementation for [W3WMapManager].
@@ -1687,12 +1687,19 @@ class W3WMapManager(
             save = { manager: W3WMapManager ->
                 val cameraState = manager.mapState.value.cameraState
 
+                val selectedAddress = if (manager.mapState.value.selectedAddress != null) {
+                    SelectedAddress(manager.mapState.value.selectedAddress!!)
+                } else {
+                    null
+                }
+
                 mapOf(
                     "mapProvider" to manager.mapProvider,
                     "language" to manager.language,
                     "markersMap" to manager.markersMap,
                     "mapType" to manager.mapState.value.mapType,
                     "isDarkMode" to manager.mapState.value.isDarkMode,
+                    "selectedAddress" to selectedAddress,
                     "isMapGestureEnabled" to manager.mapState.value.isMapGestureEnable,
                     "isMyLocationEnabled" to manager.mapState.value.isMyLocationEnabled,
                     "cameraPositionState" to when (cameraState) {
@@ -1714,6 +1721,7 @@ class W3WMapManager(
                 val mapType = savedMap["mapType"] as W3WMapType
                 val restoredMarkersMap = savedMap["markersMap"] as Map<String, List<W3WMarker>>
                 val isDarkMode = savedMap["isDarkMode"] as Boolean
+                val selectedAddress = savedMap["selectedAddress"] as? SelectedAddress
                 val isMapGestureEnabled = savedMap["isMapGestureEnabled"] as Boolean
                 val isMyLocationEnabled = savedMap["isMyLocationEnabled"] as Boolean
 
@@ -1723,7 +1731,8 @@ class W3WMapManager(
                     mapType = mapType,
                     isDarkMode = isDarkMode,
                     isMapGestureEnable = isMapGestureEnabled,
-                    isMyLocationEnabled = isMyLocationEnabled
+                    isMyLocationEnabled = isMyLocationEnabled,
+                    selectedAddress = selectedAddress?.address
                 )
 
                 W3WMapManager(

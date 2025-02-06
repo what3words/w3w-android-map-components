@@ -21,7 +21,6 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.what3words.androidwrapper.datasource.text.W3WApiTextDataSource
 import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
 import com.what3words.components.compose.maps.buttons.W3WMapButtons
@@ -322,11 +321,12 @@ internal fun W3WMapContent(
         }
 
         val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
-            when(mapState.mapType) {
+            when (mapState.mapType) {
                 W3WMapType.NORMAL,
                 W3WMapType.TERRAIN -> {
-                    if(mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
+                    if (mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
                 }
+
                 W3WMapType.HYBRID,
                 W3WMapType.SATELLITE -> {
                     mapColors.satelliteMapColor
