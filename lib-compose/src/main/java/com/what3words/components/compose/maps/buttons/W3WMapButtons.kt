@@ -15,16 +15,25 @@ import com.what3words.components.compose.maps.state.W3WButtonsState
 import kotlin.math.ceil
 
 /**
- * W3WMapButtons is a composable that displays the buttons on the map.
+ * W3WMapButtons is a composable that organizes and displays a set of customizable buttons on a map.
+ * These buttons provide various functionalities such as showing the user's current location, switching map types,
+ * and recalling specific map positions.
  *
- * @param modifier Modifier to be applied to the layout.
- * @param buttonConfig Configuration for the buttons.
- * @param buttonState State of the buttons.
- * @param isLocationEnabled Flag to indicate if location is enabled.
- * @param onMyLocationClicked Callback to be invoked when the my location button is clicked.
- * @param onMapTypeClicked Callback to be invoked when the map type button is clicked.
- * @param onRecallClicked Callback to be invoked when the recall button is clicked.
- * @param onRecallButtonPositionProvided Callback to be invoked when the recall button position is provided.
+ * @param modifier [Modifier] to be applied to the layout of the buttons container.
+ * @param buttonState [W3WButtonsState] representing the current state of the buttons including visibility and status.
+ * @param mapType [W3WMapType] indicating the current type of map being displayed.
+ * @param isLocationEnabled Boolean flag to indicate if location services are enabled and the location button should be interactive.
+ * @param buttonConfig [W3WMapDefaults.ButtonConfig] that provides configuration settings determining the availability of buttons.
+ * @param layoutConfig [W3WMapButtonsDefault.ButtonLayoutConfig] describes the layout configuration for the buttons,
+ *                      with a default configuration if not specified.
+ * @param resourceString [W3WMapButtonsDefault.ResourceString] for providing text resources used in button content descriptions.
+ * @param contentDescription [W3WMapButtonsDefault.ContentDescription] for accessibility, detailing the actions of each button.
+ * @param locationButtonColor [W3WMapButtonsDefault.LocationButtonColor] defines the color styling for the location button.
+ * @param recallButtonColor [W3WMapButtonsDefault.RecallButtonColor] defines the color styling for the recall button.
+ * @param onMyLocationClicked Callback executed when the user clicks the "My Location" button.
+ * @param onMapTypeClicked Callback executed when the user clicks the "Map Type" switch button, including the new [W3WMapType].
+ * @param onRecallClicked Callback executed when the user clicks the "Recall" button to recall a specific map location.
+ * @param onRecallButtonPositionProvided Callback that provides the position of the recall button in [PointF] coordinates.
  */
 @Composable
 fun W3WMapButtons(

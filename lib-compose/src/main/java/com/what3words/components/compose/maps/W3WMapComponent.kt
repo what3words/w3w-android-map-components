@@ -61,12 +61,14 @@ import kotlinx.coroutines.launch
  *     - If `isDarkMode` is `true`, the dark color scheme (`darkMapColor`) is used.
  *     - If `isDarkMode` is `false`, the normal color scheme (`normalMapColor`) is used.
  * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
- * @param mapColors [W3WMapDefaults.MapColor] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
- * @param locationButtonColor Color settings for the location button (the button to center on the user's current location).
- * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
- * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
- * @param content Optional composable content to be displayed on the map.
- * @param onError Callback invoked when an error occurs.
+ * @param mapColors [W3WMapDefaults.MapColor] determines the map's color scheme based on mapType and dark mode.
+ * @param locationButtonColor specifies color settings for the location button.
+ * @param mapManager manages the map's state and interactions.
+ * @param textDataSource data source for text related to the map.
+ * @param onSelectedSquareChanged callback for when the selected square changes.
+ * @param locationSource optional source for fetching user location.
+ * @param content composable content to display over the map.
+ * @param onError callback for error occurrences.
  */
 @Composable
 fun W3WMapComponent(
@@ -195,6 +197,9 @@ fun W3WMapComponent(
  * @param onMyLocationClicked Callback invoked when the my location button is clicked.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs.
+ * @param onMapProjectionProvided Callback providing map projection updates.
+ * @param onMapViewPortProvided Callback providing map viewport updates.
+ * @param onRecallButtonPositionProvided Callback providing recall button position.
  */
 @Composable
 fun W3WMapComponent(
@@ -282,6 +287,9 @@ fun W3WMapComponent(
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
+ * @param onMapProjectionProvided Callback providing map projection updates.
+ * @param onMapViewPortProvided Callback providing map viewport updates.
+ * @param onRecallButtonPositionProvided Callback providing recall button position.
  */
 @Composable
 internal fun W3WMapContent(
