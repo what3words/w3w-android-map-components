@@ -42,7 +42,7 @@ googleMapUtils = "3.4.0"
 googleMapPlayService = "19.0.0"
 
 #What3words Library
-what3wordsWrapper = "4.0.2"
+what3wordsWrapper = "4.0.3-SNAPSHOT"
 what3wordsDesignLibrary = "2.0.4-SNAPSHOT"
 
 #Maven Publish

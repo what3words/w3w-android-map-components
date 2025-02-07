@@ -12,6 +12,7 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraState
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
+import com.what3words.androidwrapper.datasource.text.W3WApiTextDataSource
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
 import com.what3words.components.compose.maps.extensions.addMarker
@@ -45,6 +46,7 @@ import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WGridSection
 import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.core.types.language.W3WRFC5646Language
+import com.what3words.map.components.compose.BuildConfig
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineDispatcher
@@ -237,7 +239,7 @@ class W3WMapManager(
     private suspend fun calculateGridPolylines(gridBound: W3WRectangle): W3WGridLines? =
         withContext(dispatcher) {
             gridBound.let { safeBox ->
-                when (val grid = textDataSource.gridSection(safeBox)) {
+                when (val grid = convertGridSection(safeBox)) {
                     is W3WResult.Failure -> {
                         null
                     }
@@ -490,7 +492,7 @@ class W3WMapManager(
     suspend fun setSelectedAt(
         words: String
     ) = withContext(dispatcher) {
-        when (val result = textDataSource.convertToCoordinates(words)) {
+        when (val result = convertToCoordinates(words)) {
             is W3WResult.Failure -> {
                 throw result.error
             }
@@ -510,10 +512,7 @@ class W3WMapManager(
     suspend fun setSelectedAt(
         coordinates: W3WCoordinates
     ) = withContext(dispatcher) {
-        when (val result = textDataSource.convertTo3wa(
-            W3WCoordinates(lat = coordinates.lat, lng = coordinates.lng),
-            language
-        )) {
+        when (val result = convertTo3wa(coordinates)) {
             is W3WResult.Failure -> {
                 throw result.error
             }
@@ -1064,7 +1063,7 @@ class W3WMapManager(
             listName = listName,
             input = words,
             markerColor = markerColor,
-            convertFunction = { textDataSource.convertToCoordinates(words) },
+            convertFunction = { convertToCoordinates(words) },
             zoomOption = zoomOption,
             zoomLevel = zoomLevel
         )
@@ -1103,7 +1102,7 @@ class W3WMapManager(
             listName = listName,
             input = coordinates,
             markerColor = markerColor,
-            convertFunction = { textDataSource.convertTo3wa(coordinates, language) },
+            convertFunction = { convertTo3wa(coordinates) },
             zoomOption = zoomOption,
             zoomLevel = zoomLevel
         )
@@ -1145,7 +1144,7 @@ class W3WMapManager(
             markerColor = markerColor,
             convertFunction = {
                 if (address.center == null) {
-                    textDataSource.convertToCoordinates(address.words)
+                    convertToCoordinates(address.words)
                 } else {
                     W3WResult.Success(address)
                 }
@@ -1192,7 +1191,7 @@ class W3WMapManager(
             markerColor = markerColor,
             convertFunction = {
                 if (suggestion.w3wAddress.center == null) {
-                    textDataSource.convertToCoordinates(suggestion.w3wAddress.words)
+                    convertToCoordinates(suggestion.w3wAddress.words)
                 } else {
                     W3WResult.Success(suggestion.w3wAddress)
                 }
@@ -1298,7 +1297,7 @@ class W3WMapManager(
             inputs = listWords,
             markerColor = markerColor,
             convertFunction = {
-                textDataSource.convertToCoordinates(it)
+                convertToCoordinates(it)
             },
             zoomOption = zoomOption,
         )
@@ -1338,7 +1337,7 @@ class W3WMapManager(
             inputs = listCoordinates,
             markerColor = markerColor,
             convertFunction = {
-                textDataSource.convertTo3wa(it, language)
+                convertTo3wa(it)
             },
             zoomOption = zoomOption,
         )
@@ -1381,7 +1380,7 @@ class W3WMapManager(
             markerColor = markerColor,
             convertFunction = {
                 if (it.w3wAddress.center == null) {
-                    textDataSource.convertToCoordinates(it.w3wAddress.words)
+                    convertToCoordinates(it.w3wAddress.words)
                 } else {
                     W3WResult.Success(it.w3wAddress)
                 }
@@ -1427,7 +1426,7 @@ class W3WMapManager(
             markerColor = markerColor,
             convertFunction = {
                 if (it.center == null) {
-                    textDataSource.convertToCoordinates(it.words)
+                    convertToCoordinates(it.words)
                 } else {
                     W3WResult.Success(it)
                 }
@@ -1643,8 +1642,33 @@ class W3WMapManager(
         this.textDataSource = textDataSource
     }
 
+    private suspend fun convertToCoordinates(
+        words: String,
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
+        val apiTextDataSource = textDataSource as? W3WApiTextDataSource
+        apiTextDataSource?.convertToCoordinates(words, HEADER_MAP_COMPONENT)
+            ?: textDataSource.convertToCoordinates(words)
+    }
+
+    private suspend fun convertTo3wa(
+        coordinates: W3WCoordinates
+    ): W3WResult<W3WAddress> = withContext(dispatcher) {
+        val apiTextDataSource = textDataSource as? W3WApiTextDataSource
+        apiTextDataSource?.convertTo3wa(coordinates, language, HEADER_MAP_COMPONENT)
+            ?: textDataSource.convertTo3wa(coordinates, language)
+    }
+
+    private suspend fun convertGridSection(
+        boundingBox: W3WRectangle
+    ): W3WResult<W3WGridSection> = withContext(dispatcher) {
+        val apiTextDataSource = textDataSource as? W3WApiTextDataSource
+        apiTextDataSource?.gridSection(boundingBox, HEADER_MAP_COMPONENT)
+            ?: textDataSource.gridSection(boundingBox)
+    }
+
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
+        private val HEADER_MAP_COMPONENT = mapOf("X-W3W-AS-Component" to ("what3words-Map-Android/" + BuildConfig.LIBRARY_VERSION))
 
         /**
          * The default saver implementation for [W3WMapManager].

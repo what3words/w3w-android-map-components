@@ -24,6 +24,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
+        buildConfigField("String", "LIBRARY_VERSION", "\"${findProperty("LIBRARY_VERSION")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -44,7 +45,9 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
     kotlinOptions {
         jvmTarget = libs.versions.jvmTarget.get()
     }
