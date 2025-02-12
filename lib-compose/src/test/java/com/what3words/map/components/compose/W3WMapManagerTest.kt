@@ -835,6 +835,160 @@ class W3WMapManagerTest {
     }
 
     @Test
+    fun removeListMarker_removesAllMarkersFromSpecifiedList() = runTest {
+        // Given: Populate the manager with markers across multiple lists
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            ),
+            listName = "List 2",
+            zoomOption = W3WZoomOption.NONE
+        )
+
+        // When: removing all markers from a specific list
+        mapManager.removeListMarker("List 1")
+
+        // Then: Validate markers from "List 1" are removed and markers from other lists remain
+        assertTrue(mapManager.getMarkersInList("List 1").isEmpty())
+        assertFalse(mapManager.getMarkersInList("List 2").isEmpty())
+        assertEquals(1, mapManager.markers.size) // Total markers from other lists should remain
+    }
+
+    @Test
+    fun getMarkersAtCoordinates_retrievesAllMarkersAtGivenCoordinates() = runTest {
+        // Given: Add multiple markers, some with the same coordinates
+        val sharedCoordinates = W3WCoordinates(51.520847, -0.195521)
+
+        val address1 = W3WAddress(
+            words = "///tinh xảo.hòa hợp.đường tàu",
+            center = sharedCoordinates,
+            square = W3WRectangle(
+                southwest = sharedCoordinates,
+                northeast = sharedCoordinates
+            ),
+            language = W3WProprietaryLanguage("vn", null, null, null),
+            country = W3WCountry("GB"),
+            nearestPlace = "London"
+        )
+
+        val address2 = W3WAddress(
+            words = "///filled.count.soap",
+            center = sharedCoordinates,
+            square = W3WRectangle(
+                southwest = sharedCoordinates,
+                northeast = sharedCoordinates
+            ),
+            language = W3WProprietaryLanguage("en", null, null, null),
+            country = W3WCountry("GB"),
+            nearestPlace = "London"
+        )
+
+        mapManager.addMarkerAt(address1, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(address2, listName = "List 2", zoomOption = W3WZoomOption.NONE)
+
+        // When: retrieving markers at the shared coordinates
+        val markersAtCoordinates = mapManager.getMarkersAt(sharedCoordinates)
+
+        // Then: Validate that both markers are retrieved
+        assertEquals(2, markersAtCoordinates.size)
+        assertTrue(markersAtCoordinates.any { it.listName == "List 1" })
+        assertTrue(markersAtCoordinates.any { it.listName == "List 2" })
+    }
+
+    @Test
+    fun getMarkersAtWords_retrievesAllMarkersWithSpecifiedWords() = runTest {
+        // Given: Add markers with a common what3words address in different lists
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 2", zoomOption = W3WZoomOption.NONE)
+
+        // When: retrieving markers with the specified what3words address
+        val markersWithWords = mapManager.getMarkersAt(dummyW3WAddress.words)
+
+        // Then: Validate all markers with the specified what3words are retrieved
+        assertEquals(2, markersWithWords.size)
+        assertTrue(markersWithWords.any { it.listName == "List 1" })
+        assertTrue(markersWithWords.any { it.listName == "List 2" })
+    }
+
+    @Test
+    fun getMarkersAtAddress_retrievesAllMarkersForProvidedAddress() = runTest {
+        // Given: Add markers with a common what3words address in different lists
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 2", zoomOption = W3WZoomOption.NONE)
+
+        // When: Retrieving markers using the address
+        val markersWithWords = mapManager.getMarkersAt(dummyW3WAddress)
+
+        // Then: Validate all markers with the specified what3words are retrieved
+        assertEquals(2, markersWithWords.size)
+        assertTrue(markersWithWords.any { it.listName == "List 1" })
+        assertTrue(markersWithWords.any { it.listName == "List 2" })
+    }
+
+    @Test
+    fun getMarkersAtSuggestion_retrievesAllMarkersForProvidedSuggestion() = runTest {
+        // Given: Add markers with a common what3words address in different lists
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 2", zoomOption = W3WZoomOption.NONE)
+
+        // When: Retrieving markers using the suggestion
+        val suggestion = W3WSuggestion(
+            w3wAddress = dummyW3WAddress,
+            rank = 1,
+            distanceToFocus = null
+        )
+        val markersFromSuggestion = mapManager.getMarkersAt(suggestion.w3wAddress)
+
+        // Then: Validate all markers associated with the suggestion are retrieved
+        assertEquals(2, markersFromSuggestion.size)
+        assertTrue(markersFromSuggestion.any { it.listName == "List 1" })
+        assertTrue(markersFromSuggestion.any { it.listName == "List 2" })
+    }
+
+    @Test
+    fun getMarkersInList_retrievesAllMarkersForGivenListName() = runTest {
+        // Given: Add markers to specific lists
+        val address2 = W3WAddress(
+            words = "///surfed.ironic.handbags",
+            center = W3WCoordinates(lat = 10.780361, lng = 106.705986),
+            square = W3WRectangle(
+                southwest = W3WCoordinates(10.780361, 106.705986),
+                northeast = W3WCoordinates(10.780361, 106.705986)
+            ),
+            language = W3WProprietaryLanguage("vn", null, null, null),
+            country = W3WCountry("VN"),
+            nearestPlace = "Ho Chi Minh"
+        )
+
+        mapManager.addMarkerAt(dummyW3WAddress, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(address2, listName = "List 1", zoomOption = W3WZoomOption.NONE)
+        mapManager.addMarkerAt(address2, listName = "List 2", zoomOption = W3WZoomOption.NONE)
+
+        // When: Retrieving markers from "List 1"
+        val markersInList1 = mapManager.getMarkersInList("List 1")
+
+        // Then: Validate markers are correctly retrieved from "List 1"
+        assertEquals(2, markersInList1.size)
+        assertTrue(markersInList1.any { it.words == dummyW3WAddress.words })
+        assertTrue(markersInList1.any { it.words == "///surfed.ironic.handbags" })
+
+        // When: Retrieving markers from "List 2"
+        val markersInList2 = mapManager.getMarkersInList("List 2")
+
+        // Then: Validate that the list is empty
+        assertEquals(1, markersInList2.size)
+    }
+
+    @Test
     fun addMarkerAt_withValidWords_returnsSuccess() = runTest {
         // Given: valid three-word address
         val words = "filled.count.soap"
@@ -1059,5 +1213,79 @@ class W3WMapManagerTest {
         // Then: expect a failure result
         assertTrue(result is W3WResult.Failure)
         assertEquals(expectedError, (result as W3WResult.Failure).error)
+    }
+
+    @Test
+    fun addMarkersAtListWords_addsMarkersToSpecifiedList() = runTest {
+        // Given: A list of what3words addresses
+        val listWords = listOf("filled.count.soap", "surfed.ironic.handbags")
+
+        coEvery { textDataSource.convertToCoordinates("filled.count.soap") } returns W3WResult.Success(
+            dummyW3WAddress
+        )
+
+        coEvery { textDataSource.convertToCoordinates("surfed.ironic.handbags") } returns W3WResult.Success(
+            W3WAddress(
+                words = "surfed.ironic.handbags",
+                center = W3WCoordinates(lat = 10.780361, lng = 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+
+        // When: Adding markers to a specified list
+        val results = mapManager.addMarkersAt(listWords, listName = "Test List", zoomOption = W3WZoomOption.NONE)
+
+        // Then: Validate each marker is successfully added
+        results.forEach { result ->
+            assertTrue(result is W3WResult.Success)
+        }
+
+        val markersInTestList = mapManager.getMarkersInList("Test List")
+        assertEquals(2, markersInTestList.size)
+        assertTrue(markersInTestList.any { it.words == "filled.count.soap" })
+        assertTrue(markersInTestList.any { it.words == "surfed.ironic.handbags" })
+    }
+
+    @Test
+    fun addMarkersAtListCoordinates_addsMarkersToSpecifiedList() = runTest {
+        // Given: A list of W3WCoordinates
+        val listCoordinates = listOf(
+            W3WCoordinates(lat = 51.520847, lng = -0.195521),
+            W3WCoordinates(lat = 10.780361, lng = 106.705986)
+        )
+
+        // Mock responses from textDataSource for coordinate conversion
+        coEvery { textDataSource.convertTo3wa(listCoordinates[0], any()) } returns W3WResult.Success(dummyW3WAddress)
+        coEvery { textDataSource.convertTo3wa(listCoordinates[1], any()) } returns W3WResult.Success(
+            W3WAddress(
+                words = "surfed.ironic.handbags",
+                center = W3WCoordinates(lat = 10.780361, lng = 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+
+        // When: Adding markers to a specified list
+        val results = mapManager.addMarkersAt(listCoordinates, listName = "Test List", zoomOption = W3WZoomOption.NONE)
+
+        // Then: Validate each marker is successfully added
+        results.forEach { result ->
+            assertTrue(result is W3WResult.Success)
+        }
+        val markersInTestList = mapManager.getMarkersInList("Test List")
+        assertEquals(2, markersInTestList.size)
+        assertTrue(markersInTestList.any { it.words == dummyW3WAddress.words })
+        assertTrue(markersInTestList.any { it.words == "surfed.ironic.handbags" })
     }
 }
