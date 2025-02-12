@@ -585,6 +585,256 @@ class W3WMapManagerTest {
     }
 
     @Test
+    fun removeMarkersAt_withListWords_removesAllMarkers() = runTest {
+        // Given: Add markers
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE)
+
+        // When: removing markers with specific words
+        val removedMarkers = mapManager.removeMarkersAt(listOf("///surfed.ironic.handbags", "filled.count.soap"))
+
+        // Then: Validate all markers with specified words are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.markers.isEmpty())
+    }
+
+    @Test
+    fun removeMarkersAt_withListWordsAndSpecificList_removesMarkersFromSpecificList() = runTest {
+        // Given: Populate the manager with markers in specific lists
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE, listName = "List 1")
+        mapManager.addMarkerAt(dummyW3WAddress, zoomOption = W3WZoomOption.NONE, listName = "List 2")
+
+        // When: removing markers with specific words from a specific list
+        val removedMarkers = mapManager.removeMarkersAt(listOf("///surfed.ironic.handbags", "filled.count.soap"), listName = "List 1")
+
+        // Then: Only markers from the specified list are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.getMarkersInList("List 1").isEmpty())
+        assertFalse(mapManager.getMarkersInList("List 2").isEmpty())
+        assertEquals(1, mapManager.markers.size)
+    }
+
+    @Test
+    fun removeMarkersAt_withListCoordinates_removesAllMarkers() = runTest {
+        // Given: Add markers
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE)
+
+        // When: removing markers with specific coordinates
+        val removedMarkers = mapManager.removeMarkersAt( listOf(
+            dummyCoordinates,
+            W3WCoordinates(lat = 10.780361, lng = 106.705986)
+        ))
+
+        // Then: Validate all markers with specified coordinates are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.markers.isEmpty())
+    }
+
+    @Test
+    fun removeMarkersAt_withListCoordinatesAndSpecificList_removesMarkersFromSpecificList() = runTest {
+        // Given: Add markers
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE, listName = "List 1")
+        mapManager.addMarkerAt(dummyW3WAddress, zoomOption = W3WZoomOption.NONE, listName = "List 2")
+
+        // When: removing markers with specific coordinates
+        val removedMarkers = mapManager.removeMarkersAt(listOf(
+            dummyCoordinates,
+            W3WCoordinates(lat = 10.780361, lng = 106.705986)
+        ),"List 1")
+
+        // Then: Only markers from the specified list are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.getMarkersInList("List 1").isEmpty())
+        assertFalse(mapManager.getMarkersInList("List 2").isEmpty())
+        assertEquals(1, mapManager.markers.size)
+    }
+
+    @Test
+    fun removeMarkersAt_withListAddresses_removesAllMarkers() = runTest {
+        // Given: Add markers with addresses
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE)
+
+        // When: removing markers with specific addresses
+        val removedMarkers = mapManager.removeMarkersAt(addresses)
+
+        // Then: Validate all markers with specified addresses are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.markers.isEmpty())
+    }
+
+    @Test
+    fun removeMarkersAt_withListAddressesAndSpecificList_removesMarkersFromSpecificList() = runTest {
+        // Given: Populate manager with markers in specific lists
+        val addresses = listOf(
+            dummyW3WAddress,
+            W3WAddress(
+                words = "///surfed.ironic.handbags",
+                center = W3WCoordinates(10.780361, 106.705986),
+                square = W3WRectangle(
+                    southwest = W3WCoordinates(10.780361, 106.705986),
+                    northeast = W3WCoordinates(10.780361, 106.705986)
+                ),
+                language = W3WProprietaryLanguage("vn", null, null, null),
+                country = W3WCountry("VN"),
+                nearestPlace = "Ho Chi Minh"
+            )
+        )
+        mapManager.addMarkersAt(addresses, zoomOption = W3WZoomOption.NONE, listName = "List 1")
+        mapManager.addMarkerAt(dummyW3WAddress, zoomOption = W3WZoomOption.NONE, listName = "List 2")
+
+        // When: removing markers with specific addresses from a specific list
+        val removedMarkers = mapManager.removeMarkersAt(addresses, listName = "List 1")
+
+        // Then: Only markers from the specified list are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.getMarkersInList("List 1").isEmpty())
+        assertFalse(mapManager.getMarkersInList("List 2").isEmpty())
+        assertEquals(1, mapManager.markers.size)
+    }
+
+    @Test
+    fun removeMarkersAt_withListSuggestions_removesAllMarkers() = runTest {
+        // Given: Add markers with suggestions
+        val suggestions = listOf(
+            W3WSuggestion(
+                w3wAddress = dummyW3WAddress,
+                rank = 1,
+                distanceToFocus = null
+            ),
+            W3WSuggestion(
+                w3wAddress = W3WAddress(
+                    words = "///surfed.ironic.handbags",
+                    center = W3WCoordinates(10.780361, 106.705986),
+                    square = W3WRectangle(
+                        southwest = W3WCoordinates(10.780361, 106.705986),
+                        northeast = W3WCoordinates(10.780361, 106.705986)
+                    ),
+                    language = W3WProprietaryLanguage("vn", null, null, null),
+                    country = W3WCountry("VN"),
+                    nearestPlace = "Ho Chi Minh"
+                ),
+                rank = 2,
+                distanceToFocus = null
+            )
+        )
+        mapManager.addMarkersAt(suggestions, zoomOption = W3WZoomOption.NONE)
+
+        // When: removing markers with specific suggestions
+        val removedMarkers = mapManager.removeMarkersAt(suggestions)
+
+        // Then: Validate all markers with specified suggestions are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.markers.isEmpty())
+    }
+
+    @Test
+    fun removeMarkersAt_withListSuggestionsAndSpecificList_removesMarkersFromSpecificList() = runTest {
+        // Given: Populate manager with markers in specific lists
+        val suggestions = listOf(
+            W3WSuggestion(
+                w3wAddress = dummyW3WAddress,
+                rank = 1,
+                distanceToFocus = null
+            ),
+            W3WSuggestion(
+                w3wAddress = W3WAddress(
+                    words = "///surfed.ironic.handbags",
+                    center = W3WCoordinates(10.780361, 106.705986),
+                    square = W3WRectangle(
+                        southwest = W3WCoordinates(10.780361, 106.705986),
+                        northeast = W3WCoordinates(10.780361, 106.705986)
+                    ),
+                    language = W3WProprietaryLanguage("vn", null, null, null),
+                    country = W3WCountry("VN"),
+                    nearestPlace = "Ho Chi Minh"
+                ),
+                rank = 2,
+                distanceToFocus = null
+            )
+        )
+        mapManager.addMarkersAt(suggestions, zoomOption = W3WZoomOption.NONE, listName = "List 1")
+        mapManager.addMarkerAt(dummyW3WAddress, zoomOption = W3WZoomOption.NONE, listName = "List 2")
+
+        // When: removing markers with specific suggestions from a specific list
+        val removedMarkers = mapManager.removeMarkersAt(suggestions, listName = "List 1")
+
+        // Then: Only markers from the specified list are removed
+        assertEquals(2, removedMarkers.size)
+        assertTrue(mapManager.getMarkersInList("List 1").isEmpty())
+        assertFalse(mapManager.getMarkersInList("List 2").isEmpty())
+        assertEquals(1, mapManager.markers.size)
+    }
+
+    @Test
     fun addMarkerAt_withValidWords_returnsSuccess() = runTest {
         // Given: valid three-word address
         val words = "filled.count.soap"
