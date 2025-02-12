@@ -194,7 +194,7 @@ fun W3WGoogleMapDrawGridLines(
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawSelectedAddress(
-    markerColors: W3WMapDefaults.MarkerColors = W3WMapDefaults.defaultMarkerColor(),
+    markerColors: W3WMapDefaults.MarkerColors,
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedAddress: W3WAddress,

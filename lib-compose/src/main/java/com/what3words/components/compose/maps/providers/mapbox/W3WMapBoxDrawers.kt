@@ -193,7 +193,7 @@ fun W3WMapBoxDrawGridLines(
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawSelectedAddress(
-    markerColors: W3WMapDefaults.MarkerColors = W3WMapDefaults.defaultMarkerColor(),
+    markerColors: W3WMapDefaults.MarkerColors,
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedAddress: W3WAddress,

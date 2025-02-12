@@ -9,6 +9,13 @@ import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.design.library.ui.theme.colors_blue_20
+import com.what3words.design.library.ui.theme.colors_blue_99
+import com.what3words.design.library.ui.theme.colors_grey_100
+import com.what3words.design.library.ui.theme.colors_grey_44
+import com.what3words.design.library.ui.theme.colors_red_50
+import com.what3words.design.library.ui.theme.colors_red_90
+import com.what3words.design.library.ui.theme.colors_red_99
 
 enum class MapProvider {
     GOOGLE_MAP,
@@ -23,7 +30,7 @@ enum class MapProvider {
  */
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
-    val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = Color.Red, slash = Color.White)
+    val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = colors_red_50, slash = colors_red_99)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
 
@@ -173,8 +180,12 @@ object W3WMapDefaults {
     }
 
     fun defaultNormalMapColor(
-        gridLineColor: Color = Color(0x29697F8D),
-        markerColors: MarkerColors = defaultMarkerColor()
+        gridLineColor: Color = colors_grey_44.copy(alpha = 0.16f),
+        markerColors: MarkerColors = defaultMarkerColor(
+            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_20, slash = colors_blue_99),
+            defaultMarkerColor = MARKER_COLOR_DEFAULT,
+            selectedColor = colors_blue_20
+        )
     ): MapColor {
         return MapColor(
             gridLineColor = gridLineColor,
@@ -183,10 +194,11 @@ object W3WMapDefaults {
     }
 
     fun defaultSatelliteMapColor(
-        gridLineColor: Color = Color(0x29FFFFFF),
+        gridLineColor: Color = colors_grey_100.copy(alpha = 0.24f),
         markerColors: MarkerColors = defaultMarkerColor(
-            selectedZoomOutColor = W3WMarkerColor(background = Color(0xffdbeffa), slash = Color(0xff0a3049)),
-            selectedColor = Color(0xfffcfcff)
+            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_99, slash = colors_blue_20),
+            defaultMarkerColor = MARKER_COLOR_DEFAULT,
+            selectedColor = colors_blue_99
         )
     ): MapColor {
         return MapColor(
@@ -196,10 +208,11 @@ object W3WMapDefaults {
     }
 
     fun defaultDarkMapColor(
-        gridLineColor: Color = Color(0x29FFFFFF),
+        gridLineColor: Color = colors_grey_100.copy(alpha = 0.16f),
         markerColors: MarkerColors = defaultMarkerColor(
-            selectedZoomOutColor = W3WMarkerColor(background = Color(0xffdbeffa), slash = Color(0xff0a3049)),
-            selectedColor = Color(0xfffcfcff)
+            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_99, slash = colors_blue_20),
+            defaultMarkerColor = MARKER_COLOR_DEFAULT,
+            selectedColor = colors_blue_99
         )
     ): MapColor {
         return MapColor(
@@ -209,9 +222,9 @@ object W3WMapDefaults {
     }
 
     fun defaultMarkerColor(
-        selectedZoomOutColor: W3WMarkerColor = W3WMarkerColor(background = Color(0xFF0A3049), slash = Color(0xFFFCFCFF)),
-        defaultMarkerColor: W3WMarkerColor = W3WMarkerColor(background = Color(0xffe11f26), slash = Color(0xfffffbff)),
-        selectedColor: Color = Color(0xFF0A3049),
+        selectedZoomOutColor: W3WMarkerColor,
+        defaultMarkerColor: W3WMarkerColor,
+        selectedColor: Color,
     ): MarkerColors {
         return MarkerColors(
             selectedZoomOutColor = selectedZoomOutColor,
