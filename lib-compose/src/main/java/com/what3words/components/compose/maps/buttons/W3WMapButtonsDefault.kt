@@ -114,8 +114,8 @@ object W3WMapButtonsDefault {
     @Composable
     fun defaultLocationButtonColor(
         locationBackgroundColor: Color = MaterialTheme.colorScheme.surface,
-        locationIconColorInactive: Color = Color(0xFFAAABAE),
-        locationIconColorActive: Color = Color(0xFF14B5FF),
+        locationIconColorInactive: Color = MaterialTheme.colorScheme.outline,
+        locationIconColorActive: Color = MaterialTheme.w3wColorScheme.brandCustomSkyBlue,
         warningLowBackgroundColor: Color = MaterialTheme.w3wColorScheme.warning,
         warningLowIconColor: Color = MaterialTheme.w3wColorScheme.onWarning,
         warningHighBackgroundColor: Color = MaterialTheme.colorScheme.error,
