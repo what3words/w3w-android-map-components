@@ -7,7 +7,6 @@ import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WDistance
 import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.core.types.language.W3WProprietaryLanguage
-import io.mockk.mockk
 
 class DummyUtils {
     companion object {

@@ -318,6 +318,15 @@ class W3WMapManager(
     fun setLanguage(language: W3WRFC5646Language) {
         this.language = language
     }
+    
+    /**
+     * Retrieves the current language setting for What3Words addresses.
+     *
+     * @return The current language as [W3WRFC5646Language].
+     */
+    fun getLanguage(): W3WRFC5646Language {
+        return language
+    }
 
     /**
      * Checks if dark mode is enabled for the map.

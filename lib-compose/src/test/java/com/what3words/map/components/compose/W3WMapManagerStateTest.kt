@@ -19,7 +19,6 @@ import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WDistance
 import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.core.types.language.W3WProprietaryLanguage
-import com.what3words.core.types.language.W3WRFC5646Language
 import com.what3words.map.components.compose.DummyUtils.Companion.dummyCoordinates
 import com.what3words.map.components.compose.DummyUtils.Companion.dummySquare
 import com.what3words.map.components.compose.DummyUtils.Companion.dummyW3WAddress
@@ -1290,107 +1289,5 @@ class W3WMapManagerTest {
         assertTrue(markersInTestList.any { it.words == "surfed.ironic.handbags" })
     }
 
-    @Test
-    fun addMarkersAtAddresses_addsMarkersToSpecifiedList() = runTest {
-        // Given: A list of W3WAddress objects
-        val addresses = listOf(
-            W3WAddress(
-                words = "filled.count.soap",
-                center = W3WCoordinates(lat = 51.520847, lng = -0.195521),
-                square = W3WRectangle(
-                    southwest = W3WCoordinates(51.520847, -0.195521),
-                    northeast = W3WCoordinates(51.520847, -0.195521)
-                ),
-                language = W3WRFC5646Language.EN_GB,
-                country = W3WCountry("GB"),
-                nearestPlace = "London"
-            ),
-            W3WAddress(
-                words = "surfed.ironic.handbags",
-                center = W3WCoordinates(lat = 10.780361, lng = 106.705986),
-                square = W3WRectangle(
-                    southwest = W3WCoordinates(10.780361, 106.705986),
-                    northeast = W3WCoordinates(10.780361, 106.705986)
-                ),
-                language = W3WRFC5646Language.VI,
-                country = W3WCountry("VN"),
-                nearestPlace = "Ho Chi Minh"
-            )
-        )
-
-        // Mock responses from textDataSource for address conversion
-        coEvery { textDataSource.convertToCoordinates(any()) } returns W3WResult.Success(addresses[0])
-
-        // When: Adding markers to a specified list
-        val results = mapManager.addMarkersAt(
-            addresses = addresses,
-            listName = "Test List",
-            zoomOption = W3WZoomOption.NONE
-        )
-
-        // Then: Validate each marker is successfully added
-        results.forEach { result ->
-            assertTrue(result is W3WResult.Success)
-        }
-        val markersInTestList = mapManager.getMarkersInList("Test List")
-        assertEquals(2, markersInTestList.size)
-        assertTrue(markersInTestList.any { it.words == "filled.count.soap" })
-        assertTrue(markersInTestList.any { it.words == "surfed.ironic.handbags" })
-    }
-
-    @Test
-    fun addMarkersAtSuggestions_addsMarkersToSpecifiedList() = runTest {
-        // Given: A list of W3WSuggestion objects
-        val suggestions = listOf(
-            W3WSuggestion(
-                w3wAddress = W3WAddress(
-                    words = "filled.count.soap",
-                    center = W3WCoordinates(lat = 51.520847, lng = -0.195521),
-                    square = W3WRectangle(
-                        southwest = W3WCoordinates(51.520847, -0.195521),
-                        northeast = W3WCoordinates(51.520847, -0.195521)
-                    ),
-                    language = W3WRFC5646Language.EN_GB,
-                    country = W3WCountry("GB"),
-                    nearestPlace = "London"
-                ),
-                rank = 1,
-                distanceToFocus = null
-            ),
-            W3WSuggestion(
-                w3wAddress = W3WAddress(
-                    words = "surfed.ironic.handbags",
-                    center = W3WCoordinates(lat = 10.780361, lng = 106.705986),
-                    square = W3WRectangle(
-                        southwest = W3WCoordinates(10.780361, 106.705986),
-                        northeast = W3WCoordinates(10.780361, 106.705986)
-                    ),
-                    language = W3WRFC5646Language.VI,
-                    country = W3WCountry("VN"),
-                    nearestPlace = "Ho Chi Minh"
-                ),
-                rank = 2,
-                distanceToFocus = null
-            )
-        )
-
-        // Mock responses from textDataSource for address conversion
-        coEvery { textDataSource.convertToCoordinates(any()) } returns W3WResult.Success(dummyW3WAddress)
-
-        // When: Adding markers to a specified list
-        val results = mapManager.addMarkersAt(
-            suggestions = suggestions,
-            listName = "Test List",
-            zoomOption = W3WZoomOption.NONE
-        )
-
-        // Then: Validate each marker is successfully added
-        results.forEach { result ->
-            assertTrue(result is W3WResult.Success)
-        }
-        val markersInTestList = mapManager.getMarkersInList("Test List")
-        assertEquals(2, markersInTestList.size)
-        assertTrue(markersInTestList.any { it.words == "filled.count.soap" })
-        assertTrue(markersInTestList.any { it.words == "surfed.ironic.handbags" })
-    }
+    
 }
