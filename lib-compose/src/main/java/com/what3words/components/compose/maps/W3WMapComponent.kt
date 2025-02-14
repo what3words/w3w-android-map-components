@@ -23,7 +23,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
-import com.what3words.components.compose.maps.buttons.W3WMapButtons
+import com.what3words.components.compose.maps.buttons.MapButtons
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultLocationButtonColor
 import com.what3words.components.compose.maps.extensions.contains
@@ -287,7 +287,7 @@ fun W3WMapComponent(
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
- * @param onMapProjectionProvided Callback providing map projection updates.
+ * @param onMapProjectionUpdated Callback providing map projection updates.
  * @param onMapViewPortProvided Callback providing map viewport updates.
  * @param onRecallButtonPositionProvided Callback providing recall button position.
  */
@@ -391,7 +391,7 @@ internal fun W3WMapContent(
                 onMapProjectionUpdated = onMapProjectionUpdated
             )
 
-            W3WMapButtons(
+            MapButtons(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(layoutConfig.contentPadding),

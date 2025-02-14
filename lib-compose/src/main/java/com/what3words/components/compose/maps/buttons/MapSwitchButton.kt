@@ -28,7 +28,7 @@ import com.what3words.map.components.compose.R
  * @param onMapTypeChange The callback function to be invoked when the map type is changed.
  */
 @Composable
-fun MapSwitchButton(
+internal fun MapSwitchButton(
     modifier: Modifier = Modifier,
     w3wMapType: W3WMapType = W3WMapType.NORMAL,
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),

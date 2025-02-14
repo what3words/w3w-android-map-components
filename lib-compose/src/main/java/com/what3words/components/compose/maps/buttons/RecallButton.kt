@@ -2,12 +2,9 @@ package com.what3words.components.compose.maps.buttons
 
 import android.graphics.PointF
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -17,15 +14,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonColor
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonLayoutConfig
+import com.what3words.map.components.compose.R
 
 /**
  * A composable function to display a recall button.
@@ -39,9 +38,9 @@ import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defau
  * @param onRecallButtonPositionProvided The callback providing the button's position as a PointF.
  */
 @Composable
-fun RecallButton(
+internal fun RecallButton(
     modifier: Modifier = Modifier,
-    rotation: Float = 0F,
+    rotation: Float,
     layoutConfig: W3WMapButtonsDefault.RecallButtonLayoutConfig = defaultRecallButtonLayoutConfig(),
     recallButtonColor: W3WMapButtonsDefault.RecallButtonColor = defaultRecallButtonColor(),
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
@@ -55,11 +54,6 @@ fun RecallButton(
     IconButton(
         onClick = { onRecallClicked() },
         modifier = modifier
-            .padding(layoutConfig.buttonPadding)
-            .rotate(rotation)
-            .shadow(elevation = 3.dp, shape = CircleShape)
-            .size(layoutConfig.buttonSize)
-            .background(recallButtonColor.recallBackgroundColor)
             .onGloballyPositioned { coordinate ->
                 // Only trigger one time when the button is initialized
                 // The coordinate is affected by the rotation
@@ -68,14 +62,20 @@ fun RecallButton(
                     val point = PointF(position.x, position.y)
                     positionCallback.value(point)
                 }
-            },
+            }
+            .padding(layoutConfig.buttonPadding)
+            .graphicsLayer {
+                rotationZ = rotation
+            }
+            .shadow(elevation = 3.dp, shape = CircleShape)
+            .size(layoutConfig.buttonSize)
+            .background(recallButtonColor.recallBackgroundColor)
     ) {
         Icon(
             modifier = Modifier
                 .size(layoutConfig.imageSize)
-                .padding(layoutConfig.imagePadding)
-                .offset(x = (-2).dp),
-            imageVector = Icons.Default.ArrowBackIosNew,
+                .padding(layoutConfig.imagePadding),
+            painter = painterResource(R.drawable.ic_arrow_back),
             contentDescription = contentDescription.recallButtonDescription,
             tint = recallButtonColor.recallArrowColor
         )

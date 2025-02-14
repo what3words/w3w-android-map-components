@@ -36,7 +36,7 @@ import kotlin.math.ceil
  * @param onRecallButtonPositionProvided Callback that provides the position of the recall button in [PointF] coordinates.
  */
 @Composable
-fun W3WMapButtons(
+internal fun MapButtons(
     modifier: Modifier = Modifier,
     buttonState: W3WButtonsState,
     mapType: W3WMapType,
