@@ -63,7 +63,7 @@ const val VISIBLE_TIME = 2000L
  * @param onMyLocationClicked The callback when the button is clicked.
  */
 @Composable
-fun MyLocationButton(
+internal fun MyLocationButton(
     modifier: Modifier = Modifier,
     accuracyDistance: Int,
     isButtonEnabled: Boolean,
