@@ -1,8 +1,11 @@
 package com.what3words.map.components.compose
 
+import android.graphics.PointF
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.what3words.components.compose.maps.MapProvider
 import com.what3words.components.compose.maps.W3WMapManager
+import com.what3words.components.compose.maps.models.W3WMapProjection
+import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.datasource.text.W3WTextDataSource
@@ -30,7 +33,14 @@ open class BaseW3WMapManagerTest {
 
         mapManager = W3WMapManager(
             mapProvider = MapProvider.GOOGLE_MAP,
-            initialMapState = W3WMapState(cameraState = cameraStateMock)
+            initialMapState = W3WMapState(cameraState = cameraStateMock),
+            initialButtonState = W3WButtonsState(
+                selectedScreenLocation = mockk(relaxed = true),
+                mapProjection = mockk(relaxed = true),
+                mapViewPort = mockk(relaxed = true),
+                recallButtonViewPort = mockk(relaxed = true),
+                recallButtonPosition = mockk(relaxed = true)
+            )
         ).apply {
             setTextDataSource(textDataSource)
         }
