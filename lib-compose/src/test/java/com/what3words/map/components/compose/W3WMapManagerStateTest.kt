@@ -1,15 +1,8 @@
 package com.what3words.map.components.compose
 
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.what3words.components.compose.maps.MapProvider
-import com.what3words.components.compose.maps.W3WMapManager
 import com.what3words.components.compose.maps.mapper.toW3WMarker
 import com.what3words.components.compose.maps.models.W3WMapType
-import com.what3words.components.compose.maps.models.W3WMarker
 import com.what3words.components.compose.maps.models.W3WZoomOption
-import com.what3words.components.compose.maps.state.W3WMapState
-import com.what3words.components.compose.maps.state.camera.W3WCameraState
-import com.what3words.core.datasource.text.W3WTextDataSource
 import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
@@ -24,53 +17,16 @@ import com.what3words.map.components.compose.DummyUtils.Companion.dummySquare
 import com.what3words.map.components.compose.DummyUtils.Companion.dummyW3WAddress
 import io.mockk.coEvery
 import io.mockk.every
-import io.mockk.mockk
-import io.mockk.unmockkStatic
 import io.mockk.verify
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.junit.MockitoJUnitRunner
 
-@RunWith(MockitoJUnitRunner::class)
-class W3WMapManagerTest {
-    private lateinit var mapManager: W3WMapManager
-    private val textDataSource: W3WTextDataSource = mockk()
-    private val testDispatcher = StandardTestDispatcher()
-    private val cameraStateMock: W3WCameraState<Any> = mockk(relaxed = true)
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-
-        mapManager = W3WMapManager(
-            mapProvider = MapProvider.GOOGLE_MAP,
-            initialMapState = W3WMapState(cameraState = cameraStateMock)
-        ).apply {
-            setTextDataSource(textDataSource)
-        }
-
-        // Mock CameraUpdateFactory's behavior
-        coEvery { cameraStateMock.moveToPosition(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        unmockkStatic(CameraUpdateFactory::class)
-    }
+class W3WMapManagerStateTest: BaseW3WMapManagerTest() {
 
     @Test
     fun isDarkModeEnabled_returnsDefaultValue() {
