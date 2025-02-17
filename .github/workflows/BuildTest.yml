@@ -10,10 +10,13 @@ on:
     pull_request:
       branches:
         - 'staging'
-
+        - 'epic/**'
 jobs:
   build_test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,10 +71,23 @@ jobs:
           path: lib/build/test-results/testDebugUnitTest
 
       - name: Run Lib Compose Unit Test
-        run: ./gradlew lib-compose:testDebugUnitTest
+        run: ./gradlew lib-compose:jacocoTestReport
 
       - name: Upload Lib Compose Test Results
         uses: actions/upload-artifact@v4
         with:
           name: lib-compose-test-results
-          path: lib-compose/build/test-results/testDebugUnitTest
+          path: lib-compose/build/reports/jacoco/jacocoTestReport
+
+      - name: Jacoco Report to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: ${{ github.workspace }}/**/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 60
+          min-coverage-changed-files: 60
+          title: ':lobster: Coverage Report'
+          update-comment: true
+          pass-emoji: ':green_square:'
+          fail-emoji: ':red_square:'
