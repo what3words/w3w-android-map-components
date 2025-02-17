@@ -21,6 +21,7 @@ junit4 = "4.13.2"
 mockk = "1.13.10"
 androidxCoreTesting = "1.6.1"
 androidArchCoreTesting = "2.2.0"
+jacocoVersion = "0.8.11"
 
 #Compose
 androidxComposeBom = "2024.10.00"
@@ -66,6 +67,7 @@ androidx-core-testing = { module = "androidx.arch.core:core-testing", version.re
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
+jacoco-core = { module = "org.jacoco:org.jacoco.core", version.ref = "jacocoVersion" }
 
 #Compose
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
@@ -107,3 +109,4 @@ dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 maven-publish = { id = "maven-publish" }
 signing = { id = "signing" }
 kotlin-parcelize = { id = "kotlin-parcelize" }
+jacoco = { id = "jacoco" }

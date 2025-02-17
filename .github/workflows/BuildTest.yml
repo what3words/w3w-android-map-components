@@ -14,6 +14,9 @@ on:
 jobs:
   build_test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,10 +71,43 @@ jobs:
           path: lib/build/test-results/testDebugUnitTest
 
       - name: Run Lib Compose Unit Test
-        run: ./gradlew lib-compose:testDebugUnitTest
+        run: ./gradlew lib-compose:jacocoTestReport
 
       - name: Upload Lib Compose Test Results
         uses: actions/upload-artifact@v4
         with:
           name: lib-compose-test-results
-          path: lib-compose/build/test-results/testDebugUnitTest
+          path: lib-compose/build/reports/jacoco/jacocoTestReport
+
+      - name: Jacoco Report to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: ${{ github.workspace }}/**/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 40
+          min-coverage-changed-files: 60
+          title: ':lobster: Coverage Report'
+          update-comment: true
+          pass-emoji: ':green_square:'
+          fail-emoji: ':red_square:'
+          debug-mode: true
+
+      - name: Add coverage to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: ${{ github.workspace }}/**/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 40
+          min-coverage-changed-files: 60
+
+      # Publish Coverage Job Summary  # Optional
+      - name: Add Jacocoo report to workflow run summary
+        run: |
+          echo "| Outcome | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Coverage % | ${{ steps.jacoco_reporter.outputs.coverage_percentage }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| :heavy_check_mark: Number of Lines Covered | ${{ steps.jacoco_reporter.outputs.covered_lines }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| :x: Number of Lines Missed | ${{ steps.jacoco_reporter.outputs.missed_lines }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Number of Lines | ${{ steps.jacoco_reporter.outputs.total_lines }} |" >> $GITHUB_STEP_SUMMARY

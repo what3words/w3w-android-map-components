@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.dokka)
     alias(libs.plugins.compose.compiler)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
+    id(libs.plugins.jacoco.get().pluginId)
 }
 
 /**
@@ -38,6 +39,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            enableUnitTestCoverage = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -57,6 +61,39 @@ android {
             withSourcesJar()
         }
     }
+}
+
+jacoco {
+    toolVersion = libs.versions.jacocoVersion.get()
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.withType<Test>().named("testDebugUnitTest"))
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*"
+    )
+
+    val javaTree = fileTree("${buildDir}/intermediates/javac/debug") {
+        exclude(fileFilter)
+    }
+    val kotlinTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    sourceDirectories.setFrom(files("${project.projectDir}/src/main/java", "${project.projectDir}/src/main/kotlin"))
+    classDirectories.setFrom(files(javaTree, kotlinTree))
+    executionData.setFrom(fileTree("${buildDir}/outputs/unit_test_code_coverage/debugUnitTest").apply {
+        include("testDebugUnitTest.exec")
+    })
 }
 
 tasks.register("checkSnapshotDependencies") {
