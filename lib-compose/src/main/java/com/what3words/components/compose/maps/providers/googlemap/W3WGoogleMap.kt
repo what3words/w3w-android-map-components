@@ -9,8 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapColorScheme
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
@@ -66,8 +68,19 @@ fun W3WGoogleMap(
             isIndoorEnabled = false,
             mapType = state.mapType.toGoogleMapType(),
             isMyLocationEnabled = state.isMyLocationEnabled,
-            mapStyleOptions = if (state.isDarkMode) MapStyleOptions(mapConfig.darkModeCustomJsonStyle) else null
+            mapStyleOptions = if (state.isDarkMode) mapConfig.darkModeCustomJsonStyle?.let {
+                MapStyleOptions(
+                    it
+                )
+            } else null
         )
+    }
+
+    val googleMapOptions = remember(state.isDarkMode) {
+        GoogleMapOptions()
+            .mapColorScheme(
+                if (state.isDarkMode) MapColorScheme.LIGHT else MapColorScheme.DARK
+            )
     }
 
     // Update the MapUiSettings based on isMapGestureEnable
@@ -121,6 +134,9 @@ fun W3WGoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
         contentPadding = layoutConfig.contentPadding,
+        googleMapOptionsFactory = {
+            googleMapOptions
+        },
         uiSettings = uiSettings,
         properties = mapProperties,
         onMapClick = {
