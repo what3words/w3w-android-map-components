@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +47,12 @@ const val SAFE_ACCURACY_DISTANCE = 100
 const val WARNING_ACCURACY_DISTANCE = 200
 const val METER = "m"
 const val FEET = "ft"
-const val VISIBLE_TIME = 2000L
+const val ACCURACY_VISIBLE_TIME = 3000L
+
+private enum class SearchIconState {
+    ICON_ONE,
+    ICON_TWO,
+}
 
 /**
  * A composable function to display a "Find My Location" button.
@@ -77,23 +83,60 @@ internal fun MyLocationButton(
 ) {
 
     var isShowingAccuracy by remember { mutableStateOf(false) }
+    var isButtonVisible by remember { mutableStateOf(false) }
+    var searchingIconState by remember { mutableStateOf(SearchIconState.ICON_ONE) }
 
-    val locationIconVector = when (locationStatus) {
-        LocationStatus.ACTIVE -> rememberVectorPainter(Icons.Filled.MyLocation)
-        LocationStatus.INACTIVE -> painterResource(id = R.drawable.ic_my_location_outlined)
-        LocationStatus.SEARCHING -> rememberVectorPainter(Icons.Filled.LocationSearching)
+    val locationSearchingIcon = rememberVectorPainter(Icons.Filled.LocationSearching)
+    val myLocationIcon = rememberVectorPainter(Icons.Filled.MyLocation)
+    val locationOutlinedIcon = painterResource(id = R.drawable.ic_my_location_outlined)
+
+    val locationIconVector by remember(locationStatus, searchingIconState) {
+        derivedStateOf {
+            when (locationStatus) {
+                LocationStatus.SEARCHING -> {
+                    when (searchingIconState) {
+                        SearchIconState.ICON_ONE -> locationSearchingIcon
+                        SearchIconState.ICON_TWO -> myLocationIcon
+                    }
+                }
+
+                LocationStatus.ACTIVE -> myLocationIcon
+                LocationStatus.INACTIVE -> locationOutlinedIcon
+            }
+        }
     }
 
-    val locationIconColor = when (locationStatus) {
-        LocationStatus.ACTIVE -> colors.locationIconColorActive
-        else -> colors.locationIconColorInactive
+    val locationIconColor by remember(locationStatus) {
+        derivedStateOf {
+            when (locationStatus) {
+                LocationStatus.ACTIVE -> colors.locationIconColorActive
+                else -> colors.locationIconColorInactive
+            }
+        }
+    }
+
+    LaunchedEffect(locationStatus) {
+        if (locationStatus == LocationStatus.SEARCHING) {
+            while (true) {
+                // Switch searching icon
+                searchingIconState = SearchIconState.ICON_ONE
+                delay(400L)
+                searchingIconState = SearchIconState.ICON_TWO
+                delay(800L)
+            }
+        }
     }
 
     LaunchedEffect(isShowingAccuracy) {
         if (isShowingAccuracy) {
-            delay(VISIBLE_TIME)
+            delay(ACCURACY_VISIBLE_TIME)
             isShowingAccuracy = false
         }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(400)
+        isButtonVisible = true
     }
 
     Box(
@@ -103,8 +146,8 @@ internal fun MyLocationButton(
         Row {
             AnimatedVisibility(
                 visible = isShowingAccuracy,
-                enter = layoutConfig.enterAnimation,
-                exit = layoutConfig.exitAnimation
+                enter = layoutConfig.accuracyEnterAnimation,
+                exit = layoutConfig.accuracyExitAnimation
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -133,37 +176,42 @@ internal fun MyLocationButton(
             Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
         }
 
-        Box {
-            IconButton(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .shadow(elevation = 3.dp, shape = CircleShape)
-                    .clip(CircleShape)
-                    .background(colors.locationBackgroundColor)
-                    .size(layoutConfig.locationButtonSize),
-                onClick = {
-                    onMyLocationClicked()
-                    if (locationStatus == LocationStatus.ACTIVE) {
-                        isShowingAccuracy = true
-                    }
-                },
-                enabled = isButtonEnabled
-            ) {
-                Icon(
-                    painter = locationIconVector,
-                    contentDescription = contentDescription.locationButtonDescription,
-                    tint = locationIconColor,
-                    modifier = Modifier.size(layoutConfig.locationIconSize)
-                )
-            }
-            if (accuracyDistance >= SAFE_ACCURACY_DISTANCE) {
-                WarningIndicator(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    accuracyDistance = accuracyDistance,
-                    buttonConfig = layoutConfig,
-                    colors = colors,
-                    contentDescription = contentDescription
-                )
+        AnimatedVisibility(
+            visible = isButtonVisible,
+            enter = layoutConfig.buttonVisibleAnimation
+        ) {
+            Box {
+                IconButton(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .shadow(elevation = 3.dp, shape = CircleShape)
+                        .clip(CircleShape)
+                        .background(colors.locationBackgroundColor)
+                        .size(layoutConfig.locationButtonSize),
+                    onClick = {
+                        onMyLocationClicked()
+                        if (locationStatus == LocationStatus.ACTIVE) {
+                            isShowingAccuracy = true
+                        }
+                    },
+                    enabled = isButtonEnabled
+                ) {
+                    Icon(
+                        painter = locationIconVector,
+                        contentDescription = contentDescription.locationButtonDescription,
+                        tint = locationIconColor,
+                        modifier = Modifier.size(layoutConfig.locationIconSize)
+                    )
+                }
+                if (accuracyDistance >= SAFE_ACCURACY_DISTANCE) {
+                    WarningIndicator(
+                        modifier = Modifier.align(Alignment.TopEnd),
+                        accuracyDistance = accuracyDistance,
+                        buttonConfig = layoutConfig,
+                        colors = colors,
+                        contentDescription = contentDescription
+                    )
+                }
             }
         }
     }
@@ -178,27 +226,9 @@ private fun WarningIndicator(
     contentDescription: W3WMapButtonsDefault.ContentDescription,
 ) {
 
-    val indicatorBackgroundColor = when {
-        accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
-            colors.warningLowBackgroundColor
-        }
-
-        accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
-            colors.warningHighBackgroundColor
-        }
-
-        else -> return
-    }
-
-    val indicatorIconColor = when {
-        accuracyDistance in SAFE_ACCURACY_DISTANCE until WARNING_ACCURACY_DISTANCE -> {
-            colors.warningLowIconColor
-        }
-
-        accuracyDistance >= WARNING_ACCURACY_DISTANCE -> {
-            colors.warningHighIconColor
-        }
-
+    val (indicatorBackgroundColor, indicatorIconColor) = when {
+        accuracyDistance >= WARNING_ACCURACY_DISTANCE -> colors.warningHighBackgroundColor to colors.warningHighIconColor
+        accuracyDistance >= SAFE_ACCURACY_DISTANCE -> colors.warningLowBackgroundColor to colors.warningLowIconColor
         else -> return
     }
 
