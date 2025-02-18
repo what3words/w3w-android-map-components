@@ -9,11 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapColorScheme
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
@@ -76,28 +75,6 @@ fun W3WGoogleMap(
         )
     }
 
-    val googleMapOptions = remember(state.isDarkMode) {
-        GoogleMapOptions()
-            .mapColorScheme(
-                if (state.isDarkMode) MapColorScheme.LIGHT else MapColorScheme.DARK
-            )
-    }
-
-    // Update the MapUiSettings based on isMapGestureEnable
-    val uiSettings = remember(state.isMapGestureEnable) {
-        MapUiSettings(
-            indoorLevelPickerEnabled = false,
-            zoomControlsEnabled = false,
-            myLocationButtonEnabled = false,
-            scrollGesturesEnabled = state.isMapGestureEnable,
-            tiltGesturesEnabled = state.isMapGestureEnable,
-            zoomGesturesEnabled = state.isMapGestureEnable,
-            rotationGesturesEnabled = state.isMapGestureEnable,
-            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
-            mapToolbarEnabled = false
-        )
-    }
-
     val cameraPositionState = (state.cameraState as W3WGoogleCameraState).cameraState
 
     var lastProcessedPosition by remember { mutableStateOf(cameraPositionState.position) }
@@ -134,10 +111,18 @@ fun W3WGoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
         contentPadding = layoutConfig.contentPadding,
-        googleMapOptionsFactory = {
-            googleMapOptions
-        },
-        uiSettings = uiSettings,
+        mapColorScheme = if (state.isDarkMode) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
+        uiSettings = MapUiSettings(
+            indoorLevelPickerEnabled = false,
+            zoomControlsEnabled = false,
+            myLocationButtonEnabled = false,
+            scrollGesturesEnabled = state.isMapGestureEnable,
+            tiltGesturesEnabled = state.isMapGestureEnable,
+            zoomGesturesEnabled = state.isMapGestureEnable,
+            rotationGesturesEnabled = state.isMapGestureEnable,
+            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
+            mapToolbarEnabled = false
+        ),
         properties = mapProperties,
         onMapClick = {
             onMapClicked(W3WCoordinates(it.latitude, it.longitude))
