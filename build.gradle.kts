@@ -5,6 +5,7 @@ buildscript {
         classpath(libs.ktlint.gradle)
         classpath(libs.sonarqube.gradle.plugin)
         classpath(libs.kotlin.gradle.plugin)
+        classpath(libs.jacoco.core)
     }
 }
 
