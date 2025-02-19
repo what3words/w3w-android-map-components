@@ -142,9 +142,11 @@ object W3WMapButtonsDefault {
 
     @Composable
     fun defaultLocationButtonConfig(
-        buttonVisibleAnimation: EnterTransition = fadeIn(animationSpec = tween(800)) + slideIn(
+        buttonVisibleAnimation: EnterTransition = fadeIn(
+            animationSpec = tween(durationMillis = 800, delayMillis = 400)
+        ) + slideIn(
             initialOffset = { IntOffset(0, 20) }, // Move up 20px
-            animationSpec = tween(800)
+            animationSpec = tween(durationMillis = 800, delayMillis = 400)
         ),
         accuracyEnterAnimation: EnterTransition = expandHorizontally(
             animationSpec = tween(durationMillis = 1000),

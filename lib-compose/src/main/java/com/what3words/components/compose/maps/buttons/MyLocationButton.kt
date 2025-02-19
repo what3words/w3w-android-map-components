@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.state.LocationStatus
+import com.what3words.components.compose.maps.utils.ImmediateAnimatedVisibility
 import com.what3words.design.library.ui.theme.W3WTheme
 import com.what3words.map.components.compose.R
 import kotlinx.coroutines.delay
@@ -83,7 +84,6 @@ internal fun MyLocationButton(
 ) {
 
     var isShowingAccuracy by remember { mutableStateOf(false) }
-    var isButtonVisible by remember { mutableStateOf(false) }
     var searchingIconState by remember { mutableStateOf(SearchIconState.ICON_ONE) }
 
     val locationSearchingIcon = rememberVectorPainter(Icons.Filled.LocationSearching)
@@ -134,11 +134,6 @@ internal fun MyLocationButton(
         }
     }
 
-    LaunchedEffect(Unit) {
-        delay(400)
-        isButtonVisible = true
-    }
-
     Box(
         modifier = modifier.padding(4.dp),
         contentAlignment = Alignment.CenterEnd
@@ -176,8 +171,7 @@ internal fun MyLocationButton(
             Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
         }
 
-        AnimatedVisibility(
-            visible = isButtonVisible,
+        ImmediateAnimatedVisibility(
             enter = layoutConfig.buttonVisibleAnimation
         ) {
             Box {
