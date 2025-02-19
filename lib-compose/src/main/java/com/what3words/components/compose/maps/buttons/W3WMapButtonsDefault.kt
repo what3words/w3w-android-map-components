@@ -4,7 +4,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -13,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.design.library.ui.theme.w3wColorScheme
@@ -34,8 +37,9 @@ object W3WMapButtonsDefault {
 
     @Immutable
     data class LocationButtonLayoutConfig(
-        val enterAnimation: EnterTransition,
-        val exitAnimation: ExitTransition,
+        val buttonVisibleAnimation: EnterTransition,
+        val accuracyEnterAnimation: EnterTransition,
+        val accuracyExitAnimation: ExitTransition,
         val locationButtonSize: Dp,
         val locationIconSize: Dp,
         val accuracyIndicatorSize: Dp,
@@ -138,11 +142,17 @@ object W3WMapButtonsDefault {
 
     @Composable
     fun defaultLocationButtonConfig(
-        enterAnimation: EnterTransition = expandHorizontally(
+        buttonVisibleAnimation: EnterTransition = fadeIn(
+            animationSpec = tween(durationMillis = 800, delayMillis = 400)
+        ) + slideIn(
+            initialOffset = { IntOffset(0, 20) }, // Move up 20px
+            animationSpec = tween(durationMillis = 800, delayMillis = 400)
+        ),
+        accuracyEnterAnimation: EnterTransition = expandHorizontally(
             animationSpec = tween(durationMillis = 1000),
             expandFrom = Alignment.Start
         ),
-        exitAnimation: ExitTransition = shrinkHorizontally(
+        accuracyExitAnimation: ExitTransition = shrinkHorizontally(
             animationSpec = tween(durationMillis = 1000),
             shrinkTowards = Alignment.Start
         ),
@@ -152,8 +162,9 @@ object W3WMapButtonsDefault {
         accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall
     ): LocationButtonLayoutConfig {
         return LocationButtonLayoutConfig(
-            enterAnimation = enterAnimation,
-            exitAnimation = exitAnimation,
+            buttonVisibleAnimation = buttonVisibleAnimation,
+            accuracyEnterAnimation = accuracyEnterAnimation,
+            accuracyExitAnimation = accuracyExitAnimation,
             locationButtonSize = locationButtonSize,
             locationIconSize = locationIconSize,
             accuracyIndicatorSize = accuracyIndicatorSize,
