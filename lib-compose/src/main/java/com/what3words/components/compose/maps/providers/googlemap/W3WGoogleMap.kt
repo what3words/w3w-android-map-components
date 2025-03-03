@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
@@ -66,22 +67,11 @@ fun W3WGoogleMap(
             isIndoorEnabled = false,
             mapType = state.mapType.toGoogleMapType(),
             isMyLocationEnabled = state.isMyLocationEnabled,
-            mapStyleOptions = if (state.isDarkMode) MapStyleOptions(mapConfig.darkModeCustomJsonStyle) else null
-        )
-    }
-
-    // Update the MapUiSettings based on isMapGestureEnable
-    val uiSettings = remember(state.isMapGestureEnable) {
-        MapUiSettings(
-            indoorLevelPickerEnabled = false,
-            zoomControlsEnabled = false,
-            myLocationButtonEnabled = false,
-            scrollGesturesEnabled = state.isMapGestureEnable,
-            tiltGesturesEnabled = state.isMapGestureEnable,
-            zoomGesturesEnabled = state.isMapGestureEnable,
-            rotationGesturesEnabled = state.isMapGestureEnable,
-            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
-            mapToolbarEnabled = false
+            mapStyleOptions = if (state.isDarkMode) mapConfig.darkModeCustomJsonStyle?.let {
+                MapStyleOptions(
+                    it
+                )
+            } else null
         )
     }
 
@@ -121,7 +111,18 @@ fun W3WGoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
         contentPadding = layoutConfig.contentPadding,
-        uiSettings = uiSettings,
+        mapColorScheme = if (state.isDarkMode) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
+        uiSettings = MapUiSettings(
+            indoorLevelPickerEnabled = false,
+            zoomControlsEnabled = false,
+            myLocationButtonEnabled = false,
+            scrollGesturesEnabled = state.isMapGestureEnable,
+            tiltGesturesEnabled = state.isMapGestureEnable,
+            zoomGesturesEnabled = state.isMapGestureEnable,
+            rotationGesturesEnabled = state.isMapGestureEnable,
+            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
+            mapToolbarEnabled = false
+        ),
         properties = mapProperties,
         onMapClick = {
             onMapClicked(W3WCoordinates(it.latitude, it.longitude))

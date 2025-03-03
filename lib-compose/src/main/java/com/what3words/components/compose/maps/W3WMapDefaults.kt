@@ -6,7 +6,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.models.DarkModeStyle
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.design.library.ui.theme.colors_blue_20
@@ -14,7 +13,6 @@ import com.what3words.design.library.ui.theme.colors_blue_99
 import com.what3words.design.library.ui.theme.colors_grey_100
 import com.what3words.design.library.ui.theme.colors_grey_44
 import com.what3words.design.library.ui.theme.colors_red_50
-import com.what3words.design.library.ui.theme.colors_red_90
 import com.what3words.design.library.ui.theme.colors_red_99
 
 enum class MapProvider {
@@ -43,7 +41,7 @@ object W3WMapDefaults {
     @Immutable
     data class MapConfig(
         // Map config
-        val darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        val darkModeCustomJsonStyle: String?,
         val isBuildingEnable: Boolean,
 
         // Grid view
@@ -128,7 +126,7 @@ object W3WMapDefaults {
     }
 
     fun defaultMapConfig(
-        darkModeCustomJsonStyle: String = DarkModeStyle.darkMode,
+        darkModeCustomJsonStyle: String? = null,
         isBuildingEnable: Boolean = false,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
