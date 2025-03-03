@@ -31,6 +31,7 @@ object W3WMapDefaults {
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = colors_red_50, slash = colors_red_99)
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
     const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
+    const val DEFAULT_MAP_ZOOM_SWITCH_LEVEL = 19f
 
     /**
      * Data class representing the configuration for the map.
@@ -141,7 +142,7 @@ object W3WMapDefaults {
 
     fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
-        zoomSwitchLevel: Float = 19f,
+        zoomSwitchLevel: Float = DEFAULT_MAP_ZOOM_SWITCH_LEVEL,
         gridLineWidth: Dp = 2.dp,
         gridScale: Float = 6f
     ): GridLinesConfig {
