@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.onEach
 
 private const val MAPBOX_MIN_ZOOM_LEVEL = 3.0
 private const val MAPBOX_MAX_ZOOM_PITCH = 60.0
+private const val MAPBOX_DEFAULT_CAMERA_PADDING = 10.0
 
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
@@ -83,7 +84,12 @@ fun W3WMapBox(
 
     val density = LocalDensity.current.density
     val cameraForCoordinatesPadding = remember(density) {
-        EdgeInsets(0.0, 10.0 * density, 0.0, 10.0 * density)
+        EdgeInsets(
+            0.0,
+            MAPBOX_DEFAULT_CAMERA_PADDING * density,
+            0.0,
+            MAPBOX_DEFAULT_CAMERA_PADDING * density
+        )
     }
 
     LaunchedEffect(mapViewportState.cameraState) {
@@ -157,8 +163,7 @@ fun W3WMapBox(
         modifier = modifier,
         mapState = mapState,
         mapViewportState = mapViewportState,
-        logo =
-        {
+        logo = {
             Logo(
                 modifier = Modifier.padding(layoutConfig.contentPadding)
             )
