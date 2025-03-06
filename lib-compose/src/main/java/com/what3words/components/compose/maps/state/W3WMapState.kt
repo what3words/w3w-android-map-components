@@ -39,7 +39,7 @@ data class W3WMapState(
 
     val markers: ImmutableList<W3WMarker> = persistentListOf(),
 
-    internal val cameraState: W3WCameraState<*>? = null,
+    val cameraState: W3WCameraState<*>? = null,
 
     internal val gridLines: W3WGridLines = W3WGridLines(),
 )

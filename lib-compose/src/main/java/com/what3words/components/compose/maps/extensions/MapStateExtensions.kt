@@ -5,7 +5,7 @@ import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import java.util.Collections
 
-internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
+fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
     listName: String,
     marker: W3WMarker,
 ): W3WResult<W3WMarker> {
@@ -30,6 +30,6 @@ internal fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
  *
  * @return list of W3WMarker
  */
-internal fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
+fun MutableMap<String, MutableList<W3WMarker>>.toMarkers(): List<W3WMarker> {
     return this.values.flatten()
 }
