@@ -1,6 +1,12 @@
 package com.what3words.components.compose.maps.buttons
 
 import android.graphics.PointF
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideIn
+import androidx.compose.animation.slideOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -8,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,9 +25,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonColor
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonLayoutConfig
@@ -36,6 +44,9 @@ import com.what3words.map.components.compose.R
  * @param contentDescription The content description for the button.
  * @param onRecallClicked The callback when the button is clicked.
  * @param onRecallButtonPositionProvided The callback providing the button's position as a PointF.
+ * @param selectedPosition The position used for calculating the offset for animation, defaults to PointF().
+ * @param isVisible Determines whether the button should be visible.
+ * @param isCameraMoving Indicates if the camera is currently moving, affecting button visibility.
  */
 @Composable
 internal fun RecallButton(
@@ -46,39 +57,87 @@ internal fun RecallButton(
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onRecallClicked: () -> Unit,
     onRecallButtonPositionProvided: (PointF) -> Unit,
+    selectedPosition: PointF = PointF(),
+    isVisible: Boolean = false,
+    isCameraMoving: Boolean = false
 ) {
 
-    var position: Offset by remember { mutableStateOf(Offset.Zero) }
-    val positionCallback = rememberUpdatedState(onRecallButtonPositionProvided)
+    // Track previous isVisible state to detect changes
+    var prevIsVisible by remember { mutableStateOf(isVisible) }
+    var shouldBeVisible by remember { mutableStateOf(isVisible) }
 
-    IconButton(
-        onClick = { onRecallClicked() },
-        modifier = modifier
-            .onGloballyPositioned { coordinate ->
-                // Only trigger one time when the button is initialized
-                // The coordinate is affected by the rotation
-                if (position == Offset.Zero) {
-                    position = coordinate.positionInWindow()
-                    val point = PointF(position.x, position.y)
-                    positionCallback.value(point)
-                }
+    val positionCallback = rememberUpdatedState(onRecallButtonPositionProvided)
+    var buttonPosition: Offset by remember { mutableStateOf(Offset.Unspecified) }
+
+    LaunchedEffect(isVisible, isCameraMoving) {
+        // Show the button when isVisible is true,
+        // OR  prevIsVisible was true AND we're currently moving the camera (isCameraMoving is true)
+        shouldBeVisible = isVisible || (prevIsVisible && isCameraMoving)
+        prevIsVisible = isVisible
+    }
+
+    AnimatedVisibility(
+        visible = shouldBeVisible,
+        enter = fadeIn(
+            initialAlpha = 0f,
+            animationSpec = tween(400)
+        ) + slideIn(
+            animationSpec = tween(400),
+            initialOffset = { size ->
+                IntOffset(
+                    x = (selectedPosition.x - buttonPosition.x).toInt(),
+                    y = (selectedPosition.y - buttonPosition.y).toInt()
+                )
             }
-            .padding(layoutConfig.buttonPadding)
-            .graphicsLayer {
-                rotationZ = rotation
+        ),
+        exit = fadeOut(
+            targetAlpha = 0f,
+            animationSpec = tween(durationMillis = 400, delayMillis = 200)
+        ) + slideOut(
+            animationSpec = tween(durationMillis = 400, delayMillis = 200),
+            targetOffset = { size ->
+                IntOffset(
+                    x = (selectedPosition.x - buttonPosition.x).toInt(),
+                    y = (selectedPosition.y - buttonPosition.y).toInt()
+                )
             }
-            .shadow(elevation = 3.dp, shape = CircleShape)
-            .size(layoutConfig.buttonSize)
-            .background(recallButtonColor.recallBackgroundColor)
-    ) {
-        Icon(
-            modifier = Modifier
-                .size(layoutConfig.imageSize)
-                .padding(layoutConfig.imagePadding),
-            painter = painterResource(R.drawable.ic_arrow_back),
-            contentDescription = contentDescription.recallButtonDescription,
-            tint = recallButtonColor.recallArrowColor
         )
+    ) {
+        IconButton(
+            onClick = { onRecallClicked() },
+            modifier = modifier
+                .onGloballyPositioned { coordinate ->
+                    // Get the center position of the recall button
+                    // Only trigger one time when the button is initialized
+                    // NOTE: onGloballyPositioned is called AFTER a composition,
+                    // so the first appear time the button can't perform the animation fully because lack of position info.
+                    if (!buttonPosition.isValid()) {
+                        val size = coordinate.size
+                        val position = coordinate.positionInRoot()
+                        val centerX = position.x + size.width / 2
+                        val centerY = position.y + size.height / 2
+                        val centerPoint = PointF(centerX, centerY)
+                        buttonPosition = Offset(centerX, centerY)
+                        positionCallback.value(centerPoint)
+                    }
+                }
+                .padding(layoutConfig.buttonPadding)
+                .shadow(elevation = 3.dp, shape = CircleShape)
+                .size(layoutConfig.buttonSize)
+                .background(recallButtonColor.recallBackgroundColor)
+        ) {
+            Icon(
+                modifier = Modifier
+                    .size(layoutConfig.imageSize)
+                    .padding(layoutConfig.imagePadding)
+                    .graphicsLayer {
+                        rotationZ = rotation
+                    },
+                painter = painterResource(R.drawable.ic_arrow_back),
+                contentDescription = contentDescription.recallButtonDescription,
+                tint = recallButtonColor.recallArrowColor
+            )
+        }
     }
 }
 
@@ -88,6 +147,8 @@ private fun A1() {
     RecallButton(
         modifier = Modifier,
         rotation = 0f,
+        isVisible = true,
+        isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
     )
@@ -99,6 +160,8 @@ private fun A2() {
     RecallButton(
         modifier = Modifier,
         rotation = 45f,
+        isVisible = true,
+        isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
     )
@@ -110,6 +173,8 @@ private fun A3() {
     RecallButton(
         modifier = Modifier,
         rotation = 90f,
+        isVisible = true,
+        isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
     )
@@ -121,6 +186,8 @@ private fun A4() {
     RecallButton(
         modifier = Modifier,
         rotation = 135f,
+        isVisible = true,
+        isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
     )
@@ -132,6 +199,8 @@ private fun A5() {
     RecallButton(
         modifier = Modifier,
         rotation = 180f,
+        isVisible = true,
+        isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
     )

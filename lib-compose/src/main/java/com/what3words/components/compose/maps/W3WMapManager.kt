@@ -320,7 +320,7 @@ class W3WMapManager(
     fun setLanguage(language: W3WRFC5646Language) {
         this.language = language
     }
-    
+
     /**
      * Retrieves the current language setting for What3Words addresses.
      *
@@ -1613,7 +1613,8 @@ class W3WMapManager(
     private suspend fun handleRecallButton() {
         updateSelectedScreenLocation()
 
-        val buttonState = buttonState.value
+        val buttonState = _buttonState.value
+        val cameraState = _mapState.value.cameraState
         val selectedScreenLocation = buttonState.selectedScreenLocation
         val recallButtonViewport = buttonState.recallButtonViewPort
         val mapProjection = buttonState.mapProjection
@@ -1631,6 +1632,7 @@ class W3WMapManager(
             it.copy(
                 recallRotationDegree = rotationDegree,
                 isRecallButtonVisible = shouldShowRecallButton,
+                isCameraMoving = cameraState?.isCameraMoving == true
             )
         }
     }
@@ -1677,7 +1679,8 @@ class W3WMapManager(
 
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
-        private val HEADER_MAP_COMPONENT = mapOf("X-W3W-AS-Component" to ("what3words-Map-Android/" + BuildConfig.LIBRARY_VERSION))
+        private val HEADER_MAP_COMPONENT =
+            mapOf("X-W3W-AS-Component" to ("what3words-Map-Android/" + BuildConfig.LIBRARY_VERSION))
 
         /**
          * The default saver implementation for [W3WMapManager].

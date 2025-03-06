@@ -18,6 +18,7 @@ data class W3WButtonsState(
     val recallRotationDegree: Float = 0F,
     val recallButtonPosition: PointF = PointF(0F, 0F),
 
+    val isCameraMoving: Boolean = true,
     val mapProjection: W3WMapProjection? = null,
     val mapViewPort: W3WGridScreenCell? = null,
     val recallButtonViewPort: W3WGridScreenCell? = null,
