@@ -271,7 +271,10 @@ class W3WMapManager(
      */
     fun setMapProvider(mapProvider: MapProvider): W3WResult<MapProvider> {
         return if (this.mapProvider != mapProvider) {
-            if(_mapState.value.cameraState?.isCameraMoving != true) {
+            val cameraState = _mapState.value.cameraState
+            if(cameraState == null) {
+                W3WResult.Failure(W3WError("Map provider change failed because the camera state is null"))
+            } else if(!cameraState.isCameraMoving) {
                 this.mapProvider = mapProvider
 
                 _mapState.update { currentState ->
