@@ -39,6 +39,7 @@ import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.components.compose.maps.state.camera.W3WMapboxCameraState
 import com.what3words.components.compose.maps.utils.angleOfPoints
 import com.what3words.core.datasource.text.W3WTextDataSource
+import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.domain.W3WSuggestion
@@ -265,24 +266,34 @@ class W3WMapManager(
      * bearing, and tilt.
      *
      * @param mapProvider The new [MapProvider] to be set (either [MapProvider.MAPBOX] or [MapProvider.GOOGLE_MAP]).
+     * @return A [W3WResult] containing either the successfully set [MapProvider] or a failure with an error message.
+     *
      */
-    fun setMapProvider(mapProvider: MapProvider) {
-        if (this.mapProvider != mapProvider) {
-            this.mapProvider = mapProvider
+    fun setMapProvider(mapProvider: MapProvider): W3WResult<MapProvider> {
+        return if (this.mapProvider != mapProvider) {
+            if(_mapState.value.cameraState?.isCameraMoving != true) {
+                this.mapProvider = mapProvider
 
-            _mapState.update { currentState ->
-                currentState.copy(
-                    cameraState = when (mapProvider) {
-                        MapProvider.MAPBOX -> createMapboxCameraState(
-                            _mapState.value.cameraState
-                        )
+                _mapState.update { currentState ->
+                    currentState.copy(
+                        cameraState = when (mapProvider) {
+                            MapProvider.MAPBOX -> createMapboxCameraState(
+                                _mapState.value.cameraState
+                            )
 
-                        MapProvider.GOOGLE_MAP -> createGoogleCameraState(
-                            _mapState.value.cameraState
-                        )
-                    }
-                )
+                            MapProvider.GOOGLE_MAP -> createGoogleCameraState(
+                                _mapState.value.cameraState
+                            )
+                        }
+                    )
+                }
+
+                W3WResult.Success(mapProvider)
+            } else {
+                W3WResult.Failure(W3WError("Map provider change failed because the camera is moving"))
             }
+        } else {
+            W3WResult.Failure(W3WError("Map provider not changed"))
         }
     }
 
