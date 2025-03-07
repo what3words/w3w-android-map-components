@@ -22,6 +22,8 @@ interface W3WCameraState<T> {
 
     var visibleBound: W3WRectangle?
 
+    var isCameraMoving: Boolean
+
     /**
      *  Adjust camera bearing to 0
      */

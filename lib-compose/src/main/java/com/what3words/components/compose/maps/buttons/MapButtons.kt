@@ -57,7 +57,7 @@ internal fun MapButtons(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalAlignment = Alignment.End
     ) {
-        if (buttonConfig.isRecallButtonAvailable && buttonState.isRecallButtonVisible) {
+        if (buttonConfig.isRecallButtonAvailable) {
             RecallButton(
                 layoutConfig = layoutConfig.recallButtonLayoutConfig,
                 onRecallClicked = onRecallClicked,
@@ -65,6 +65,9 @@ internal fun MapButtons(
                 rotation = ceil(buttonState.recallRotationDegree),
                 recallButtonColor = recallButtonColor,
                 contentDescription = contentDescription,
+                isVisible = buttonState.isRecallButtonVisible,
+                isCameraMoving = buttonState.isCameraMoving,
+                selectedPosition = buttonState.selectedScreenLocation ?: PointF(),
             )
         }
         if (buttonConfig.isMyLocationButtonAvailable) {

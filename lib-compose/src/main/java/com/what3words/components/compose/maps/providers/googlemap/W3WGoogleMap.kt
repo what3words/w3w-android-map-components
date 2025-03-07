@@ -101,10 +101,14 @@ fun W3WGoogleMap(
                         state.cameraState.gridBound = gridBound
                         state.cameraState.visibleBound = visibleBound
                         onCameraUpdated(state.cameraState)
-
                     }
                 }
             }.launchIn(this)
+    }
+
+    LaunchedEffect(cameraPositionState.isMoving) {
+        state.cameraState.isCameraMoving = cameraPositionState.isMoving
+        onCameraUpdated(state.cameraState)
     }
 
     GoogleMap(

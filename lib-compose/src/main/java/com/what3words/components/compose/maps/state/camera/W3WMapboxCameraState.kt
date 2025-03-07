@@ -24,6 +24,8 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
 
     override var visibleBound: W3WRectangle? by mutableStateOf(null)
 
+    override var isCameraMoving: Boolean by mutableStateOf(true)
+
     //TODO: This is work around for the function cameraForCoordinates not support in compose
     var cameraForCoordinates: MutableList<Point>? = mutableListOf()
 
