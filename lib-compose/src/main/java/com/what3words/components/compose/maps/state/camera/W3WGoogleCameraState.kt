@@ -14,6 +14,19 @@ import com.what3words.core.types.geometry.W3WRectangle
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.withContext
 
+/**
+ * Implementation of [W3WCameraState] for Google Maps.
+ *
+ * This class handles camera operations for Google Maps components, managing positioning,
+ * zoom levels, bounds, and camera animations.
+ *
+ * @property cameraState The underlying [CameraPositionState] for Google Maps
+ * @property gridBound Current grid bounds represented as a [W3WRectangle]
+ * @property visibleBound Current visible bounds on the map represented as a [W3WRectangle]
+ * @property isCameraMoving Boolean indicating if the camera is currently in motion
+ *
+ * @param initialCameraState The initial camera state to use when creating this instance
+ */
 @Stable
 class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
     W3WCameraState<CameraPositionState> {
@@ -69,9 +82,9 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         withContext(Main) {
             cameraState.animate(
                 update =
-                CameraUpdateFactory.newLatLngBounds(
-                    latLngBounds.build(), 10
-                )
+                    CameraUpdateFactory.newLatLngBounds(
+                        latLngBounds.build(), 10
+                    )
             )
         }
     }
@@ -96,6 +109,17 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         }
     }
 
+    /**
+     * Updates the camera position with new settings.
+     *
+     * This private function handles the common camera positioning logic for both animated and
+     * non-animated camera movements. It ensures the camera operation happens on the Main dispatcher
+     * to properly update the UI.
+     *
+     * @param cameraPosition The new [CameraPosition] to apply to the map
+     * @param animate Whether to animate the transition to the new camera position (true) or
+     *                update instantly (false)
+     */
     private suspend fun updateCameraPosition(cameraPosition: CameraPosition, animate: Boolean) {
         withContext(Main) {
             if (animate) {

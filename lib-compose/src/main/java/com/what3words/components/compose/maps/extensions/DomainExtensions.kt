@@ -8,6 +8,12 @@ import com.what3words.core.types.geometry.W3WRectangle
 import com.what3words.javawrapper.response.Coordinates
 import com.what3words.javawrapper.response.Line
 
+/**
+ * Utility method for checking if coordinates are inside a W3W rectangle.
+ *
+ * @param coordinates The coordinates to check if they are within the rectangle.
+ * @return `true` if the coordinates are inside the rectangle, `false` otherwise or if coordinates are null.
+ */
 internal fun W3WRectangle.contains(coordinates: W3WCoordinates?): Boolean {
     if (coordinates == null) return false
     return if (coordinates.lat >= this.southwest.lat && coordinates.lat <= this.northeast.lat && coordinates.lng >= this.southwest.lng && coordinates.lng <= this.northeast.lng) return true

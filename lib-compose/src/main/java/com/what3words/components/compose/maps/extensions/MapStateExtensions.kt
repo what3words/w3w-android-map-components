@@ -5,6 +5,14 @@ import com.what3words.core.types.common.W3WError
 import com.what3words.core.types.common.W3WResult
 import java.util.Collections
 
+/**
+ * Extensions for manipulating W3WMarkers in map collections.
+ * Provides utilities for adding, retrieving, and organizing markers in named lists.
+ * 
+ * @param listName The name of the marker list to manipulate
+ * @param marker The W3WMarker object to be added
+ * @return W3WResult containing either the added marker on success or a W3WError on failure
+ */
 fun MutableMap<String, MutableList<W3WMarker>>.addMarker(
     listName: String,
     marker: W3WMarker,

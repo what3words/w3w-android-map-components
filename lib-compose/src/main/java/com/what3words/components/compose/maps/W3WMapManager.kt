@@ -15,6 +15,7 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.androidwrapper.datasource.text.W3WApiTextDataSource
 import com.what3words.components.compose.maps.W3WMapDefaults.LOCATION_DEFAULT
 import com.what3words.components.compose.maps.W3WMapDefaults.MARKER_COLOR_DEFAULT
+import com.what3words.components.compose.maps.W3WMapManager.Companion.LIST_DEFAULT_ID
 import com.what3words.components.compose.maps.extensions.addMarker
 import com.what3words.components.compose.maps.extensions.computeHorizontalLines
 import com.what3words.components.compose.maps.extensions.computeVerticalLines
@@ -77,8 +78,10 @@ import kotlinx.coroutines.withContext
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param initialMapState An optional [W3WMapState] object representing the initial state of the map. If not
  *   provided, a default [W3WMapState] is used.
- *
- * @property mapState A read-only [StateFlow] of [W3WMapState] exposing the current state of the map.
+ * @param initialButtonState An optional [W3WButtonsState] object representing the initial state of the map buttons.
+ *   If not provided, a default [W3WButtonsState] is used.
+ * @param dispatcher The [CoroutineDispatcher] to use for background operations.
+ *   Defaults to [IO] dispatcher.
  */
 class W3WMapManager(
     internal var mapProvider: MapProvider,
@@ -106,6 +109,9 @@ class W3WMapManager(
 
     private lateinit var textDataSource: W3WTextDataSource
 
+    /**
+     * Initializes the map manager with the initial camera state and starts observing grid calculation.
+     */
     init {
         _mapState.update {
             it.copy(
@@ -118,6 +124,12 @@ class W3WMapManager(
         observeGridCalculation()
     }
 
+    /**
+     * Creates a Mapbox camera state based on the current camera configuration.
+     *
+     * @param currentCameraState The current camera state, optional.
+     * @return An instance of W3WMapboxCameraState reflecting the camera's initial settings.
+     */
     private fun createMapboxCameraState(
         currentCameraState: W3WCameraState<*>? = null,
     ): W3WMapboxCameraState {
@@ -140,6 +152,12 @@ class W3WMapManager(
         )
     }
 
+    /**
+     * Creates a Google camera state based on the camera configuration.
+     *
+     * @param currentCameraState The current camera state, optional.
+     * @return An instance of W3WGoogleCameraState reflecting the camera's initial settings.
+     */
     private fun createGoogleCameraState(
         currentCameraState: W3WCameraState<*>? = null,
     ): W3WGoogleCameraState {
@@ -160,6 +178,10 @@ class W3WMapManager(
         )
     }
 
+    /**
+     * Observes grid calculation events and processes them.
+     * This function detects changes and coordinates grid updates.
+     */
     private fun observeGridCalculation() {
         scope.launch {
             gridCalculationFlow
@@ -173,6 +195,13 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Determines if grid calculations should occur based on current map bounds.
+     *
+     * @param oldGridBound The previously calculated grid boundary, if any.
+     * @param visibleBound The currently visible map boundary.
+     * @return True if grid calculation should proceed, false otherwise.
+     */
     private fun shouldCalculateGrid(
         oldGridBound: W3WRectangle?,
         visibleBound: W3WRectangle?,
@@ -220,12 +249,22 @@ class W3WMapManager(
                 visibleBound.northeast.lat <= gridBound.northeast.lat - thresholdLat
     }
 
+    /**
+     * Checks if the current zoom level is below the threshold for grid line calculation.
+     *
+     * @return True if the zoom level is too low for grid calculations.
+     */
     private fun isBelowMinimumZoom(): Boolean {
         val zoomLevel = _mapState.value.cameraState?.getZoomLevel()
         val zoomSwitchLevel = mapConfig?.gridLineConfig?.zoomSwitchLevel
         return zoomLevel != null && zoomSwitchLevel != null && zoomLevel < zoomSwitchLevel
     }
 
+    /**
+     * Calculates and updates the grid lines based on the provided boundary.
+     *
+     * @param gridBound The boundary within which to calculate grid lines.
+     */
     private suspend fun calculateAndUpdateGrid(gridBound: W3WRectangle) {
         val newGridLines = calculateGridPolylines(gridBound)
         if (newGridLines != null) {
@@ -237,6 +276,20 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Converts a rectangle boundary to grid polylines.
+     *
+     * This function takes a geographical rectangle boundary and converts it to a set of grid lines
+     * that represent what3words grid squares. The calculation is performed on a background thread.
+     *
+     * The grid lines are calculated by:
+     * 1. Converting the boundary to a grid section using the text data source
+     * 2. Processing the grid section to extract vertical and horizontal lines
+     *
+     * @param gridBound The geographical rectangle boundary for which to calculate grid lines
+     * @return A [W3WGridLines] object containing the calculated vertical and horizontal grid lines,
+     *         or null if the calculation failed
+     */
     private suspend fun calculateGridPolylines(gridBound: W3WRectangle): W3WGridLines? =
         withContext(dispatcher) {
             gridBound.let { safeBox ->
@@ -250,6 +303,11 @@ class W3WMapManager(
             }
         }
 
+    /**
+     * Converts grid section results to a grid lines structure.
+     *
+     * @return The resulting W3WGridLines structure.
+     */
     private fun W3WResult.Success<W3WGridSection>.toW3WGridLines(): W3WGridLines {
         return W3WGridLines(
             verticalLines = value.lines.computeVerticalLines().toImmutableList(),
@@ -272,9 +330,9 @@ class W3WMapManager(
     fun setMapProvider(mapProvider: MapProvider): W3WResult<MapProvider> {
         return if (this.mapProvider != mapProvider) {
             val cameraState = _mapState.value.cameraState
-            if(cameraState == null) {
+            if (cameraState == null) {
                 W3WResult.Failure(W3WError("Map provider change failed because the camera state is null"))
-            } else if(!cameraState.isCameraMoving) {
+            } else if (!cameraState.isCameraMoving) {
                 this.mapProvider = mapProvider
 
                 _mapState.update { currentState ->
@@ -313,6 +371,11 @@ class W3WMapManager(
             return markersMap.values.flatten()
         }
 
+    /**
+     * Updates the camera state in the map manager.
+     *
+     * @param newCameraState The new camera state to set.
+     */
     internal suspend fun updateCameraState(newCameraState: W3WCameraState<*>) = withContext(IO) {
         _mapState.update {
             it.copy(
@@ -546,6 +609,11 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Sets the internal selection state for an address.
+     *
+     * @param address The address to mark as selected.
+     */
     private suspend fun setSelectedInternal(
         address: W3WAddress
     ) {
@@ -1564,24 +1632,45 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Updates the accuracy distance based on the provided value.
+     *
+     * @param distance The new accuracy distance.
+     */
     fun updateAccuracyDistance(distance: Float) {
         _buttonState.update {
             it.copy(accuracyDistance = distance)
         }
     }
 
+    /**
+     * Updates the current location status to indicate the device location status.
+     *
+     * @param locationStatus The new location status.
+     */
     fun updateLocationStatus(locationStatus: LocationStatus) {
         _buttonState.update {
             it.copy(locationStatus = locationStatus)
         }
     }
 
+    /**
+     * Updates the map projection for visual rendering.
+     *
+     * @param mapProjection The projection used to render the map.
+     */
     fun setMapProjection(mapProjection: W3WMapProjection) {
         _buttonState.update {
             it.copy(mapProjection = mapProjection)
         }
     }
 
+    /**
+     * Sets the map viewport dimensions.
+     * This defines the visible area of the map and is used for UI element positioning.
+     *
+     * @param mapViewPort The map viewport cell dimensions.
+     */
     fun setMapViewPort(mapViewPort: W3WGridScreenCell) {
         _buttonState.update {
             it.copy(
@@ -1596,18 +1685,33 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Sets the position of the recall button on screen.
+     *
+     * @param recallButtonPosition The screen position of the recall button.
+     */
     fun setRecallButtonPosition(recallButtonPosition: PointF) {
         _buttonState.update {
             it.copy(recallButtonPosition = recallButtonPosition)
         }
     }
 
+    /**
+     * Enables or disables the recall button functionality.
+     *
+     * @param isEnabled Boolean flag to enable or disable the recall button.
+     */
     fun setRecallButtonEnabled(isEnabled: Boolean) {
         _buttonState.update {
             it.copy(isRecallButtonEnabled = isEnabled)
         }
     }
 
+    /**
+     * Updates the screen location of the currently selected address.
+     * This is used for features like the recall button that need to know where on screen
+     * the selected address is located.
+     */
     private suspend fun updateSelectedScreenLocation() {
         withContext(dispatcher) {
             val selectedAddress = mapState.value.selectedAddress?.center
@@ -1624,6 +1728,9 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Handles recall button functionality and updates its state based on the selected location and viewport.
+     */
     private suspend fun handleRecallButton() {
         updateSelectedScreenLocation()
 
@@ -1651,6 +1758,13 @@ class W3WMapManager(
         }
     }
 
+    /**
+     * Computes the recall button's rotation based on its position and the selected screen location.
+     *
+     * @param selectedScreenLocation The location of the selected item on the screen.
+     * @param recallButtonPosition The current position of the recall button.
+     * @return The rotation degree of the recall button.
+     */
     private fun computeRecallButtonRotation(
         selectedScreenLocation: PointF,
         recallButtonPosition: PointF
@@ -1659,14 +1773,31 @@ class W3WMapManager(
         (180 + alpha) * -1
     }
 
+    /**
+     * Sets the map configuration for various features including grid lines and markers.
+     *
+     * @param mapConfig The map's configuration settings.
+     */
     fun setMapConfig(mapConfig: W3WMapDefaults.MapConfig) {
         this.mapConfig = mapConfig
     }
 
+    /**
+     * Sets the text data source used for what3words API operations.
+     * This is typically called by the map components during initialization.
+     *
+     * @param textDataSource The text data source implementation to use for API calls.
+     */
     internal fun setTextDataSource(textDataSource: W3WTextDataSource) {
         this.textDataSource = textDataSource
     }
 
+    /**
+     * Converts a what3words string address into coordinates.
+     *
+     * @param words The address in the what3words format.
+     * @return The result of the conversion, containing either coordinates or an error.
+     */
     private suspend fun convertToCoordinates(
         words: String,
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
@@ -1675,6 +1806,12 @@ class W3WMapManager(
             ?: textDataSource.convertToCoordinates(words)
     }
 
+    /**
+     * Converts geographical coordinates into a what3words address.
+     *
+     * @param coordinates The coordinates to convert.
+     * @return The result of the conversion, containing either the what3words address or an error.
+     */
     private suspend fun convertTo3wa(
         coordinates: W3WCoordinates
     ): W3WResult<W3WAddress> = withContext(dispatcher) {
@@ -1683,6 +1820,12 @@ class W3WMapManager(
             ?: textDataSource.convertTo3wa(coordinates, language)
     }
 
+    /**
+     * Retrieves grid sections for a specified rectangular area.
+     *
+     * @param boundingBox The geographical area to retrieve grid sections for.
+     * @return The result containing grid sections or an error.
+     */
     private suspend fun convertGridSection(
         boundingBox: W3WRectangle
     ): W3WResult<W3WGridSection> = withContext(dispatcher) {

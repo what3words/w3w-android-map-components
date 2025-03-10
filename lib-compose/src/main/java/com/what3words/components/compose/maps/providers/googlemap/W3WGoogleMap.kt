@@ -40,10 +40,13 @@ import kotlin.math.roundToInt
  * @param modifier Modifier for styling and layout of the map view.
  * @param layoutConfig Configuration for the map's layout, such as padding and content alignment.
  * @param mapConfig Configuration for the map's appearance, such as map type and zoom controls.
+ * @param mapColor Configuration for the map's color scheme.
  * @param state The [W3WMapState] object that holds the state of the map.
  * @param content Optional composable content to be displayed on the map, such as markers or overlays.
+ * @param onMarkerClicked Callback invoked when a marker on the map is clicked.
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
+ * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
  *
  */
 @OptIn(MapsComposeExperimentalApi::class)
@@ -145,6 +148,16 @@ fun W3WGoogleMap(
     }
 }
 
+/**
+ * Updates the camera bounds for the map and notifies listeners about the changes.
+ *
+ * This function calculates both the grid bounds (scaled according to gridLinesConfig) and
+ * the actual visible bounds of the map. The results are passed to the provided callback.
+ *
+ * @param projection The map's current projection that provides the visible region
+ * @param gridLinesConfig Configuration for the grid lines, including scale factor
+ * @param onCameraBoundUpdate Callback that receives the calculated grid bounds and visible bounds
+ */
 private suspend fun updateCameraBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
@@ -181,6 +194,18 @@ private suspend fun updateCameraBound(
     }
 }
 
+/**
+ * Scales the given map bounds by the specified grid scale factor.
+ *
+ * This function transforms the map bounds by scaling them from the center point.
+ * It converts the bounds to screen coordinates, applies the scale factor, and then
+ * converts back to geographical coordinates.
+ *
+ * @param bounds The original [LatLngBounds] to scale
+ * @param projection The map [Projection] used for coordinate transformations
+ * @param gridLinesConfig Configuration containing the grid scale factor
+ * @return A new [LatLngBounds] that represents the scaled bounds
+ */
 private fun scaleBounds(
     bounds: LatLngBounds,
     projection: Projection,
