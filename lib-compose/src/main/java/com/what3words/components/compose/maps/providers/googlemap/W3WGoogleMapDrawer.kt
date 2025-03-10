@@ -158,7 +158,17 @@ fun W3WGoogleMapDrawer(
     }
 }
 
-
+/**
+ * Renders grid lines on a Google Map.
+ *
+ * This composable function draws the what3words grid overlay on the map, consisting of both
+ * horizontal and vertical lines that form the what3words square boundaries. The grid lines
+ * provide visual reference for the what3words addressing system's geographic divisions.
+ *
+ * @param verticalLines List of coordinates representing vertical grid lines
+ * @param horizontalLines List of coordinates representing horizontal grid lines
+ * @param gridLineColor Color to use when drawing the grid lines
+ */
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawGridLines(
@@ -191,6 +201,19 @@ fun W3WGoogleMapDrawGridLines(
     )
 }
 
+
+/**
+ * Renders the selected what3words address on a Google Map.
+ *
+ * This composable handles the display of the selected address, switching between
+ * zoom in and zoom out rendering modes based on the current zoom level.
+ *
+ * @param markerColors Configuration for marker colors
+ * @param zoomLevel Current zoom level of the map
+ * @param zoomSwitchLevel Zoom level at which to switch between detail modes
+ * @param selectedAddress The currently selected what3words address
+ * @param markersInSelectedAddress List of markers that exist in the selected address's square
+ */
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawSelectedAddress(
@@ -226,6 +249,17 @@ fun W3WGoogleMapDrawSelectedAddress(
     }
 }
 
+
+/**
+ * Renders a selected what3words address when zoomed out.
+ *
+ * This composable displays a marker at the center of the selected address. It uses
+ * different colors based on whether there are markers within the selected square.
+ *
+ * @param markerColors Configuration for marker colors
+ * @param selectedAddress The currently selected what3words address
+ * @param markersInSelectedSquare List of markers that exist in the selected square
+ */
 @Composable
 @GoogleMapComposable
 private fun DrawZoomOutSelectedAddress(
@@ -264,6 +298,16 @@ private fun DrawZoomOutSelectedAddress(
     )
 }
 
+
+/**
+ * Renders a selected what3words address when zoomed in.
+ *
+ * This composable draws an outline around the selected what3words square using a polyline.
+ *
+ * @param selectedMarkerColor Color for the selected square's outline
+ * @param selectedAddress The currently selected what3words address
+ * @param gridLineWidth Width of the outline around the selected square
+ */
 @Composable
 @GoogleMapComposable
 private fun DrawZoomInSelectedAddress(
@@ -304,6 +348,19 @@ private fun DrawZoomInSelectedAddress(
 }
 
 
+/**
+ * Renders markers and the selected address on a Google Map.
+ *
+ * This composable function handles drawing all markers and the selected address,
+ * switching between zoom in and zoom out rendering modes based on the current zoom level.
+ *
+ * @param defaultMarkerColor Default color for markers
+ * @param zoomLevel Current zoom level of the map
+ * @param zoomSwitchLevel Zoom level at which to switch between detail modes
+ * @param markers List of all markers to display
+ * @param selectedAddress Currently selected what3words address, if any
+ * @param onMarkerClicked Callback invoked when a marker is clicked
+ */
 @Composable
 @GoogleMapComposable
 fun W3WGoogleMapDrawMarkers(
@@ -344,6 +401,17 @@ fun W3WGoogleMapDrawMarkers(
     }
 }
 
+
+/**
+ * Renders markers on a Google Map when zoomed in.
+ *
+ * This composable draws filled markers at a higher zoom level, using ground overlays to
+ * highlight entire what3words squares. When multiple markers share the same square,
+ * it uses a default color to indicate multiple points of interest.
+ *
+ * @param defaultMarkerColor The default color to use for squares with multiple markers
+ * @param markers The list of markers to display on the map
+ */
 @Composable
 private fun DrawZoomInMarkers(
     defaultMarkerColor: W3WMarkerColor,
@@ -389,6 +457,18 @@ private fun DrawZoomInMarkers(
     }
 }
 
+
+/**
+ * Renders markers on a Google Map when zoomed out.
+ *
+ * This composable draws markers at a lower zoom level, using pin icons to represent
+ * what3words addresses. When multiple markers share the same square, it uses a default
+ * color to indicate multiple points of interest.
+ *
+ * @param defaultMarkerColor The default color to use for markers with multiple items
+ * @param markers The list of markers to display on the map
+ * @param onMarkerClicked Callback invoked when a marker is clicked
+ */
 @Composable
 private fun DrawZoomOutMarkers(
     defaultMarkerColor: W3WMarkerColor,
@@ -435,13 +515,31 @@ private fun DrawZoomOutMarkers(
     }
 }
 
-// Workaround solution for the issue with rememberMarkerState(): https://stackoverflow.com/questions/75920971/how-to-make-remembermarkerstate-work-correctly-in-jetpack-compose
+/**
+ * Remembers and updates a MarkerState with the given position.
+ *
+ * This is a workaround solution for issues with the standard rememberMarkerState() function.
+ * It creates a MarkerState instance and updates its position to ensure proper rendering.
+ *
+ * @param newPosition The LatLng position for the marker
+ * @return A MarkerState object with the updated position
+ */
 @Composable
 fun rememberUpdatedMarkerState(newPosition: LatLng) =
     remember { MarkerState(position = newPosition) }
         .apply { position = newPosition }
 
 
+/**
+ * Calculates the appropriate width for the selected grid based on the zoom level.
+ *
+ * This function adjusts the grid line width according to the current zoom level
+ * to ensure proper visibility at different scales.
+ *
+ * @param zoomLevel The current map zoom level
+ * @param density The display density factor
+ * @return The calculated width for the selected grid lines
+ */
 private fun getSelectedGridWidth(zoomLevel: Float, density: Float): Float {
     return density * if (zoomLevel < 19) {
         1f

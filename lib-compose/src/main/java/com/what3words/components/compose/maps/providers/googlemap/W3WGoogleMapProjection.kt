@@ -11,6 +11,14 @@ import com.what3words.components.compose.maps.mapper.toGoogleLatLng
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.core.types.geometry.W3WCoordinates
 
+/**
+ * An implementation of [W3WMapProjection] for Google Maps.
+ *
+ * This class wraps Google Maps' [Projection] to provide coordinate conversion between
+ * screen coordinates and geographical coordinates using what3words system.
+ *
+ * @property projection The Google Maps Projection object used for coordinate conversions
+ */
 class W3WGoogleMapProjection(projection: Projection) : W3WMapProjection {
 
     var projection by mutableStateOf(projection)

@@ -18,15 +18,32 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.W3WMapDefaults
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultLocationButtonConfig
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonLayoutConfig
 import com.what3words.design.library.ui.theme.w3wColorScheme
 
+/**
+ * Default values and configurations for the map buttons components.
+ */
 object W3WMapButtonsDefault {
+    /**
+     * Configuration for map buttons layout.
+     * @property recallButtonLayoutConfig Layout configuration for the recall button.
+     * @property locationButtonLayoutConfig Layout configuration for the location button.
+     */
     @Immutable
     data class ButtonLayoutConfig(
         val recallButtonLayoutConfig: RecallButtonLayoutConfig,
         val locationButtonLayoutConfig: LocationButtonLayoutConfig
     )
 
+    /**
+     * Layout configuration for the recall button.
+     * @property buttonSize Size of the recall button.
+     * @property imageSize Size of the image inside recall button.
+     * @property buttonPadding Padding for the recall button.
+     * @property imagePadding Padding for the image inside recall button.
+     */
     @Immutable
     data class RecallButtonLayoutConfig(
         val buttonSize: Dp,
@@ -35,6 +52,16 @@ object W3WMapButtonsDefault {
         val imagePadding: PaddingValues
     )
 
+    /**
+     * Layout configuration for the location button.
+     * @property buttonVisibleAnimation Animation when button becomes visible.
+     * @property accuracyEnterAnimation Animation when accuracy indicator appears.
+     * @property accuracyExitAnimation Animation when accuracy indicator disappears.
+     * @property locationButtonSize Size of the location button.
+     * @property locationIconSize Size of the location icon.
+     * @property accuracyIndicatorSize Size of the accuracy indicator.
+     * @property accuracyTextStyle Text style for accuracy text.
+     */
     @Immutable
     data class LocationButtonLayoutConfig(
         val buttonVisibleAnimation: EnterTransition,
@@ -46,6 +73,18 @@ object W3WMapButtonsDefault {
         val accuracyTextStyle: TextStyle,
     )
 
+    /**
+     * Color configuration for the location button.
+     * @property locationBackgroundColor Background color of the location button.
+     * @property locationIconColorInactive Color of the location icon when inactive.
+     * @property locationIconColorActive Color of the location icon when active.
+     * @property warningLowBackgroundColor Background color for low warning state.
+     * @property warningLowIconColor Icon color for low warning state.
+     * @property warningHighBackgroundColor Background color for high warning state.
+     * @property warningHighIconColor Icon color for high warning state.
+     * @property accuracyBackgroundColor Background color for accuracy indicator.
+     * @property accuracyTextColor Text color for accuracy indicator.
+     */
     @Immutable
     data class LocationButtonColor(
         val locationBackgroundColor: Color,
@@ -59,17 +98,33 @@ object W3WMapButtonsDefault {
         val accuracyTextColor: Color,
     )
 
+    /**
+     * Color configuration for the recall button.
+     * @property recallArrowColor Color of the arrow in the recall button.
+     * @property recallBackgroundColor Background color of the recall button.
+     */
     @Immutable
     data class RecallButtonColor(
         val recallArrowColor: Color,
         val recallBackgroundColor: Color
     )
 
+    /**
+     * String resources for buttons.
+     * @property accuracyMessage Format string for accuracy message.
+     */
     @Immutable
     data class ResourceString(
         val accuracyMessage: String
     )
 
+    /**
+     * Content descriptions for accessibility.
+     * @property locationButtonDescription Content description for location button.
+     * @property warningIconDescription Content description for warning icon.
+     * @property recallButtonDescription Content description for recall button.
+     * @property mapSwitchButtonDescription Content description for map switch button.
+     */
     @Immutable
     data class ContentDescription(
         val locationButtonDescription: String,
@@ -78,6 +133,12 @@ object W3WMapButtonsDefault {
         val mapSwitchButtonDescription: String,
     )
 
+    /**
+     * Creates default button layout configuration.
+     * @param recallButtonLayoutConfig Layout configuration for the recall button. Default is obtained from [defaultRecallButtonLayoutConfig].
+     * @param locationButtonLayoutConfig Layout configuration for the location button. Default is obtained from [defaultLocationButtonConfig].
+     * @return [ButtonLayoutConfig] object with the specified configurations.
+     */
     @Composable
     fun defaultButtonLayoutConfig(
         recallButtonLayoutConfig: RecallButtonLayoutConfig = defaultRecallButtonLayoutConfig(),
@@ -89,6 +150,14 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default recall button layout configuration.
+     * @param buttonSize Size of the recall button. Default is 50.dp.
+     * @param imageSize Size of the image inside the recall button. Default is 30.dp.
+     * @param buttonPadding Padding for the recall button. Default is 4.dp on all sides.
+     * @param imagePadding Padding for the image inside the recall button. Default is 1.25.dp on all sides.
+     * @return [RecallButtonLayoutConfig] object with the specified measurements.
+     */
     @Composable
     fun defaultRecallButtonLayoutConfig(
         buttonSize: Dp = 50.dp,
@@ -104,6 +173,12 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default color configuration for the recall button.
+     * @param recallArrowColor Color of the arrow in the recall button. Default is the slash color from default marker colors.
+     * @param recallBackgroundColor Background color of the recall button. Default is the background color from default marker colors.
+     * @return [RecallButtonColor] object with the specified colors.
+     */
     @Composable
     fun defaultRecallButtonColor(
         recallArrowColor: Color = W3WMapDefaults.MARKER_COLOR_DEFAULT.slash,
@@ -115,6 +190,19 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default color configuration for the location button.
+     * @param locationBackgroundColor Background color of the location button. Default is the surface color.
+     * @param locationIconColorInactive Color of the location icon when inactive. Default is the outline color.
+     * @param locationIconColorActive Color of the location icon when active. Default is the brand sky blue color.
+     * @param warningLowBackgroundColor Background color for low warning state. Default is the warning color.
+     * @param warningLowIconColor Icon color for low warning state. Default is the color that appears on warning background.
+     * @param warningHighBackgroundColor Background color for high warning state. Default is the error color.
+     * @param warningHighIconColor Icon color for high warning state. Default is the color that appears on error background.
+     * @param accuracyBackgroundColor Background color for accuracy indicator. Default is semi-transparent white.
+     * @param accuracyTextColor Text color for accuracy indicator. Default is the color for text on secondary container.
+     * @return [LocationButtonColor] object with the specified colors.
+     */
     @Composable
     fun defaultLocationButtonColor(
         locationBackgroundColor: Color = MaterialTheme.colorScheme.surface,
@@ -140,6 +228,17 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default layout configuration for the location button.
+     * @param buttonVisibleAnimation Animation when button becomes visible. Default is a fade in with slide up animation.
+     * @param accuracyEnterAnimation Animation when accuracy indicator appears. Default is horizontal expansion animation.
+     * @param accuracyExitAnimation Animation when accuracy indicator disappears. Default is horizontal shrinking animation.
+     * @param locationButtonSize Size of the location button. Default is 50.dp.
+     * @param locationIconSize Size of the location icon. Default is 30.dp.
+     * @param accuracyIndicatorSize Size of the accuracy indicator. Default is 20.dp.
+     * @param accuracyTextStyle Text style for accuracy text. Default is the small label typography style.
+     * @return [LocationButtonLayoutConfig] object with the specified configurations.
+     */
     @Composable
     fun defaultLocationButtonConfig(
         buttonVisibleAnimation: EnterTransition = fadeIn(
@@ -172,6 +271,11 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default resource strings for buttons.
+     * @param accuracyMessage Format string for accuracy message. Default is "GPS Accuracy (%d%s)".
+     * @return [ResourceString] object with the specified strings.
+     */
     fun defaultResourceString(
         accuracyMessage: String = "GPS Accuracy (%d%s)"
     ): ResourceString {
@@ -180,6 +284,14 @@ object W3WMapButtonsDefault {
         )
     }
 
+    /**
+     * Creates default content descriptions for accessibility.
+     * @param locationButtonDescription Content description for location button. Default is empty.
+     * @param warningIconDescription Content description for warning icon. Default is empty.
+     * @param recallButtonDescription Content description for recall button. Default is empty.
+     * @param mapSwitchButtonDescription Content description for map switch button. Default is empty.
+     * @return [ContentDescription] object with the specified descriptions.
+     */
     fun defaultContentDescription(
         locationButtonDescription: String = "",
         warningIconDescription: String = "",

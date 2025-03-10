@@ -11,6 +11,8 @@ import com.what3words.core.types.geometry.W3WRectangle
  *
  * @property cameraState The underlying camera state object.
  * @property gridBound The bounding rectangle of the grid lines displayed on the map.
+ * @property visibleBound The bounding rectangle of the visible area on the map.
+ * @property isCameraMoving A boolean flag indicating whether the camera is currently moving.
  *
  */
 @Immutable
@@ -59,9 +61,24 @@ interface W3WCameraState<T> {
      */
     fun getZoomLevel(): Float
 
+    /**
+     * Returns the current tilt angle of the camera in degrees.
+     *
+     * @return The current tilt angle in degrees from the nadir (directly facing the Earth).
+     */
     fun getBearing(): Float
 
+    /**
+     * Returns the current bearing angle of the camera in degrees.
+     *
+     * @return The current bearing angle in degrees (clockwise rotation from north).
+     */
     fun getTilt(): Float
 
+    /**
+     * Returns the coordinates of the center point of the current camera view.
+     *
+     * @return The W3WCoordinates representing the center of the map view, or null if not available.
+     */
     fun getCenter(): W3WCoordinates?
 }

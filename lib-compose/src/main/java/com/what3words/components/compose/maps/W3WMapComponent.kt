@@ -131,23 +131,23 @@ fun W3WMapComponent(
         mapState = mapState,
         buttonState = buttonState,
         onMapTypeClicked =
-        { mapType ->
-            mapManager.setMapType(mapType)
-        },
+            { mapType ->
+                mapManager.setMapType(mapType)
+            },
         onMapClicked = {
             coroutineScope.launch {
                 mapManager.setSelectedAt(it)
             }
         },
         onMyLocationClicked =
-        {
-            fetchCurrentLocation(
-                locationSource = locationSource,
-                mapManager = mapManager,
-                onError = onError,
-                coroutineScope = coroutineScope
-            )
-        },
+            {
+                fetchCurrentLocation(
+                    locationSource = locationSource,
+                    mapManager = mapManager,
+                    onError = onError,
+                    coroutineScope = coroutineScope
+                )
+            },
         onMapProjectionUpdated = mapManager::setMapProjection,
         onMapViewPortProvided = mapManager::setMapViewPort,
         onRecallClicked = {
@@ -159,11 +159,11 @@ fun W3WMapComponent(
         },
         onRecallButtonPositionProvided = mapManager::setRecallButtonPosition,
         onMarkerClicked =
-        { marker ->
-            coroutineScope.launch {
-                mapManager.setSelectedAt(marker.center)
-            }
-        },
+            { marker ->
+                coroutineScope.launch {
+                    mapManager.setSelectedAt(marker.center)
+                }
+            },
         onCameraUpdated = {
             coroutineScope.launch {
                 mapManager.updateCameraState(it)
@@ -268,7 +268,7 @@ fun W3WMapComponent(
  * This function is responsible for rendering the map, handling user interactions,
  * and managing the map's mapState. It provides options for customizing the map's
  * appearance, layout, and behavior.
- ** @param modifier Modifier for styling and layout.
+ * @param modifier Modifier for styling and layout.
  * @param layoutConfig [W3WMapDefaults.LayoutConfig] Configuration for the map's layout.
  * @param mapConfig [W3WMapDefaults.MapConfig] Configuration for the map's appearance.
  * Determines the map's color scheme based on the current map type and dark mode setting.
@@ -282,9 +282,11 @@ fun W3WMapComponent(
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param content Optional composable content to be displayed on the map.
+ * @param onMarkerClicked Callback invoked when a marker on the map is clicked.
  * @param onMapTypeClicked Callback invoked when the user clicks on the map type button.
  * @param onMyLocationClicked Callback invoked when the user clicks on the my location button.
  * @param onMapClicked Callback invoked when the user clicks on the map.
+ * @param onRecallClicked Callback invoked when the user clicks on the recall button.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onError Callback invoked when an error occurs during map initialization or interaction.
  * @param onMapProjectionUpdated Callback providing map projection updates.
@@ -346,7 +348,7 @@ internal fun W3WMapContent(
         val recallButtonColor = remember(mapState.selectedAddress, mapState.markers, mapColor) {
             derivedStateOf {
                 val markersAtSelectedSquare = mapState.markers.filter { it.square.contains(mapState.selectedAddress?.center) }
-                val color = when(markersAtSelectedSquare.size) {
+                val color = when (markersAtSelectedSquare.size) {
                     0 -> mapColor.markerColors.selectedZoomOutColor
                     1 -> markersAtSelectedSquare.first().color
                     else -> mapColor.markerColors.defaultMarkerColor
@@ -372,10 +374,11 @@ internal fun W3WMapContent(
             }
         }
 
-        Box(modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                bounds = coordinates.boundsInParent()
-            }
+        Box(
+            modifier = modifier
+                .onGloballyPositioned { coordinates ->
+                    bounds = coordinates.boundsInParent()
+                }
         ) {
             W3WMapView(
                 modifier = modifier,
@@ -413,12 +416,12 @@ internal fun W3WMapContent(
 /**
  * A composable function that handles location permissions for the map.
  *
- * This function checks if the "My Location" feature is enabled in the map mapState
+ * This function checks if the "My Location" feature is enabled in the map state
  * and requests the necessary location permissions if needed. If the permissions
  * are granted, it displays the provided content. Otherwise, it invokes the
  * `onError` callback with a [W3WError] indicating that permissions are required.
  *
- * @param mapState The [W3WMapState] object that holds the mapState of the map.
+ * @param mapState The [W3WMapState] object that holds the state of the map.
  * @param onError Callback invoked when an error occurs, such as when location
  *   permissions are denied.
  * @param content The composable content to be displayed if location permissions
@@ -470,8 +473,10 @@ internal fun MapPermissionsHandler(
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param content Optional composable content to be displayed on the map.
+ * @param onMarkerClicked Callback invoked when a marker on the map is clicked.
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
+ * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
  */
 @Composable
 internal fun W3WMapView(
@@ -521,11 +526,12 @@ internal fun W3WMapView(
 }
 
 /**
- * This function is responsible for update camera position and button state based on current location
+ * This function is responsible for updating camera position and button state based on current location
  *
  * @param locationSource An optional [W3WLocationSource] used to fetch the user's location.
- * @param mapManager The [W3WMapManager] instance that manages the map's mapState and interactions.
- * @param onError Callback invoked when an error occurs during map initialization or interaction.
+ * @param mapManager The [W3WMapManager] instance that manages the map's state and interactions.
+ * @param coroutineScope The [CoroutineScope] used to launch coroutines for asynchronous operations.
+ * @param onError Callback invoked when an error occurs during location fetching or map interaction.
  */
 private fun fetchCurrentLocation(
     locationSource: W3WLocationSource?,

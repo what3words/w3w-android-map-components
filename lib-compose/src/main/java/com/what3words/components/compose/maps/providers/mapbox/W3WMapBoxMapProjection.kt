@@ -7,6 +7,14 @@ import com.mapbox.maps.ScreenCoordinate
 import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.core.types.geometry.W3WCoordinates
 
+/**
+ * W3WMapBoxMapProjection implements the [W3WMapProjection] interface for Mapbox Maps.
+ *
+ * This class handles the conversion between geographic coordinates ([W3WCoordinates])
+ * and screen coordinates ([PointF]) specific to Mapbox's implementation.
+ *
+ * @property map The MapboxMap instance used for coordinate conversions
+ */
 class W3WMapBoxMapProjection(private val map: MapboxMap) : W3WMapProjection {
 
     override fun toScreenLocation(coordinates: W3WCoordinates): PointF {

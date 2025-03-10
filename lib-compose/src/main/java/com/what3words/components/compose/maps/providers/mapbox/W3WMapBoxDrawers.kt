@@ -52,6 +52,18 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
 
+/**
+ * Main drawer component for rendering what3words elements on a Mapbox map.
+ *
+ * This composable handles the rendering of all what3words visual elements including grid lines,
+ * markers, and selected addresses. It manages rendering optimization with progressive loading
+ * of markers based on the current viewport.
+ *
+ * @param state The current state of the what3words map
+ * @param mapConfig Configuration settings for the map
+ * @param mapColor Color settings for map elements
+ * @param onMarkerClicked Callback invoked when a marker is clicked
+ */
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawer(
@@ -161,6 +173,16 @@ fun W3WMapBoxDrawer(
     }
 }
 
+/**
+ * Renders grid lines on a Mapbox map.
+ *
+ * This composable draws the what3words grid overlay consisting of horizontal and vertical
+ * lines that form the what3words square boundaries.
+ *
+ * @param verticalLines List of coordinates representing vertical grid lines
+ * @param horizontalLines List of coordinates representing horizontal grid lines
+ * @param gridLineColor Color to use when drawing the grid lines
+ */
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawGridLines(
@@ -190,6 +212,18 @@ fun W3WMapBoxDrawGridLines(
     )
 }
 
+/**
+ * Renders the selected what3words address on a Mapbox map.
+ *
+ * This composable handles the display of the selected address, switching between
+ * zoom in and zoom out rendering modes based on the current zoom level.
+ *
+ * @param markerColors Configuration for marker colors
+ * @param zoomLevel Current zoom level of the map
+ * @param zoomSwitchLevel Zoom level at which to switch between detail modes
+ * @param selectedAddress The currently selected what3words address
+ * @param markersInSelectedSquare List of markers that exist in the selected square
+ */
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawSelectedAddress(
@@ -226,6 +260,19 @@ fun W3WMapBoxDrawSelectedAddress(
     }
 }
 
+/**
+ * Renders markers on a Mapbox map.
+ *
+ * This composable function handles drawing all markers, switching between zoom in and zoom out
+ * rendering modes based on the current zoom level.
+ *
+ * @param defaultMarkerColor Default color for markers
+ * @param zoomLevel Current zoom level of the map
+ * @param zoomSwitchLevel Zoom level at which to switch between detail modes
+ * @param markers List of all markers to display
+ * @param selectedAddress Currently selected what3words address, if any
+ * @param onMarkerClicked Callback invoked when a marker is clicked
+ */
 @Composable
 @MapboxMapComposable
 fun W3WMapBoxDrawMarkers(
@@ -266,6 +313,17 @@ fun W3WMapBoxDrawMarkers(
     }
 }
 
+/**
+ * Renders markers on a Mapbox map when zoomed out.
+ *
+ * This composable draws markers at a lower zoom level, using pin icons to represent
+ * what3words addresses. When multiple markers share the same square, it uses a default
+ * color to indicate multiple points of interest.
+ *
+ * @param defaultMarkerColor The default color to use for markers with multiple items
+ * @param markers The list of markers to display on the map
+ * @param onMarkerClicked Callback invoked when a marker is clicked
+ */
 @Composable
 @MapboxMapComposable
 private fun DrawZoomOutMarkers(
@@ -320,6 +378,16 @@ private fun DrawZoomOutMarkers(
     }
 }
 
+/**
+ * Renders markers on a Mapbox map when zoomed in.
+ *
+ * This composable draws filled markers at a higher zoom level, using raster image overlays to
+ * highlight entire what3words squares. When multiple markers share the same square,
+ * it uses a default color to indicate multiple points of interest.
+ *
+ * @param defaultMarkerColor The default color to use for squares with multiple markers
+ * @param markers The list of markers to display on the map
+ */
 @Composable
 @MapboxMapComposable
 private fun DrawZoomInMarkers(
@@ -375,6 +443,16 @@ private fun DrawZoomInMarkers(
     }
 }
 
+/**
+ * Renders a selected what3words address when zoomed out.
+ *
+ * This composable displays a marker at the center of the selected address. It uses
+ * different colors based on whether there are markers within the selected square.
+ *
+ * @param markerColors Configuration for marker colors
+ * @param selectedAddress The currently selected what3words address
+ * @param markersInSelectedSquare List of markers that exist in the selected square
+ */
 @Composable
 @MapboxMapComposable
 private fun DrawZoomOutSelectedAddress(
@@ -415,6 +493,15 @@ private fun DrawZoomOutSelectedAddress(
     }
 }
 
+/**
+ * Renders a selected what3words address when zoomed in.
+ *
+ * This composable draws an outline around the selected what3words square using a polyline.
+ *
+ * @param selectedMarkerColor Color for the selected square's outline
+ * @param gridLineWidth Width of the outline around the selected square
+ * @param selectedAddress The currently selected what3words address
+ */
 @Composable
 @MapboxMapComposable
 private fun DrawZoomInSelectedAddress(
@@ -448,6 +535,15 @@ private fun DrawZoomInSelectedAddress(
     }
 }
 
+/**
+ * Calculates the appropriate width for the selected grid based on the zoom level.
+ *
+ * This function adjusts the grid line width according to the current zoom level
+ * to ensure proper visibility at different scales.
+ *
+ * @param zoomLevel The current map zoom level
+ * @return The calculated width for the selected grid lines
+ */
 private fun getSelectedGridWidth(zoomLevel: Float): Double {
     return if (zoomLevel < 20) {
         2.0

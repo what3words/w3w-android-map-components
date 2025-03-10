@@ -10,6 +10,20 @@ import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 
+/**
+ * Implementation of [W3WCameraState] for Mapbox Maps in Jetpack Compose.
+ *
+ * This class manages the camera state for Mapbox Maps, including position, zoom, bearing, and tilt.
+ * It provides methods to control camera movement, orientation, and to retrieve current camera properties.
+ *
+ * @property cameraState The underlying Mapbox [MapViewportState] that this class wraps
+ * @property gridBound The What3Words grid boundary rectangle shown on the map
+ * @property visibleBound The currently visible map area as a What3Words rectangle
+ * @property isCameraMoving Whether the camera is currently in motion
+ * @property cameraForCoordinates Temporary storage for coordinates when using cameraForCoordinates functionality
+ *
+ * @param initialCameraState The initial camera state to use
+ */
 @Immutable
 class W3WMapboxCameraState(initialCameraState: MapViewportState) :
     W3WCameraState<MapViewportState> {
@@ -84,6 +98,17 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         }
     }
 
+    /**
+     * Updates the camera position with new settings.
+     *
+     * This private function handles the camera positioning for both animated and non-animated
+     * camera movements. It uses either flyTo for animated transitions or setCameraOptions for
+     * instant updates.
+     *
+     * @param cameraOptions The new [CameraOptions] to apply to the map
+     * @param animate Whether to animate the transition to the new camera position (true) or
+     *                update instantly (false)
+     */
     private fun updateCameraPosition(cameraOptions: CameraOptions, animate: Boolean) {
         if (animate) {
             cameraState.flyTo(

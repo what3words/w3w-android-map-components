@@ -55,10 +55,13 @@ private const val MAPBOX_DEFAULT_CAMERA_PADDING = 10.0
  * @param modifier Modifier for styling and layout of the map view.
  * @param layoutConfig Configuration for the map's layout, such as padding and content alignment.
  * @param mapConfig Configuration for the map's appearance, such as map type and zoom controls.
+ * @param mapColor Configuration for the map's colors for markers, grid lines, etc.
  * @param state The [W3WMapState] object that holds the state of the map.
  * @param content Optional composable content to be displayed on the map, such as markers or overlays.
+ * @param onMarkerClicked Callback invoked when the user clicks on a marker.
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
+ * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
  *
  */
 @Composable
@@ -256,6 +259,15 @@ fun W3WMapBox(
     }
 }
 
+/**
+ * Updates the grid bound based on the current camera position in the MapBox map.
+ *
+ * @param mapboxMap The MapboxMap instance to get coordinates from.
+ * @param gridLinesConfig Configuration for the grid lines, including scale.
+ * @param onCameraBoundUpdate Callback that receives the calculated grid bound and visible bound rectangles.
+ *                           The grid bound is scaled according to the configuration, while the visible bound
+ *                           represents the actual visible area on the map.
+ */
 private fun updateGridBound(
     mapboxMap: MapboxMap,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,

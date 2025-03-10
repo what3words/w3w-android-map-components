@@ -8,6 +8,16 @@ import androidx.compose.ui.graphics.toArgb
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 
+/**
+ * Represents a marker on a map, associated with a what3words address.
+ *
+ * @property words The what3words address (e.g., "filled.count.soap").
+ * @property square The geographical boundary rectangle of the what3words square.
+ * @property color The colors used for styling the marker.
+ * @property center The center coordinates of the what3words square.
+ * @property title Optional title to display when the marker is tapped.
+ * @property snippet Optional snippet text to display when the marker is tapped.
+ */
 @Immutable
 data class W3WMarker(
     val words: String,
@@ -71,6 +81,13 @@ data class W3WMarker(
     }
 }
 
+/**
+ * Defines the color scheme for a W3WMarker.
+ *
+ * @property background The background color of the marker.
+ * @property slash The color of the slash in the marker.
+ * @property id A unique identifier generated from the combination of background and slash colors.
+ */
 @Immutable
 data class W3WMarkerColor(
     val background: Color,
