@@ -172,9 +172,11 @@ fun W3WMapBox(
             )
         },
         compass = {
-            Compass(
-                modifier = Modifier.padding(layoutConfig.contentPadding)
-            )
+            if(mapConfig.isCompassButtonEnabled) {
+                Compass(
+                    modifier = Modifier.padding(layoutConfig.contentPadding)
+                )
+            }
         },
         attribution = {
             Attribution(
