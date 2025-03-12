@@ -6,7 +6,61 @@ import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-class W3WMapManagerButtonStateTest: BaseW3WMapManagerTest() {
+class W3WMapManagerButtonStateTest : BaseW3WMapManagerTest() {
+
+    @Test
+    fun setMyLocationButtonEnabled_enablesMyLocationButton() = runTest {
+        // When: Enabling the my location button
+        mapManager.setMyLocationButtonEnabled(true)
+
+        // Then: Verify that the isMyLocationButtonEnabled is updated to true
+        val buttonState = mapManager.buttonState.value
+        assertEquals(true, buttonState.isMyLocationButtonEnabled)
+    }
+
+    @Test
+    fun setMyLocationButtonEnabled_disablesMyLocationButton() = runTest {
+        // When: Disabling the my location button
+        mapManager.setMyLocationButtonEnabled(false)
+
+        // Then: Verify that the isMyLocationButtonEnabled is updated to false
+        val buttonState = mapManager.buttonState.value
+        assertEquals(false, buttonState.isMyLocationButtonEnabled)
+    }
+
+    @Test
+    fun testMyLocationButtonEnabled_defaultValue_returnTrue() = runTest {
+        // Then: Verify that the default isMyLocationButtonEnabled is true
+        val buttonState = mapManager.buttonState.value
+        assertEquals(true, buttonState.isMyLocationButtonEnabled)
+    }
+
+    @Test
+    fun setMapSwitchButtonEnabled_enablesMapSwitchButton() = runTest {
+        // When: Enabling the map switch button
+        mapManager.setMapSwitchButtonEnabled(true)
+
+        // Then: Verify that the isMapSwitchButtonEnabled is updated to true
+        val buttonState = mapManager.buttonState.value
+        assertEquals(true, buttonState.isMapSwitchButtonEnabled)
+    }
+
+    @Test
+    fun setMapSwitchButtonEnabled_disablesMapSwitchButton() = runTest {
+        // When: Disabling the map switch button
+        mapManager.setMapSwitchButtonEnabled(false)
+
+        // Then: Verify that the isMapSwitchButtonEnabled is updated to false
+        val buttonState = mapManager.buttonState.value
+        assertEquals(false, buttonState.isMapSwitchButtonEnabled)
+    }
+
+    @Test
+    fun testMapSwitchButtonEnabled_defaultValue_returnTrue() = runTest {
+        // Then: Verify that the default isMapSwitchButtonEnabled is true
+        val buttonState = mapManager.buttonState.value
+        assertEquals(true, buttonState.isMapSwitchButtonEnabled)
+    }
 
     @Test
     fun setRecallButtonEnabled_enablesRecallButton() = runTest {
@@ -29,10 +83,30 @@ class W3WMapManagerButtonStateTest: BaseW3WMapManagerTest() {
     }
 
     @Test
-    fun testRecallButtonEnabled_defaultValue_returnFalse() = runTest {
-        // Then: Verify that the default isRecallButtonEnabled is false
+    fun setRecallButtonVisibility_showsRecallButton() = runTest {
+        // When: Setting recall button visibility to true
+        mapManager.setRecallButtonVisible(true)
+
+        // Then: Verify that isRecallButtonVisible is updated to true
         val buttonState = mapManager.buttonState.value
-        assertEquals(false, buttonState.isRecallButtonEnabled)
+        assertEquals(true, buttonState.isRecallButtonVisible)
+    }
+
+    @Test
+    fun setRecallButtonVisibility_hidesRecallButton() = runTest {
+        // When: Setting recall button visibility to false
+        mapManager.setRecallButtonVisible(false)
+
+        // Then: Verify that isRecallButtonVisible is updated to false
+        val buttonState = mapManager.buttonState.value
+        assertEquals(false, buttonState.isRecallButtonVisible)
+    }
+
+    @Test
+    fun testRecallButtonEnabled_defaultValue_returnTrue() = runTest {
+        // Then: Verify that the default isRecallButtonEnabled is true
+        val buttonState = mapManager.buttonState.value
+        assertEquals(true, buttonState.isRecallButtonEnabled)
     }
 
     @Test

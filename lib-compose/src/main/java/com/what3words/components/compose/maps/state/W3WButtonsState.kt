@@ -11,12 +11,16 @@ import com.what3words.components.compose.maps.state.LocationStatus.SEARCHING
 /**
  * Data class representing the state of W3W map components such as My Location and Recall buttons.
  *
+ * @property isMyLocationButtonVisible Whether the location button should be displayed.
+ * @property isMyLocationButtonEnabled Whether the location button is clickable.
  * @property accuracyDistance The accuracy radius of the user's location in meters.
  * @property locationStatus Current status of the location tracking (ACTIVE, INACTIVE, SEARCHING).
  * @property isRecallButtonVisible Whether the recall button should be displayed.
  * @property isRecallButtonEnabled Whether the recall button is clickable.
  * @property recallRotationDegree Rotation angle of the recall button in degrees.
  * @property recallButtonPosition Position of the recall button on screen as a PointF.
+ * @property isMapSwitchButtonEnabled Whether the map switch button is clickable.
+ * @property isMapSwitchButtonVisible Whether the map switch button should be displayed.
  * @property isCameraMoving Indicates whether the map camera is currently moving.
  * @property mapProjection Projection information for the map.
  * @property mapViewPort Information about the visible area of the map.
@@ -27,14 +31,20 @@ import com.what3words.components.compose.maps.state.LocationStatus.SEARCHING
 data class W3WButtonsState(
 
     // My Location button
+    val isMyLocationButtonVisible: Boolean = true,
+    val isMyLocationButtonEnabled: Boolean = true,
     val accuracyDistance: Float = 0.0F,
     val locationStatus: LocationStatus = LocationStatus.INACTIVE,
 
     // Recall button
     val isRecallButtonVisible: Boolean = false,
-    val isRecallButtonEnabled: Boolean = false,
+    val isRecallButtonEnabled: Boolean = true,
     val recallRotationDegree: Float = 0F,
     val recallButtonPosition: PointF = PointF(0F, 0F),
+
+    // Map Switch Button
+    val isMapSwitchButtonEnabled: Boolean = true,
+    val isMapSwitchButtonVisible: Boolean = true,
 
     val isCameraMoving: Boolean = true,
     val mapProjection: W3WMapProjection? = null,

@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.buttons
 
+import android.R.attr.onClick
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -135,7 +137,7 @@ internal fun MyLocationButton(
     }
 
     Box(
-        modifier = modifier.padding(4.dp),
+        modifier = modifier.padding(layoutConfig.padding),
         contentAlignment = Alignment.CenterEnd
     ) {
         Row {
@@ -178,8 +180,12 @@ internal fun MyLocationButton(
                 IconButton(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .shadow(elevation = 3.dp, shape = CircleShape)
+                        .shadow(
+                            elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
+                            shape = CircleShape
+                        )
                         .clip(CircleShape)
+                        .alpha(if (isButtonEnabled) 1f else layoutConfig.disabledIconOpacity)
                         .background(colors.locationBackgroundColor)
                         .size(layoutConfig.locationButtonSize),
                     onClick = {

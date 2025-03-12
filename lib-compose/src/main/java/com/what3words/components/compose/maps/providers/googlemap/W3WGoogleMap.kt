@@ -92,7 +92,7 @@ fun W3WGoogleMap(
             .conflate()
             .onEach { (position, projection) ->
                 projection?.let {
-                    if (mapConfig.buttonConfig.isRecallButtonAvailable) {
+                    if (mapConfig.buttonConfig.isRecallFeatureEnabled) {
                         mapProjection?.projection = projection
                         mapProjection?.let(onMapProjectionUpdated)
                     }
