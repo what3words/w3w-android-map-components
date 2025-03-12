@@ -120,6 +120,7 @@ fun W3WGoogleMap(
         contentPadding = layoutConfig.contentPadding,
         mapColorScheme = if (state.isDarkMode) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
         uiSettings = MapUiSettings(
+            compassEnabled = mapConfig.isCompassButtonEnabled,
             indoorLevelPickerEnabled = false,
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,
