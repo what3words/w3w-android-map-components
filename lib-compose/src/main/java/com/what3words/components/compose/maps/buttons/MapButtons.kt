@@ -3,9 +3,12 @@ package com.what3words.components.compose.maps.buttons
 import android.graphics.PointF
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultButtonLayoutConfig
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultLocationButtonColor
@@ -49,9 +52,42 @@ internal fun MapButtons(
     onRecallClicked: (() -> Unit),
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
+    // Calculate total height based on button configurations
+    val totalButtonsHeight = remember(layoutConfig) {
+        val recallHeight = if (buttonConfig.isRecallFeatureEnabled) {
+            val config = layoutConfig.recallButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        val locationHeight = if (buttonConfig.isMyLocationFeatureEnabled) {
+            val config = layoutConfig.locationButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        val mapSwitchHeight = if (buttonConfig.isMapSwitchFeatureEnabled) {
+            val config = layoutConfig.mapSwitchButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        // Calculate spacing: (n-1) * spacing where n is the number of visible buttons
+        val visibleButtonCount = listOf(
+            buttonConfig.isRecallFeatureEnabled,
+            buttonConfig.isMyLocationFeatureEnabled,
+            buttonConfig.isMapSwitchFeatureEnabled
+        ).count { it }
+
+        val totalSpacing = if (visibleButtonCount > 1)
+            ((visibleButtonCount - 1) * layoutConfig.buttonSpacing.value).dp else 0.dp
+
+        recallHeight + locationHeight + mapSwitchHeight + totalSpacing
+    }
+
     Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(layoutConfig.buttonSpacing),
+        modifier = modifier.height(totalButtonsHeight),
+        verticalArrangement = Arrangement.spacedBy(
+            space = layoutConfig.buttonSpacing,
+            alignment = Alignment.Bottom
+        ),
         horizontalAlignment = Alignment.End
     ) {
         if (buttonConfig.isRecallFeatureEnabled) {

@@ -66,12 +66,12 @@ object W3WMapButtonsDefault {
      * @property buttonVisibleAnimation Animation when button becomes visible.
      * @property accuracyEnterAnimation Animation when accuracy indicator appears.
      * @property accuracyExitAnimation Animation when accuracy indicator disappears.
-     * @property locationButtonSize Size of the location button.
+     * @property buttonSize Size of the location button.
      * @property locationIconSize Size of the location icon.
      * @property accuracyIndicatorSize Size of the accuracy indicator.
      * @property accuracyTextStyle Text style for accuracy text.
      * @property disabledIconOpacity Opacity of the icon when disabled.
-     * @property padding Padding around the map switch button, should be equal to or greater than elevation.
+     * @property buttonPadding Padding around the map switch button, should be equal to or greater than elevation.
      * @property elevation Elevation (shadow) of the location button.
      */
     @Immutable
@@ -79,26 +79,26 @@ object W3WMapButtonsDefault {
         val buttonVisibleAnimation: EnterTransition,
         val accuracyEnterAnimation: EnterTransition,
         val accuracyExitAnimation: ExitTransition,
-        val locationButtonSize: Dp,
+        val buttonSize: Dp,
         val locationIconSize: Dp,
         val accuracyIndicatorSize: Dp,
         val accuracyTextStyle: TextStyle,
         val disabledIconOpacity: Float,
-        val padding: PaddingValues,
+        val buttonPadding: PaddingValues,
         val elevation: Dp
     )
 
     /**
      * Layout configuration for the map switch button.
      * @property buttonSize Size of the map switch button.
-     * @property padding Padding around the map switch button, should be equal to or greater than elevation.
+     * @property buttonPadding Padding around the map switch button, should be equal to or greater than elevation.
      * @property elevation Elevation (shadow) of the map switch button.
      * @property disabledIconOpacity Opacity of the icon when disabled.
      */
     @Immutable
     data class MapSwitchButtonLayoutConfig(
         val buttonSize: Dp,
-        val padding: PaddingValues,
+        val buttonPadding: PaddingValues,
         val elevation: Dp,
         val disabledIconOpacity: Float,
     )
@@ -202,7 +202,7 @@ object W3WMapButtonsDefault {
     ): MapSwitchButtonLayoutConfig {
         return MapSwitchButtonLayoutConfig(
             buttonSize = buttonSize,
-            padding = padding,
+            buttonPadding = padding,
             elevation = elevation,
             disabledIconOpacity = disabledIconOpacity
         )
@@ -334,12 +334,12 @@ object W3WMapButtonsDefault {
             buttonVisibleAnimation = buttonVisibleAnimation,
             accuracyEnterAnimation = accuracyEnterAnimation,
             accuracyExitAnimation = accuracyExitAnimation,
-            locationButtonSize = locationButtonSize,
+            buttonSize = locationButtonSize,
             locationIconSize = locationIconSize,
             accuracyIndicatorSize = accuracyIndicatorSize,
             accuracyTextStyle = accuracyTextStyle,
             disabledIconOpacity = disabledIconOpacity,
-            padding = padding,
+            buttonPadding = padding,
             elevation = elevation
         )
     }

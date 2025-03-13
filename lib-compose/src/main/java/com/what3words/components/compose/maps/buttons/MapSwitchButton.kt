@@ -43,9 +43,12 @@ internal fun MapSwitchButton(
     var mapType by remember { mutableStateOf(w3wMapType) }
     IconButton(
         modifier = modifier
-            .padding(layoutConfig.padding)
+            .padding(layoutConfig.buttonPadding)
             .size(layoutConfig.buttonSize)
-            .shadow(elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp, shape = CircleShape)
+            .shadow(
+                elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
+                shape = CircleShape
+            )
             .clip(CircleShape)
             .alpha(if (isButtonEnabled) 1f else layoutConfig.disabledIconOpacity),
 
