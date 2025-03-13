@@ -24,7 +24,7 @@ androidArchCoreTesting = "2.2.0"
 jacocoVersion = "0.8.11"
 
 #Compose
-androidxComposeBom = "2024.10.00"
+androidxComposeBom = "2025.03.00"
 
 #Material
 material = "1.12.0"
