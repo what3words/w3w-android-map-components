@@ -276,7 +276,7 @@ object W3WMapButtonsDefault {
         warningLowIconColor: Color = MaterialTheme.w3wColorScheme.onWarning,
         warningHighBackgroundColor: Color = MaterialTheme.colorScheme.error,
         warningHighIconColor: Color = MaterialTheme.colorScheme.onError,
-        accuracyBackgroundColor: Color = Color.White.copy(alpha = 0.16f),
+        accuracyBackgroundColor: Color = Color.White.copy(alpha = 0.4f),
         accuracyTextColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     ): LocationButtonColor {
         return LocationButtonColor(
