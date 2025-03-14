@@ -3,7 +3,9 @@ package com.what3words.components.compose.maps.buttons
 import android.graphics.PointF
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,7 +24,6 @@ import kotlin.math.ceil
  * @param modifier [Modifier] to be applied to the layout of the buttons container.
  * @param buttonState [W3WButtonsState] representing the current state of the buttons including visibility and status.
  * @param mapType [W3WMapType] indicating the current type of map being displayed.
- * @param isLocationEnabled Boolean flag to indicate if location services are enabled and the location button should be interactive.
  * @param buttonConfig [W3WMapDefaults.ButtonConfig] that provides configuration settings determining the availability of buttons.
  * @param layoutConfig [W3WMapButtonsDefault.ButtonLayoutConfig] describes the layout configuration for the buttons,
  *                      with a default configuration if not specified.
@@ -40,7 +41,6 @@ internal fun MapButtons(
     modifier: Modifier = Modifier,
     buttonState: W3WButtonsState,
     mapType: W3WMapType,
-    isLocationEnabled: Boolean,
     buttonConfig: W3WMapDefaults.ButtonConfig,
     layoutConfig: W3WMapButtonsDefault.ButtonLayoutConfig = defaultButtonLayoutConfig(),
     resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
@@ -52,12 +52,45 @@ internal fun MapButtons(
     onRecallClicked: (() -> Unit),
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
+    // Calculate total height based on button configurations
+    val totalButtonsHeight = remember(layoutConfig) {
+        val recallHeight = if (buttonConfig.isRecallFeatureEnabled) {
+            val config = layoutConfig.recallButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        val locationHeight = if (buttonConfig.isMyLocationFeatureEnabled) {
+            val config = layoutConfig.locationButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        val mapSwitchHeight = if (buttonConfig.isMapSwitchFeatureEnabled) {
+            val config = layoutConfig.mapSwitchButtonLayoutConfig
+            config.buttonSize + config.buttonPadding.calculateTopPadding() + config.buttonPadding.calculateBottomPadding()
+        } else 0.dp
+
+        // Calculate spacing: (n-1) * spacing where n is the number of visible buttons
+        val visibleButtonCount = listOf(
+            buttonConfig.isRecallFeatureEnabled,
+            buttonConfig.isMyLocationFeatureEnabled,
+            buttonConfig.isMapSwitchFeatureEnabled
+        ).count { it }
+
+        val totalSpacing = if (visibleButtonCount > 1)
+            ((visibleButtonCount - 1) * layoutConfig.buttonSpacing.value).dp else 0.dp
+
+        recallHeight + locationHeight + mapSwitchHeight + totalSpacing
+    }
+
     Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = modifier.height(totalButtonsHeight),
+        verticalArrangement = Arrangement.spacedBy(
+            space = layoutConfig.buttonSpacing,
+            alignment = Alignment.Bottom
+        ),
         horizontalAlignment = Alignment.End
     ) {
-        if (buttonConfig.isRecallButtonAvailable) {
+        if (buttonConfig.isRecallFeatureEnabled) {
             RecallButton(
                 layoutConfig = layoutConfig.recallButtonLayoutConfig,
                 onRecallClicked = onRecallClicked,
@@ -66,15 +99,16 @@ internal fun MapButtons(
                 recallButtonColor = recallButtonColor,
                 contentDescription = contentDescription,
                 isVisible = buttonState.isRecallButtonVisible,
+                isButtonEnabled = buttonState.isRecallButtonEnabled,
                 isCameraMoving = buttonState.isCameraMoving,
                 selectedPosition = buttonState.selectedScreenLocation ?: PointF(),
             )
         }
-        if (buttonConfig.isMyLocationButtonAvailable) {
+        if (buttonConfig.isMyLocationFeatureEnabled && buttonState.isMyLocationButtonVisible) {
             MyLocationButton(
                 layoutConfig = layoutConfig.locationButtonLayoutConfig,
                 accuracyDistance = buttonState.accuracyDistance.toInt(),
-                isButtonEnabled = isLocationEnabled,
+                isButtonEnabled = buttonState.isMyLocationButtonEnabled,
                 locationStatus = buttonState.locationStatus,
                 colors = locationButtonColor,
                 onMyLocationClicked = onMyLocationClicked,
@@ -82,11 +116,13 @@ internal fun MapButtons(
                 contentDescription = contentDescription,
             )
         }
-        if (buttonConfig.isMapSwitchButtonAvailable) {
+        if (buttonConfig.isMapSwitchFeatureEnabled && buttonState.isMapSwitchButtonVisible) {
             MapSwitchButton(
+                layoutConfig = layoutConfig.mapSwitchButtonLayoutConfig,
                 w3wMapType = mapType,
                 onMapTypeChange = onMapTypeClicked,
                 contentDescription = contentDescription,
+                isButtonEnabled = buttonState.isMapSwitchButtonEnabled
             )
         }
     }

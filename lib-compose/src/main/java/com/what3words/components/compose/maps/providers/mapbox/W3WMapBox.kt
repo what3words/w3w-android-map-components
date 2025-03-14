@@ -244,7 +244,7 @@ fun W3WMapBox(
                 }
             })
 
-            if (mapConfig.buttonConfig.isRecallButtonAvailable) {
+            if (mapConfig.buttonConfig.isRecallFeatureEnabled) {
                 mapView?.mapboxMap?.let { map ->
                     onMapProjectionUpdated(W3WMapBoxMapProjection(map))
                 }

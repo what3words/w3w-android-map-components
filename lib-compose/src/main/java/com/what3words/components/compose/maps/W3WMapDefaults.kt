@@ -3,6 +3,7 @@ package com.what3words.components.compose.maps
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,21 @@ import com.what3words.design.library.ui.theme.colors_red_99
 enum class MapProvider {
     GOOGLE_MAP,
     MAPBOX
+}
+
+/**
+ * Sealed class defining the supported button layout alignments.
+ */
+sealed class ButtonAlignment {
+    object BottomEnd : ButtonAlignment()
+    object CenterEnd : ButtonAlignment()
+    object TopEnd : ButtonAlignment()
+
+    fun toComposeAlignment(): Alignment = when (this) {
+        is BottomEnd -> Alignment.BottomEnd
+        is CenterEnd -> Alignment.CenterEnd
+        is TopEnd -> Alignment.TopEnd
+    }
 }
 
 /**
@@ -85,31 +101,34 @@ object W3WMapDefaults {
      */
     @Immutable
     data class LayoutConfig(
-        val contentPadding: PaddingValues
+        val contentPadding: PaddingValues,
+        val buttonsLayoutConfig: ButtonsLayoutConfig
     )
 
     /**
      * Data class representing the layout configuration for map buttons.
      *
-     * @property contentPadding The padding values for the button layout
+     * @property buttonPadding The padding values for the button layout
+     * @property buttonAlignment The alignment of the buttons on the map
      */
     @Immutable
     data class ButtonsLayoutConfig(
-        val contentPadding: PaddingValues
+        val buttonPadding: PaddingValues,
+        val buttonAlignment: ButtonAlignment,
     )
 
     /**
      * Data class representing the configuration for map buttons.
      *
-     * @property isMapSwitchButtonAvailable Whether the map type switch button is available
-     * @property isMyLocationButtonAvailable Whether the my location button is available
-     * @property isRecallButtonAvailable Whether the recall button is available
+     * @property isMapSwitchFeatureEnabled Whether the map type switch feature is enabled
+     * @property isMyLocationFeatureEnabled Whether the my location feature is enabled
+     * @property isRecallFeatureEnabled Whether the recall feature is enabled to restore previous map position and zoom
      */
     @Immutable
     data class ButtonConfig(
-        val isMapSwitchButtonAvailable: Boolean,
-        val isMyLocationButtonAvailable: Boolean,
-        val isRecallButtonAvailable: Boolean,
+        val isMapSwitchFeatureEnabled: Boolean,
+        val isMyLocationFeatureEnabled: Boolean,
+        val isRecallFeatureEnabled: Boolean,
     )
 
     /**
@@ -156,14 +175,17 @@ object W3WMapDefaults {
      * Creates a default layout configuration with customizable content padding.
      *
      * @param contentPadding The padding values for the map content
+     * @param buttonsLayoutConfig The layout configuration for map buttons
      * @return A LayoutConfig instance with the specified parameters
      */
     @Composable
     fun defaultLayoutConfig(
-        contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp)
+        contentPadding: PaddingValues = PaddingValues(bottom = 24.dp, end = 8.dp),
+        buttonsLayoutConfig: ButtonsLayoutConfig = defaultButtonsLayoutConfig()
     ): LayoutConfig {
         return LayoutConfig(
-            contentPadding = contentPadding
+            contentPadding = contentPadding,
+            buttonsLayoutConfig = buttonsLayoutConfig
         )
     }
 
@@ -219,20 +241,37 @@ object W3WMapDefaults {
     /**
      * Creates a default button configuration with customizable parameters.
      *
-     * @param isMapSwitchButtonAvailable Whether the map type switch button is available
-     * @param isMyLocationButtonAvailable Whether the my location button is available
-     * @param isRecallButtonAvailable Whether the recall button is available
+     * @property isMapSwitchFeatureEnabled Whether the map type switch feature is enabled
+     * @property isMyLocationFeatureEnabled Whether the my location feature is enabled
+     * @property isRecallFeatureEnabled Whether the recall feature is enabled to restore previous map position and zoom
      * @return A ButtonConfig instance with the specified parameters
      */
     fun defaultButtonConfig(
-        isMapSwitchButtonAvailable: Boolean = true,
-        isMyLocationButtonAvailable: Boolean = true,
-        isRecallButtonAvailable: Boolean = false
+        isMapSwitchFeatureEnabled: Boolean = true,
+        isMyLocationFeatureEnabled: Boolean = true,
+        isRecallFeatureEnabled: Boolean = false
     ): ButtonConfig {
         return ButtonConfig(
-            isMapSwitchButtonAvailable = isMapSwitchButtonAvailable,
-            isMyLocationButtonAvailable = isMyLocationButtonAvailable,
-            isRecallButtonAvailable = isRecallButtonAvailable
+            isMapSwitchFeatureEnabled = isMapSwitchFeatureEnabled,
+            isMyLocationFeatureEnabled = isMyLocationFeatureEnabled,
+            isRecallFeatureEnabled = isRecallFeatureEnabled
+        )
+    }
+
+    /**
+     * Creates a default buttons layout configuration with customizable parameters.
+     *
+     * @param buttonPadding The padding values for the buttons
+     * @param buttonAlignment The alignment of the buttons on the map
+     * @return A ButtonsLayoutConfig instance with the specified parameters
+     */
+    fun defaultButtonsLayoutConfig(
+        buttonPadding: PaddingValues = PaddingValues(bottom = 12.dp, end = 12.dp),
+        buttonAlignment: ButtonAlignment = ButtonAlignment.BottomEnd,
+    ): ButtonsLayoutConfig {
+        return ButtonsLayoutConfig(
+            buttonPadding = buttonPadding,
+            buttonAlignment = buttonAlignment,
         )
     }
 
@@ -266,7 +305,10 @@ object W3WMapDefaults {
     fun defaultNormalMapColor(
         gridLineColor: Color = colors_grey_44.copy(alpha = 0.16f),
         markerColors: MarkerColors = defaultMarkerColor(
-            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_20, slash = colors_blue_99),
+            selectedZoomOutColor = W3WMarkerColor(
+                background = colors_blue_20,
+                slash = colors_blue_99
+            ),
             defaultMarkerColor = MARKER_COLOR_DEFAULT,
             selectedColor = colors_blue_20
         )
@@ -287,7 +329,10 @@ object W3WMapDefaults {
     fun defaultSatelliteMapColor(
         gridLineColor: Color = colors_grey_100.copy(alpha = 0.24f),
         markerColors: MarkerColors = defaultMarkerColor(
-            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_99, slash = colors_blue_20),
+            selectedZoomOutColor = W3WMarkerColor(
+                background = colors_blue_99,
+                slash = colors_blue_20
+            ),
             defaultMarkerColor = MARKER_COLOR_DEFAULT,
             selectedColor = colors_blue_99
         )
@@ -308,7 +353,10 @@ object W3WMapDefaults {
     fun defaultDarkMapColor(
         gridLineColor: Color = colors_grey_100.copy(alpha = 0.16f),
         markerColors: MarkerColors = defaultMarkerColor(
-            selectedZoomOutColor = W3WMarkerColor(background = colors_blue_99, slash = colors_blue_20),
+            selectedZoomOutColor = W3WMarkerColor(
+                background = colors_blue_99,
+                slash = colors_blue_20
+            ),
             defaultMarkerColor = MARKER_COLOR_DEFAULT,
             selectedColor = colors_blue_99
         )

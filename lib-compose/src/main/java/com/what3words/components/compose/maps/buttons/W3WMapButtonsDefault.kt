@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultLocationButtonConfig
+import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultMapSwitchButtonLayoutConfig
 import com.what3words.components.compose.maps.buttons.W3WMapButtonsDefault.defaultRecallButtonLayoutConfig
 import com.what3words.design.library.ui.theme.w3wColorScheme
 
@@ -28,13 +29,17 @@ import com.what3words.design.library.ui.theme.w3wColorScheme
 object W3WMapButtonsDefault {
     /**
      * Configuration for map buttons layout.
+     * @property buttonSpacing Spacing between buttons.
      * @property recallButtonLayoutConfig Layout configuration for the recall button.
      * @property locationButtonLayoutConfig Layout configuration for the location button.
+     * @property mapSwitchButtonLayoutConfig Layout configuration for the map switch button.
      */
     @Immutable
     data class ButtonLayoutConfig(
+        val buttonSpacing: Dp,
         val recallButtonLayoutConfig: RecallButtonLayoutConfig,
-        val locationButtonLayoutConfig: LocationButtonLayoutConfig
+        val locationButtonLayoutConfig: LocationButtonLayoutConfig,
+        val mapSwitchButtonLayoutConfig: MapSwitchButtonLayoutConfig
     )
 
     /**
@@ -43,13 +48,17 @@ object W3WMapButtonsDefault {
      * @property imageSize Size of the image inside recall button.
      * @property buttonPadding Padding for the recall button.
      * @property imagePadding Padding for the image inside recall button.
+     * @property elevation Elevation (shadow) of the recall button.
+     * @property disabledIconOpacity Opacity of the icon when disabled.
      */
     @Immutable
     data class RecallButtonLayoutConfig(
         val buttonSize: Dp,
         val imageSize: Dp,
         val buttonPadding: PaddingValues,
-        val imagePadding: PaddingValues
+        val imagePadding: PaddingValues,
+        val elevation: Dp,
+        val disabledIconOpacity: Float,
     )
 
     /**
@@ -57,20 +66,41 @@ object W3WMapButtonsDefault {
      * @property buttonVisibleAnimation Animation when button becomes visible.
      * @property accuracyEnterAnimation Animation when accuracy indicator appears.
      * @property accuracyExitAnimation Animation when accuracy indicator disappears.
-     * @property locationButtonSize Size of the location button.
+     * @property buttonSize Size of the location button.
      * @property locationIconSize Size of the location icon.
      * @property accuracyIndicatorSize Size of the accuracy indicator.
      * @property accuracyTextStyle Text style for accuracy text.
+     * @property disabledIconOpacity Opacity of the icon when disabled.
+     * @property buttonPadding Padding around the map switch button, should be equal to or greater than elevation.
+     * @property elevation Elevation (shadow) of the location button.
      */
     @Immutable
     data class LocationButtonLayoutConfig(
         val buttonVisibleAnimation: EnterTransition,
         val accuracyEnterAnimation: EnterTransition,
         val accuracyExitAnimation: ExitTransition,
-        val locationButtonSize: Dp,
+        val buttonSize: Dp,
         val locationIconSize: Dp,
         val accuracyIndicatorSize: Dp,
         val accuracyTextStyle: TextStyle,
+        val disabledIconOpacity: Float,
+        val buttonPadding: PaddingValues,
+        val elevation: Dp
+    )
+
+    /**
+     * Layout configuration for the map switch button.
+     * @property buttonSize Size of the map switch button.
+     * @property buttonPadding Padding around the map switch button, should be equal to or greater than elevation.
+     * @property elevation Elevation (shadow) of the map switch button.
+     * @property disabledIconOpacity Opacity of the icon when disabled.
+     */
+    @Immutable
+    data class MapSwitchButtonLayoutConfig(
+        val buttonSize: Dp,
+        val buttonPadding: PaddingValues,
+        val elevation: Dp,
+        val disabledIconOpacity: Float,
     )
 
     /**
@@ -137,16 +167,44 @@ object W3WMapButtonsDefault {
      * Creates default button layout configuration.
      * @param recallButtonLayoutConfig Layout configuration for the recall button. Default is obtained from [defaultRecallButtonLayoutConfig].
      * @param locationButtonLayoutConfig Layout configuration for the location button. Default is obtained from [defaultLocationButtonConfig].
+     * @param mapSwitchButtonLayoutConfig Layout configuration for the map switch button. Default is obtained from [defaultMapSwitchButtonLayoutConfig].
      * @return [ButtonLayoutConfig] object with the specified configurations.
      */
     @Composable
     fun defaultButtonLayoutConfig(
+        buttonSpacing: Dp = 12.dp,
         recallButtonLayoutConfig: RecallButtonLayoutConfig = defaultRecallButtonLayoutConfig(),
-        locationButtonLayoutConfig: LocationButtonLayoutConfig = defaultLocationButtonConfig()
+        locationButtonLayoutConfig: LocationButtonLayoutConfig = defaultLocationButtonConfig(),
+        mapSwitchButtonLayoutConfig: MapSwitchButtonLayoutConfig = defaultMapSwitchButtonLayoutConfig()
     ): ButtonLayoutConfig {
         return ButtonLayoutConfig(
+            buttonSpacing = buttonSpacing,
             recallButtonLayoutConfig = recallButtonLayoutConfig,
-            locationButtonLayoutConfig = locationButtonLayoutConfig
+            locationButtonLayoutConfig = locationButtonLayoutConfig,
+            mapSwitchButtonLayoutConfig = mapSwitchButtonLayoutConfig
+        )
+    }
+
+    /**
+     * Creates default map switch button layout configuration.
+     * @param buttonSize Size of the map switch button. Default is 50.dp.
+     * @param padding Padding around the map switch button. Default is 4.dp.
+     * @param elevation Elevation (shadow) of the map switch button. Default is 3.dp.
+     * @param disabledIconOpacity Opacity of the icon when disabled. Default is 0.38f.
+     * @return [MapSwitchButtonLayoutConfig] object with the specified measurements.
+     */
+    @Composable
+    fun defaultMapSwitchButtonLayoutConfig(
+        buttonSize: Dp = 50.dp,
+        padding: PaddingValues = PaddingValues(4.dp),
+        elevation: Dp = 3.dp,
+        disabledIconOpacity: Float = 0.38f,
+    ): MapSwitchButtonLayoutConfig {
+        return MapSwitchButtonLayoutConfig(
+            buttonSize = buttonSize,
+            buttonPadding = padding,
+            elevation = elevation,
+            disabledIconOpacity = disabledIconOpacity
         )
     }
 
@@ -156,6 +214,8 @@ object W3WMapButtonsDefault {
      * @param imageSize Size of the image inside the recall button. Default is 30.dp.
      * @param buttonPadding Padding for the recall button. Default is 4.dp on all sides.
      * @param imagePadding Padding for the image inside the recall button. Default is 1.25.dp on all sides.
+     * @param elevation Elevation (shadow) of the recall button. Default is 3.dp.
+     * @param disabledIconOpacity Opacity of the icon when disabled. Default is 0.38f.
      * @return [RecallButtonLayoutConfig] object with the specified measurements.
      */
     @Composable
@@ -163,13 +223,17 @@ object W3WMapButtonsDefault {
         buttonSize: Dp = 50.dp,
         imageSize: Dp = 30.dp,
         buttonPadding: PaddingValues = PaddingValues(4.dp),
-        imagePadding: PaddingValues = PaddingValues(1.25.dp)
+        imagePadding: PaddingValues = PaddingValues(1.25.dp),
+        elevation: Dp = 3.dp,
+        disabledIconOpacity: Float = 0.38f,
     ): RecallButtonLayoutConfig {
         return RecallButtonLayoutConfig(
             buttonSize = buttonSize,
             imageSize = imageSize,
             buttonPadding = buttonPadding,
-            imagePadding = imagePadding
+            imagePadding = imagePadding,
+            elevation = elevation,
+            disabledIconOpacity = disabledIconOpacity
         )
     }
 
@@ -212,7 +276,7 @@ object W3WMapButtonsDefault {
         warningLowIconColor: Color = MaterialTheme.w3wColorScheme.onWarning,
         warningHighBackgroundColor: Color = MaterialTheme.colorScheme.error,
         warningHighIconColor: Color = MaterialTheme.colorScheme.onError,
-        accuracyBackgroundColor: Color = Color.White.copy(alpha = 0.16f),
+        accuracyBackgroundColor: Color = Color.White.copy(alpha = 0.4f),
         accuracyTextColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     ): LocationButtonColor {
         return LocationButtonColor(
@@ -237,6 +301,9 @@ object W3WMapButtonsDefault {
      * @param locationIconSize Size of the location icon. Default is 30.dp.
      * @param accuracyIndicatorSize Size of the accuracy indicator. Default is 20.dp.
      * @param accuracyTextStyle Text style for accuracy text. Default is the small label typography style.
+     * @param disabledIconOpacity Opacity of the icon when disabled. Default is 0.38f.
+     * @param padding Padding around the location button, should be equal to or greater than elevation. Default is 4.dp.
+     * @param elevation Elevation (shadow) of the location button. Default is 3.dp.
      * @return [LocationButtonLayoutConfig] object with the specified configurations.
      */
     @Composable
@@ -258,16 +325,22 @@ object W3WMapButtonsDefault {
         locationButtonSize: Dp = 50.dp,
         locationIconSize: Dp = 30.dp,
         accuracyIndicatorSize: Dp = 20.dp,
-        accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall
+        accuracyTextStyle: TextStyle = MaterialTheme.typography.labelSmall,
+        disabledIconOpacity: Float = 0.38f,
+        padding: PaddingValues = PaddingValues(4.dp),
+        elevation: Dp = 3.dp
     ): LocationButtonLayoutConfig {
         return LocationButtonLayoutConfig(
             buttonVisibleAnimation = buttonVisibleAnimation,
             accuracyEnterAnimation = accuracyEnterAnimation,
             accuracyExitAnimation = accuracyExitAnimation,
-            locationButtonSize = locationButtonSize,
+            buttonSize = locationButtonSize,
             locationIconSize = locationIconSize,
             accuracyIndicatorSize = accuracyIndicatorSize,
             accuracyTextStyle = accuracyTextStyle,
+            disabledIconOpacity = disabledIconOpacity,
+            buttonPadding = padding,
+            elevation = elevation
         )
     }
 

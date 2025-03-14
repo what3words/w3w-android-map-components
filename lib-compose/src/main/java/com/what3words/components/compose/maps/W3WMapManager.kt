@@ -109,6 +109,9 @@ class W3WMapManager(
 
     private lateinit var textDataSource: W3WTextDataSource
 
+    private val buttonConfig: W3WMapDefaults.ButtonConfig
+        get() = mapConfig?.buttonConfig ?: W3WMapDefaults.defaultButtonConfig()
+
     /**
      * Initializes the map manager with the initial camera state and starts observing grid calculation.
      */
@@ -384,7 +387,7 @@ class W3WMapManager(
         }
         gridCalculationFlow.value = newCameraState.gridBound
 
-        if (_buttonState.value.isRecallButtonEnabled) {
+        if (buttonConfig.isRecallFeatureEnabled) {
             handleRecallButton()
         }
     }
@@ -623,7 +626,7 @@ class W3WMapManager(
             )
         }
 
-        if (_buttonState.value.isRecallButtonEnabled) {
+        if (buttonConfig.isRecallFeatureEnabled) {
             handleRecallButton()
         }
     }
@@ -1697,13 +1700,68 @@ class W3WMapManager(
     }
 
     /**
-     * Enables or disables the recall button functionality.
+     * Updates the clickable status of the recall button.
      *
-     * @param isEnabled Boolean flag to enable or disable the recall button.
+     * @param isEnabled true to enable the button, false to disable it.
      */
     fun setRecallButtonEnabled(isEnabled: Boolean) {
         _buttonState.update {
             it.copy(isRecallButtonEnabled = isEnabled)
+        }
+    }
+
+    /**
+     * Updates the visibility of the recall button.
+     *
+     * @param isVisible true to show the recall button, false to hide it.
+     */
+    fun setRecallButtonVisible(isVisible: Boolean) {
+        _buttonState.update {
+            it.copy(isRecallButtonVisible = isVisible)
+        }
+    }
+
+    /**
+     * Updates the clickable status of the recall button.
+     *
+     * @param isEnabled true to enable the button, false to disable it.
+     */
+    fun setMyLocationButtonEnabled(isEnabled: Boolean) {
+        _buttonState.update {
+            it.copy(isMyLocationButtonEnabled = isEnabled)
+        }
+    }
+
+    /**
+     * Updates the visibility of the "My Location" button.
+     *
+     * @param isVisible true to show the "My Location" button, false to hide it.
+     */
+    fun setMyLocationButtonVisible(isVisible: Boolean) {
+        _buttonState.update {
+            it.copy(isMyLocationButtonVisible = isVisible)
+        }
+    }
+
+    /**
+     * Updates the clickable status of the map switch button.
+     *
+     * @param isEnabled true to  enable the button, false to disable it.
+     */
+    fun setMapSwitchButtonEnabled(isEnabled: Boolean) {
+        _buttonState.update {
+            it.copy(isMapSwitchButtonEnabled = isEnabled)
+        }
+    }
+
+    /**
+     * Updates the visibility of the map switch button.
+     *
+     * @param isVisible true to show the map switch button, false to hide it.
+     */
+    fun setMapSwitchButtonVisible(isVisible: Boolean) {
+        _buttonState.update {
+            it.copy(isMapSwitchButtonVisible = isVisible)
         }
     }
 

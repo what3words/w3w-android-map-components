@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -46,6 +48,7 @@ import com.what3words.map.components.compose.R
  * @param onRecallButtonPositionProvided The callback providing the button's position as a PointF.
  * @param selectedPosition The position used for calculating the offset for animation, defaults to PointF().
  * @param isVisible Determines whether the button should be visible.
+ * @param isButtonEnabled Controls whether the button is enabled and can be interacted with.
  * @param isCameraMoving Indicates if the camera is currently moving, affecting button visibility.
  */
 @Composable
@@ -59,6 +62,7 @@ internal fun RecallButton(
     onRecallButtonPositionProvided: (PointF) -> Unit,
     selectedPosition: PointF = PointF(),
     isVisible: Boolean = false,
+    isButtonEnabled: Boolean,
     isCameraMoving: Boolean = false
 ) {
 
@@ -122,9 +126,15 @@ internal fun RecallButton(
                     }
                 }
                 .padding(layoutConfig.buttonPadding)
-                .shadow(elevation = 3.dp, shape = CircleShape)
+                .shadow(
+                    elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
+                    shape = CircleShape
+                )
+                .clip(CircleShape)
                 .size(layoutConfig.buttonSize)
-                .background(recallButtonColor.recallBackgroundColor)
+                .alpha(if (isButtonEnabled) 1f else layoutConfig.disabledIconOpacity)
+                .background(recallButtonColor.recallBackgroundColor),
+            enabled = isButtonEnabled,
         ) {
             Icon(
                 modifier = Modifier
@@ -148,6 +158,7 @@ private fun A1() {
         modifier = Modifier,
         rotation = 0f,
         isVisible = true,
+        isButtonEnabled = true,
         isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
@@ -161,6 +172,7 @@ private fun A2() {
         modifier = Modifier,
         rotation = 45f,
         isVisible = true,
+        isButtonEnabled = true,
         isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
@@ -174,6 +186,7 @@ private fun A3() {
         modifier = Modifier,
         rotation = 90f,
         isVisible = true,
+        isButtonEnabled = true,
         isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
@@ -187,6 +200,7 @@ private fun A4() {
         modifier = Modifier,
         rotation = 135f,
         isVisible = true,
+        isButtonEnabled = true,
         isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}
@@ -200,6 +214,21 @@ private fun A5() {
         modifier = Modifier,
         rotation = 180f,
         isVisible = true,
+        isButtonEnabled = true,
+        isCameraMoving = false,
+        onRecallClicked = {},
+        onRecallButtonPositionProvided = {}
+    )
+}
+
+@Preview
+@Composable
+private fun A6() {
+    RecallButton(
+        modifier = Modifier,
+        rotation = 180f,
+        isVisible = true,
+        isButtonEnabled = false,
         isCameraMoving = false,
         onRecallClicked = {},
         onRecallButtonPositionProvided = {}

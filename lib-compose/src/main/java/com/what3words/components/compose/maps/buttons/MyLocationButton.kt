@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -135,7 +136,7 @@ internal fun MyLocationButton(
     }
 
     Box(
-        modifier = modifier.padding(4.dp),
+        modifier = modifier.padding(layoutConfig.buttonPadding),
         contentAlignment = Alignment.CenterEnd
     ) {
         Row {
@@ -148,7 +149,7 @@ internal fun MyLocationButton(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End, // Align Row content to end to control animation direction
                     modifier = Modifier
-                        .height(layoutConfig.locationButtonSize)
+                        .height(layoutConfig.buttonSize)
                         .clip(
                             RoundedCornerShape(
                                 topStartPercent = 50,
@@ -165,10 +166,10 @@ internal fun MyLocationButton(
                         color = colors.accuracyTextColor,
                         maxLines = 1 // Prevent text overflow
                     )
-                    Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
+                    Spacer(Modifier.size(layoutConfig.buttonSize / 2))
                 }
             }
-            Spacer(Modifier.size(layoutConfig.locationButtonSize / 2))
+            Spacer(Modifier.size(layoutConfig.buttonSize / 2))
         }
 
         ImmediateAnimatedVisibility(
@@ -178,10 +179,14 @@ internal fun MyLocationButton(
                 IconButton(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .shadow(elevation = 3.dp, shape = CircleShape)
+                        .shadow(
+                            elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
+                            shape = CircleShape
+                        )
                         .clip(CircleShape)
+                        .alpha(if (isButtonEnabled) 1f else layoutConfig.disabledIconOpacity)
                         .background(colors.locationBackgroundColor)
-                        .size(layoutConfig.locationButtonSize),
+                        .size(layoutConfig.buttonSize),
                     onClick = {
                         onMyLocationClicked()
                         if (locationStatus == LocationStatus.ACTIVE) {

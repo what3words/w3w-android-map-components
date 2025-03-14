@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,6 +25,8 @@ import com.what3words.map.components.compose.R
  * Only supports [W3WMapType.NORMAL] and [W3WMapType.SATELLITE].
  *
  * @param modifier The modifier for the button.
+ * @param layoutConfig The configuration for button layout including padding, size and elevation.
+ * @param isButtonEnabled Whether the button is enabled or disabled.
  * @param w3wMapType The current map type.
  * @param contentDescription The content description for the button.
  * @param onMapTypeChange The callback function to be invoked when the map type is changed.
@@ -30,6 +34,8 @@ import com.what3words.map.components.compose.R
 @Composable
 internal fun MapSwitchButton(
     modifier: Modifier = Modifier,
+    layoutConfig: W3WMapButtonsDefault.MapSwitchButtonLayoutConfig = W3WMapButtonsDefault.defaultMapSwitchButtonLayoutConfig(),
+    isButtonEnabled: Boolean,
     w3wMapType: W3WMapType = W3WMapType.NORMAL,
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onMapTypeChange: (W3WMapType) -> Unit
@@ -37,9 +43,15 @@ internal fun MapSwitchButton(
     var mapType by remember { mutableStateOf(w3wMapType) }
     IconButton(
         modifier = modifier
-            .padding(4.dp)
-            .shadow(elevation = 3.dp, shape = CircleShape)
-            .size(50.dp),
+            .padding(layoutConfig.buttonPadding)
+            .size(layoutConfig.buttonSize)
+            .shadow(
+                elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
+                shape = CircleShape
+            )
+            .clip(CircleShape)
+            .alpha(if (isButtonEnabled) 1f else layoutConfig.disabledIconOpacity),
+
         onClick = {
             mapType = when (mapType) {
                 W3WMapType.NORMAL -> W3WMapType.SATELLITE
@@ -47,7 +59,8 @@ internal fun MapSwitchButton(
                 else -> W3WMapType.NORMAL // Default to NORMAL
             }
             onMapTypeChange(mapType)
-        }
+        },
+        enabled = isButtonEnabled
     ) {
         Image(
             painter = painterResource(
@@ -62,14 +75,38 @@ internal fun MapSwitchButton(
     }
 }
 
-@Preview
+@Preview(name = "Enabled")
 @Composable
-fun MapNormalPreview() {
-    MapSwitchButton(w3wMapType = W3WMapType.NORMAL) {}
+fun NormalMapA1() {
+    MapSwitchButton(
+        w3wMapType = W3WMapType.NORMAL,
+        isButtonEnabled = true,
+    ) {}
 }
 
-@Preview
+@Preview(name = "Disabled")
 @Composable
-fun MapTypeSwitcherPreview() {
-    MapSwitchButton(w3wMapType = W3WMapType.SATELLITE) {}
+fun NormalMapA2() {
+    MapSwitchButton(
+        w3wMapType = W3WMapType.NORMAL,
+        isButtonEnabled = false,
+    ) {}
+}
+
+@Preview(name = "Enabled")
+@Composable
+fun SatelliteMapA1() {
+    MapSwitchButton(
+        w3wMapType = W3WMapType.SATELLITE,
+        isButtonEnabled = true,
+    ) {}
+}
+
+@Preview(name = "Disabled")
+@Composable
+fun SatelliteMapA2() {
+    MapSwitchButton(
+        w3wMapType = W3WMapType.SATELLITE,
+        isButtonEnabled = false,
+    ) {}
 }

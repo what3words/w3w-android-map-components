@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -295,6 +296,7 @@ private fun DrawZoomOutSelectedAddress(
         state = markerState,
         icon = icon,
         zIndex = 1f,
+        anchor = Offset(0.5f, 0.8f)
     )
 }
 
@@ -510,7 +512,8 @@ private fun DrawZoomOutMarkers(
             onClick = {
                 currentOnMarkerClicked(marker)
                 true
-            }
+            },
+            anchor = Offset(0.5f, 0.5f)
         )
     }
 }

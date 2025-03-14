@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
@@ -108,7 +107,6 @@ fun W3WMapComponent(
     }
 
     LaunchedEffect(Unit) {
-        mapManager.setRecallButtonEnabled(mapConfig.buttonConfig.isRecallButtonAvailable)
         locationSource?.locationStatus?.collect { status ->
             mapManager.updateLocationStatus(status)
         }
@@ -347,15 +345,21 @@ internal fun W3WMapContent(
 
         val recallButtonColor = remember(mapState.selectedAddress, mapState.markers, mapColor) {
             derivedStateOf {
-                val markersAtSelectedSquare = mapState.markers.filter { it.square.contains(mapState.selectedAddress?.center) }
+                val markersAtSelectedSquare =
+                    mapState.markers.filter { it.square.contains(mapState.selectedAddress?.center) }
                 val color = when (markersAtSelectedSquare.size) {
                     0 -> mapColor.markerColors.selectedZoomOutColor
                     1 -> markersAtSelectedSquare.first().color
                     else -> mapColor.markerColors.defaultMarkerColor
                 }
-                W3WMapButtonsDefault.RecallButtonColor(recallArrowColor = color.slash, recallBackgroundColor = color.background)
+                W3WMapButtonsDefault.RecallButtonColor(
+                    recallArrowColor = color.slash,
+                    recallBackgroundColor = color.background
+                )
             }
         }
+
+        val buttonsLayoutConfig = layoutConfig.buttonsLayoutConfig
 
         LaunchedEffect(bounds) {
             bounds.let {
@@ -396,14 +400,13 @@ internal fun W3WMapContent(
 
             MapButtons(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(layoutConfig.contentPadding),
+                    .align(buttonsLayoutConfig.buttonAlignment.toComposeAlignment())
+                    .padding(buttonsLayoutConfig.buttonPadding),
                 buttonConfig = mapConfig.buttonConfig,
                 buttonState = buttonState,
                 mapType = mapState.mapType,
                 locationButtonColor = locationButtonColor,
                 recallButtonColor = recallButtonColor.value,
-                isLocationEnabled = mapState.isMyLocationEnabled,
                 onMapTypeClicked = onMapTypeClicked,
                 onMyLocationClicked = onMyLocationClicked,
                 onRecallClicked = onRecallClicked,
