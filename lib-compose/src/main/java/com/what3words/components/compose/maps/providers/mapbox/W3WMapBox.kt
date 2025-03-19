@@ -270,7 +270,7 @@ fun W3WMapBox(
  *                           The grid bound is scaled according to the configuration, while the visible bound
  *                           represents the actual visible area on the map.
  */
-private fun updateGridBound(
+fun updateGridBound(
     mapboxMap: MapboxMap,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     onCameraBoundUpdate: (gridBound: W3WRectangle, visibleBound: W3WRectangle) -> Unit,

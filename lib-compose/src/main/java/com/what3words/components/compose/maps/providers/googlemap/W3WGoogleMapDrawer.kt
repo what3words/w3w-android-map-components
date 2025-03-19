@@ -375,7 +375,7 @@ fun W3WGoogleMapDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+            zoomLevel >= zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
         }
     }
 

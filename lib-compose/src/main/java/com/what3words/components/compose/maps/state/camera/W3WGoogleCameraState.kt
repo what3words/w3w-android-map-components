@@ -35,7 +35,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         const val MY_LOCATION_ZOOM = 20f
     }
 
-    override val cameraState: CameraPositionState by mutableStateOf(initialCameraState)
+    override var cameraState: CameraPositionState by mutableStateOf(initialCameraState)
 
     override var gridBound: W3WRectangle? by mutableStateOf(null)
 
@@ -74,18 +74,20 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
     override suspend fun moveToPosition(
         listLatLng: List<W3WCoordinates>,
     ) {
-        val latLngBounds = LatLngBounds.Builder()
-        listLatLng.forEach {
-            latLngBounds.include(LatLng(it.lat, it.lng))
-        }
+        if (listLatLng.isNotEmpty()) {
+            val latLngBounds = LatLngBounds.Builder()
+            listLatLng.forEach {
+                latLngBounds.include(LatLng(it.lat, it.lng))
+            }
 
-        withContext(Main) {
-            cameraState.animate(
-                update =
-                    CameraUpdateFactory.newLatLngBounds(
-                        latLngBounds.build(), 10
-                    )
-            )
+            withContext(Main) {
+                cameraState.animate(
+                    update =
+                        CameraUpdateFactory.newLatLngBounds(
+                            latLngBounds.build(), 10
+                        )
+                )
+            }
         }
     }
 

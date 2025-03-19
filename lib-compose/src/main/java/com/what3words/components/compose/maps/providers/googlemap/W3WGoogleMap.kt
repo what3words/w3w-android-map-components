@@ -159,7 +159,7 @@ fun W3WGoogleMap(
  * @param gridLinesConfig Configuration for the grid lines, including scale factor
  * @param onCameraBoundUpdate Callback that receives the calculated grid bounds and visible bounds
  */
-private suspend fun updateCameraBound(
+suspend fun updateCameraBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     onCameraBoundUpdate: (gridBound: W3WRectangle, visibleBound: W3WRectangle) -> Unit
