@@ -18,7 +18,7 @@ import com.what3words.core.types.geometry.W3WRectangle
 @Immutable
 interface W3WCameraState<T> {
 
-    val cameraState: T
+    var cameraState: T
 
     var gridBound: W3WRectangle?
 

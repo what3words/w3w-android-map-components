@@ -379,7 +379,7 @@ class W3WMapManager(
      *
      * @param newCameraState The new camera state to set.
      */
-    internal suspend fun updateCameraState(newCameraState: W3WCameraState<*>) = withContext(IO) {
+    suspend fun updateCameraState(newCameraState: W3WCameraState<*>) = withContext(IO) {
         _mapState.update {
             it.copy(
                 cameraState = newCameraState,
@@ -1846,7 +1846,7 @@ class W3WMapManager(
      *
      * @param textDataSource The text data source implementation to use for API calls.
      */
-    internal fun setTextDataSource(textDataSource: W3WTextDataSource) {
+    fun setTextDataSource(textDataSource: W3WTextDataSource) {
         this.textDataSource = textDataSource
     }
 

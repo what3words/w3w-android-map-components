@@ -32,7 +32,7 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         const val MY_LOCATION_ZOOM = 20.0
     }
 
-    override val cameraState: MapViewportState by mutableStateOf(initialCameraState)
+    override var cameraState: MapViewportState by mutableStateOf(initialCameraState)
 
     override var gridBound: W3WRectangle? by mutableStateOf(null)
 
