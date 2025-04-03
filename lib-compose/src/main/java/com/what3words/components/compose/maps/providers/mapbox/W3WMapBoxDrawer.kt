@@ -16,25 +16,32 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.google.gson.JsonPrimitive
+import com.mapbox.geojson.Feature
+import com.mapbox.geojson.FeatureCollection
+import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotationGroup
-import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroup
-import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotationGroupState
 import com.mapbox.maps.extension.compose.annotation.rememberIconImage
+import com.mapbox.maps.extension.compose.style.ColorValue
 import com.mapbox.maps.extension.compose.style.DoubleValue
 import com.mapbox.maps.extension.compose.style.PointListValue
+import com.mapbox.maps.extension.compose.style.layers.generated.LineCapValue
+import com.mapbox.maps.extension.compose.style.layers.generated.LineJoinValue
+import com.mapbox.maps.extension.compose.style.layers.generated.LineLayer
+import com.mapbox.maps.extension.compose.style.layers.generated.LineLayerState
 import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayer
 import com.mapbox.maps.extension.compose.style.layers.generated.RasterLayerState
+import com.mapbox.maps.extension.compose.style.sources.GeoJSONData
+import com.mapbox.maps.extension.compose.style.sources.generated.GeoJsonSourceState
 import com.mapbox.maps.extension.compose.style.sources.generated.rememberImageSourceState
 import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
 import com.mapbox.maps.extension.style.sources.generated.ImageSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
 import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.extensions.contains
@@ -190,27 +197,64 @@ fun W3WMapBoxDrawGridLines(
     horizontalLines: List<W3WCoordinates>,
     gridLineColor: Color
 ) {
-    val polylines = remember(verticalLines, horizontalLines) {
-        listOf(
-            PolylineAnnotationOptions()
-                .withPoints(verticalLines.map { Point.fromLngLat(it.lng, it.lat) }),
-            PolylineAnnotationOptions()
-                .withPoints(horizontalLines.map { Point.fromLngLat(it.lng, it.lat) })
-        )
+    val verticalSourceState = remember(horizontalLines) {
+        GeoJsonSourceState(
+            sourceId = "vertical-grid-source"
+        ).apply {
+            data = GeoJSONData(
+                FeatureCollection.fromFeatures(
+                    listOf(
+                        Feature.fromGeometry(
+                            LineString.fromLngLats(
+                                verticalLines.map { Point.fromLngLat(it.lng, it.lat) }
+                            )
+                        )
+                    )
+                ).toJson()
+            )
+        }
     }
 
-    PolylineAnnotationGroup(
-        annotations = polylines,
-        polylineAnnotationGroupState = remember {
-            PolylineAnnotationGroupState().apply {
-                lineOcclusionOpacity = 0.0
-                lineEmissiveStrength = 1.0
-                lineWidth = 1.0
-                lineColor = gridLineColor
-            }
+    val horizontalSourceState = remember(horizontalLines) {
+        GeoJsonSourceState(
+            sourceId = "horizontal-grid-source"
+        ).apply {
+            data = GeoJSONData(
+                FeatureCollection.fromFeatures(
+                    listOf(
+                        Feature.fromGeometry(
+                            LineString.fromLngLats(
+                                horizontalLines.map { Point.fromLngLat(it.lng, it.lat) }
+                            )
+                        )
+                    )
+                ).toJson()
+            )
         }
+    }
+
+    val lineLayerState = remember {
+        LineLayerState().apply {
+            lineOcclusionOpacity = DoubleValue(0.0)
+            lineEmissiveStrength = DoubleValue(1.0)
+            lineWidth = DoubleValue(1.0)
+            lineColor = ColorValue(gridLineColor)
+        }
+    }
+
+    // Add line layers for vertical lines
+    LineLayer(
+        sourceState = verticalSourceState,
+        lineLayerState = lineLayerState,
+    )
+
+    // Add line layers for horizontal lines
+    LineLayer(
+        sourceState = horizontalSourceState,
+        lineLayerState = lineLayerState,
     )
 }
+
 
 /**
  * Renders the selected what3words address on a Mapbox map.
@@ -510,27 +554,45 @@ private fun DrawZoomInSelectedAddress(
     gridLineWidth: Double
 ) {
     selectedAddress.square?.let { square ->
-        PolylineAnnotationGroup(
-            annotations = listOf(
-                PolylineAnnotationOptions()
-                    .withPoints(
+        val lineSourceState = remember(square) {
+            GeoJsonSourceState(
+                sourceId = "selected-square-source"
+            ).apply {
+                data = GeoJSONData(
+                    FeatureCollection.fromFeatures(
                         listOf(
-                            Point.fromLngLat(square.southwest.lng, square.northeast.lat),
-                            Point.fromLngLat(square.northeast.lng, square.northeast.lat),
-                            Point.fromLngLat(square.northeast.lng, square.southwest.lat),
-                            Point.fromLngLat(square.southwest.lng, square.southwest.lat),
-                            Point.fromLngLat(square.southwest.lng, square.northeast.lat)
+                            Feature.fromGeometry(
+                                LineString.fromLngLats(
+                                    listOf(
+                                        Point.fromLngLat(square.southwest.lng, square.northeast.lat),
+                                        Point.fromLngLat(square.northeast.lng, square.northeast.lat),
+                                        Point.fromLngLat(square.northeast.lng, square.southwest.lat),
+                                        Point.fromLngLat(square.southwest.lng, square.southwest.lat),
+                                        Point.fromLngLat(square.southwest.lng, square.northeast.lat)
+                                    )
+                                )
+                            )
                         )
-                    )
-            ),
-            polylineAnnotationGroupState = remember {
-                PolylineAnnotationGroupState().apply {
-                    lineOcclusionOpacity = 0.0
-                    lineEmissiveStrength = 1.0
-                    lineColor = selectedMarkerColor
-                    lineWidth = gridLineWidth
-                }
+                    ).toJson()
+                )
             }
+        }
+
+        val lineLayerState = remember {
+            LineLayerState().apply {
+                lineOcclusionOpacity = DoubleValue(0.0)
+                lineEmissiveStrength = DoubleValue(1.0)
+                lineWidth = DoubleValue(gridLineWidth)
+                lineColor = ColorValue(selectedMarkerColor)
+                lineCap = LineCapValue.ROUND
+                lineJoin = LineJoinValue.ROUND
+                lineRoundLimit = DoubleValue(1.0)
+            }
+        }
+
+        LineLayer(
+            sourceState = lineSourceState,
+            lineLayerState = lineLayerState,
         )
     }
 }
