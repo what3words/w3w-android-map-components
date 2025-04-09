@@ -227,7 +227,7 @@ object W3WMapDefaults {
     fun defaultGridLinesConfig(
         isGridEnabled: Boolean = true,
         zoomSwitchLevel: Float = DEFAULT_MAP_ZOOM_SWITCH_LEVEL,
-        gridLineWidth: Dp = 2.dp,
+        gridLineWidth: Dp = 1.5.dp,
         gridScale: Float = 6f
     ): GridLinesConfig {
         return GridLinesConfig(

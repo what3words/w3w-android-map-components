@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.extensions
 
-import com.google.maps.android.collections.PolylineManager
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WLine
