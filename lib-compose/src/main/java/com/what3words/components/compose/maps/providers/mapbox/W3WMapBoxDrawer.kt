@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import com.google.gson.JsonPrimitive
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
@@ -91,6 +92,7 @@ fun W3WMapBoxDrawer(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
                 gridLineColor = mapColor.gridLineColor,
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
             )
         }
 
@@ -174,7 +176,8 @@ fun W3WMapBoxDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedAddress = state.selectedAddress,
-                markersInSelectedSquare = markersInSelectedSquare
+                markersInSelectedSquare = markersInSelectedSquare,
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
             )
         }
     }
@@ -195,7 +198,8 @@ fun W3WMapBoxDrawer(
 fun W3WMapBoxDrawGridLines(
     verticalLines: List<W3WCoordinates>,
     horizontalLines: List<W3WCoordinates>,
-    gridLineColor: Color
+    gridLineColor: Color,
+    gridLineWidth: Dp,
 ) {
     val verticalSourceState = remember(horizontalLines) {
         GeoJsonSourceState(
@@ -237,7 +241,7 @@ fun W3WMapBoxDrawGridLines(
         LineLayerState().apply {
             lineOcclusionOpacity = DoubleValue(0.0)
             lineEmissiveStrength = DoubleValue(1.0)
-            lineWidth = DoubleValue(1.0)
+            lineWidth = DoubleValue(gridLineWidth.value.toDouble())
             lineColor = ColorValue(gridLineColor)
         }
     }
@@ -276,6 +280,7 @@ fun W3WMapBoxDrawSelectedAddress(
     zoomSwitchLevel: Float,
     selectedAddress: W3WAddress,
     markersInSelectedSquare: ImmutableList<W3WMarker>,
+    gridLineWidth: Dp,
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
@@ -286,7 +291,7 @@ fun W3WMapBoxDrawSelectedAddress(
     if (drawZoomIn.value) {
         val gridLineWidth = remember(zoomLevel) {
             derivedStateOf {
-                getSelectedGridWidth(zoomLevel)
+                getSelectedGridWidth(zoomLevel, gridLineWidth.value)
             }
         }
 
@@ -606,10 +611,10 @@ private fun DrawZoomInSelectedAddress(
  * @param zoomLevel The current map zoom level
  * @return The calculated width for the selected grid lines
  */
-private fun getSelectedGridWidth(zoomLevel: Float): Double {
-    return if (zoomLevel < 20) {
-        2.0
+private fun getSelectedGridWidth(zoomLevel: Float, gridLineWidth: Float): Double {
+    return gridLineWidth * if (zoomLevel < 20) {
+        1.5
     } else {
-        2.5
+        2.0
     }
 }

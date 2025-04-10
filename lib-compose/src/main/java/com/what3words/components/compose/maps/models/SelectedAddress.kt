@@ -3,7 +3,6 @@ package com.what3words.components.compose.maps.models
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.compose.runtime.Immutable
-import com.what3words.components.compose.maps.W3WMapManager
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.domain.W3WCountry
 import com.what3words.core.types.geometry.W3WCoordinates

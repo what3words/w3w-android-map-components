@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -35,6 +36,7 @@ import com.what3words.components.compose.maps.utils.getMarkerBitmap
 import com.what3words.components.compose.maps.utils.getPinBitmap
 import com.what3words.core.types.domain.W3WAddress
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.design.library.ui.extensions.toFloatPx
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -68,7 +70,8 @@ fun W3WGoogleMapDrawer(
             W3WGoogleMapDrawGridLines(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
-                gridLineColor = mapColor.gridLineColor
+                gridLineColor = mapColor.gridLineColor,
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
             )
         }
 
@@ -153,7 +156,8 @@ fun W3WGoogleMapDrawer(
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
                 selectedAddress = state.selectedAddress,
-                markersInSelectedAddress = markersInSelectedAddress
+                markersInSelectedAddress = markersInSelectedAddress,
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
             )
         }
     }
@@ -175,7 +179,8 @@ fun W3WGoogleMapDrawer(
 fun W3WGoogleMapDrawGridLines(
     verticalLines: List<W3WCoordinates>,
     horizontalLines: List<W3WCoordinates>,
-    gridLineColor: Color
+    gridLineColor: Color,
+    gridLineWidth: Dp
 ) {
     val horizontalPolylines = remember(horizontalLines) {
         horizontalLines.map { LatLng(it.lat, it.lng) }
@@ -188,7 +193,7 @@ fun W3WGoogleMapDrawGridLines(
     Polyline(
         points = horizontalPolylines,
         color = gridLineColor,
-        width = 1f,
+        width = gridLineWidth.toFloatPx(),
         clickable = false,
         zIndex = 1f
     )
@@ -196,7 +201,7 @@ fun W3WGoogleMapDrawGridLines(
     Polyline(
         points = verticalPolylines,
         color = gridLineColor,
-        width = 1f,
+        width = gridLineWidth.toFloatPx(),
         clickable = false,
         zIndex = 1f
     )
@@ -214,6 +219,7 @@ fun W3WGoogleMapDrawGridLines(
  * @param zoomSwitchLevel Zoom level at which to switch between detail modes
  * @param selectedAddress The currently selected what3words address
  * @param markersInSelectedAddress List of markers that exist in the selected address's square
+ * @param gridLineWidth The base width for grid lines. Used to calculate the outline width when zoomed in.
  */
 @Composable
 @GoogleMapComposable
@@ -222,24 +228,24 @@ fun W3WGoogleMapDrawSelectedAddress(
     zoomLevel: Float,
     zoomSwitchLevel: Float,
     selectedAddress: W3WAddress,
-    markersInSelectedAddress: ImmutableList<W3WMarker>
+    markersInSelectedAddress: ImmutableList<W3WMarker>,
+    gridLineWidth: Dp,
 ) {
-
-    val density = LocalDensity.current.density
-
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
             zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
         }
     }
 
-    val gridLineWidth = remember(zoomLevel) {
-        derivedStateOf {
-            getSelectedGridWidth(zoomLevel, density)
-        }
-    }
-
     if (drawZoomIn.value) {
+        val gridLineWidthInPixels = gridLineWidth.toFloatPx()
+
+        val gridLineWidth = remember(zoomLevel) {
+            derivedStateOf {
+                getSelectedGridWidth(zoomLevel, gridLineWidthInPixels)
+            }
+        }
+
         DrawZoomInSelectedAddress(
             selectedMarkerColor = markerColors.selectedColor,
             gridLineWidth = gridLineWidth.value,
@@ -534,17 +540,18 @@ fun rememberUpdatedMarkerState(newPosition: LatLng) =
 
 
 /**
- * Calculates the appropriate width for the selected grid based on the zoom level.
+ * Calculates the appropriate width for the selected grid outline based on the zoom level.
  *
  * This function adjusts the grid line width according to the current zoom level
- * to ensure proper visibility at different scales.
+ * to ensure the selected square outline is clearly visible at different scales.
+ * The outline becomes thicker at higher zoom levels.
  *
- * @param zoomLevel The current map zoom level
- * @param density The display density factor
- * @return The calculated width for the selected grid lines
+ * @param zoomLevel The current map zoom level.
+ * @param gridLineWidth The base width of the grid line in pixels.
+ * @return The calculated width for the selected grid outline in pixels.
  */
-private fun getSelectedGridWidth(zoomLevel: Float, density: Float): Float {
-    return density * if (zoomLevel < 19) {
+private fun getSelectedGridWidth(zoomLevel: Float, gridLineWidth: Float): Float {
+    return gridLineWidth * if (zoomLevel < 19) {
         1f
     } else {
         1.5f
