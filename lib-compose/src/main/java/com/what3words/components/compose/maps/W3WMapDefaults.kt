@@ -201,7 +201,7 @@ object W3WMapDefaults {
      */
     fun defaultMapConfig(
         darkModeCustomJsonStyle: String? = null,
-        isBuildingEnable: Boolean = false,
+        isBuildingEnable: Boolean = true,
         isCompassButtonEnabled: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
