@@ -3,7 +3,7 @@
 accompanistPermissions = "0.34.0"
 kotlinxCollectionsImmutable = "0.3.5"
 minSdk = "24"
-compileSdk = "34"
+compileSdk = "35"
 jvmTarget = "1.8"
 androidGradlePlugin = "8.5.0"
 autonomousappsAnalysis = "1.20.0"
