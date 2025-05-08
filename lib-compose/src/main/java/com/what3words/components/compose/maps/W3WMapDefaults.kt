@@ -72,6 +72,7 @@ object W3WMapDefaults {
         val darkModeCustomJsonStyle: String?,
         val isBuildingEnable: Boolean,
         val isCompassButtonEnabled: Boolean,
+        val isScaleBarEnabled: Boolean,
         val gridLineConfig: GridLinesConfig,
         val buttonConfig: ButtonConfig
     )
@@ -195,6 +196,7 @@ object W3WMapDefaults {
      * @param darkModeCustomJsonStyle The custom JSON style for dark mode
      * @param isBuildingEnable Whether 3D buildings are enabled on the map
      * @param isCompassButtonEnabled Whether the compass button is enabled on the map
+     * @param isScaleBarEnabled Whether the scale bar is enabled on the map
      * @param gridLineConfig The configuration for grid lines on the map
      * @param buttonConfig The configuration for map control buttons
      * @return A MapConfig instance with the specified parameters
@@ -203,6 +205,7 @@ object W3WMapDefaults {
         darkModeCustomJsonStyle: String? = null,
         isBuildingEnable: Boolean = true,
         isCompassButtonEnabled: Boolean = true,
+        isScaleBarEnabled: Boolean = false,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
     ): MapConfig {
@@ -211,7 +214,8 @@ object W3WMapDefaults {
             isBuildingEnable = isBuildingEnable,
             gridLineConfig = gridLineConfig,
             buttonConfig = buttonConfig,
-            isCompassButtonEnabled = isCompassButtonEnabled
+            isCompassButtonEnabled = isCompassButtonEnabled,
+            isScaleBarEnabled = isScaleBarEnabled
         )
     }
 

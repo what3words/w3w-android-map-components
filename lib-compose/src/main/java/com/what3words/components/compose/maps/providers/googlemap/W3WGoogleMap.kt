@@ -129,7 +129,7 @@ fun W3WGoogleMap(
             zoomGesturesEnabled = state.isMapGestureEnable,
             rotationGesturesEnabled = state.isMapGestureEnable,
             scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
-            mapToolbarEnabled = false
+            mapToolbarEnabled = mapConfig.isScaleBarEnabled
         ),
         properties = mapProperties,
         onMapClick = {
