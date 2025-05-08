@@ -171,8 +171,15 @@ fun W3WMapBox(
                 modifier = Modifier.padding(layoutConfig.contentPadding)
             )
         },
+        scaleBar = {
+            if (mapConfig.isScaleBarEnabled) {
+                ScaleBar(
+                    modifier = Modifier.padding(layoutConfig.contentPadding)
+                )
+            }
+        },
         compass = {
-            if(mapConfig.isCompassButtonEnabled) {
+            if (mapConfig.isCompassButtonEnabled) {
                 Compass(
                     modifier = Modifier.padding(layoutConfig.contentPadding)
                 )
