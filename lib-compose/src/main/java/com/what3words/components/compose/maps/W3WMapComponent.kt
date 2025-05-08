@@ -90,12 +90,12 @@ fun W3WMapComponent(
 
     val coroutineScope = rememberCoroutineScope { Dispatchers.IO }
 
-    val currentLayoutConfig = remember {
-        derivedStateOf { layoutConfig }
+    val currentLayoutConfig by remember(layoutConfig) {
+        mutableStateOf(layoutConfig)
     }
 
-    val currentMapConfig = remember {
-        derivedStateOf { mapConfig }
+    val currentMapConfig by remember(mapConfig) {
+        mutableStateOf(mapConfig)
     }
 
     LaunchedEffect(textDataSource) {
@@ -103,7 +103,7 @@ fun W3WMapComponent(
     }
 
     LaunchedEffect(currentMapConfig) {
-        mapManager.setMapConfig(currentMapConfig.value)
+        mapManager.setMapConfig(currentMapConfig)
     }
 
     LaunchedEffect(Unit) {
@@ -120,8 +120,8 @@ fun W3WMapComponent(
 
     W3WMapContent(
         modifier = modifier,
-        layoutConfig = currentLayoutConfig.value,
-        mapConfig = currentMapConfig.value,
+        layoutConfig = currentLayoutConfig,
+        mapConfig = currentMapConfig,
         mapColors = mapColors,
         locationButtonColor = locationButtonColor,
         mapProvider = mapManager.mapProvider,
