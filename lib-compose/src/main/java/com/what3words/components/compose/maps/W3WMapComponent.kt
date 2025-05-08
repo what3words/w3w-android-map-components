@@ -143,7 +143,8 @@ fun W3WMapComponent(
                     locationSource = locationSource,
                     mapManager = mapManager,
                     onError = onError,
-                    coroutineScope = coroutineScope
+                    coroutineScope = coroutineScope,
+                    shouldSelect = mapConfig.buttonConfig.shouldSelectOnMyLocationClicked
                 )
             },
         onMapProjectionUpdated = mapManager::setMapProjection,
@@ -540,6 +541,7 @@ private fun fetchCurrentLocation(
     locationSource: W3WLocationSource?,
     mapManager: W3WMapManager,
     coroutineScope: CoroutineScope,
+    shouldSelect: Boolean,
     onError: ((W3WError) -> Unit)? = null
 ) {
     locationSource?.let {
@@ -560,6 +562,10 @@ private fun fetchCurrentLocation(
                     },
                     animate = true
                 )
+
+                if (shouldSelect) {
+                    mapManager.setSelectedAt(W3WCoordinates(location.latitude, location.longitude))
+                }
 
                 if (location.hasAccuracy()) {
                     mapManager.updateAccuracyDistance(location.accuracy)

@@ -123,12 +123,14 @@ object W3WMapDefaults {
      *
      * @property isMapSwitchFeatureEnabled Whether the map type switch feature is enabled
      * @property isMyLocationFeatureEnabled Whether the my location feature is enabled
+     * @property shouldSelectOnMyLocationClicked Whether clicking the My Location button should select that what3words address after fetching location
      * @property isRecallFeatureEnabled Whether the recall feature is enabled to restore previous map position and zoom
      */
     @Immutable
     data class ButtonConfig(
         val isMapSwitchFeatureEnabled: Boolean,
         val isMyLocationFeatureEnabled: Boolean,
+        val shouldSelectOnMyLocationClicked: Boolean,
         val isRecallFeatureEnabled: Boolean,
     )
 
@@ -245,19 +247,22 @@ object W3WMapDefaults {
     /**
      * Creates a default button configuration with customizable parameters.
      *
-     * @property isMapSwitchFeatureEnabled Whether the map type switch feature is enabled
-     * @property isMyLocationFeatureEnabled Whether the my location feature is enabled
-     * @property isRecallFeatureEnabled Whether the recall feature is enabled to restore previous map position and zoom
+     * @param isMapSwitchFeatureEnabled Whether the map type switch feature is enabled
+     * @param isMyLocationFeatureEnabled Whether the my location feature is enabled
+     * @param shouldSelectOnMyLocationClicked Whether clicking the My Location button should select that what3words address after fetching location
+     * @param isRecallFeatureEnabled Whether the recall feature is enabled to restore previous map position and zoom
      * @return A ButtonConfig instance with the specified parameters
      */
     fun defaultButtonConfig(
         isMapSwitchFeatureEnabled: Boolean = true,
         isMyLocationFeatureEnabled: Boolean = true,
+        shouldSelectOnMyLocationClicked: Boolean = true,
         isRecallFeatureEnabled: Boolean = false
     ): ButtonConfig {
         return ButtonConfig(
             isMapSwitchFeatureEnabled = isMapSwitchFeatureEnabled,
             isMyLocationFeatureEnabled = isMyLocationFeatureEnabled,
+            shouldSelectOnMyLocationClicked = shouldSelectOnMyLocationClicked,
             isRecallFeatureEnabled = isRecallFeatureEnabled
         )
     }
