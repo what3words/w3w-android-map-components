@@ -73,6 +73,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
 
     override suspend fun moveToPosition(
         listLatLng: List<W3WCoordinates>,
+        padding: Int,
     ) {
         if (listLatLng.isNotEmpty()) {
             val latLngBounds = LatLngBounds.Builder()
@@ -84,7 +85,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
                 cameraState.animate(
                     update =
                         CameraUpdateFactory.newLatLngBounds(
-                            latLngBounds.build(), 10
+                            latLngBounds.build(), padding
                         )
                 )
             }

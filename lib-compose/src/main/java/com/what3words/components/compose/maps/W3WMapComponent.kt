@@ -310,7 +310,7 @@ internal fun W3WMapContent(
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onError: ((W3WError) -> Unit)? = null,
-    onMapProjectionUpdated: (W3WMapProjection) -> Unit,
+    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
@@ -324,8 +324,8 @@ internal fun W3WMapContent(
 
         // // Fetch current location when launch, but not on configuration changes
         LaunchedEffect(isInitialized) {
-            if (!isInitialized.value && mapState.isMyLocationEnabled) {
-                onMyLocationClicked.invoke()
+            if (!isInitialized.value) {
+                if (mapState.isMyLocationEnabled && mapConfig.shouldFocusOnMyLocationOnInitialization) onMyLocationClicked.invoke()
                 isInitialized.value = true
             }
         }
@@ -494,7 +494,7 @@ internal fun W3WMapView(
     onMarkerClicked: ((W3WMarker) -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
-    onMapProjectionUpdated: (W3WMapProjection) -> Unit,
+    onMapProjectionUpdated:  ((W3WMapProjection) -> Unit)? = null,
 ) {
     when (mapProvider) {
         MapProvider.GOOGLE_MAP -> {

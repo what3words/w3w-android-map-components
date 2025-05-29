@@ -30,6 +30,7 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
 
     companion object {
         const val MY_LOCATION_ZOOM = 20.0
+        const val CAMERA_DEFAULT_PADDING = 20
     }
 
     override var cameraState: MapViewportState by mutableStateOf(initialCameraState)
@@ -42,6 +43,7 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
 
     //TODO: This is work around for the function cameraForCoordinates not support in compose
     var cameraForCoordinates: MutableList<Point>? = mutableListOf()
+    var cameraPadding: Int = CAMERA_DEFAULT_PADDING
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -73,7 +75,9 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
 
     override suspend fun moveToPosition(
         listLatLng: List<W3WCoordinates>,
+        padding: Int,
     ) {
+        this.cameraPadding = padding
         cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng, it.lat) }.toMutableList()
     }
 
