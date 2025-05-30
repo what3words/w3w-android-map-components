@@ -18,6 +18,10 @@ import com.what3words.core.types.geometry.W3WRectangle
 @Immutable
 interface W3WCameraState<T> {
 
+    companion object {
+        const val CAMERA_DEFAULT_PADDING = 20
+    }
+
     var cameraState: T
 
     var gridBound: W3WRectangle?
@@ -49,9 +53,12 @@ interface W3WCameraState<T> {
      * Moves the camera to the specified latLng.
      *
      * @param listLatLng The list of W3W latLng to move the camera to.
+     * @param padding The padding in pixels around the bounding box of the coordinates.
+     *                The default value does not account for screen density.
      */
     suspend fun moveToPosition(
         listLatLng: List<W3WCoordinates>,
+        padding: Int = CAMERA_DEFAULT_PADDING
     )
 
     /**

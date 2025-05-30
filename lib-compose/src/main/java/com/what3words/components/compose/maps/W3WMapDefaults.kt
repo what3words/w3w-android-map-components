@@ -64,6 +64,8 @@ object W3WMapDefaults {
      * @property darkModeCustomJsonStyle The custom JSON style for dark mode
      * @property isBuildingEnable Whether 3D buildings are enabled on the map
      * @property isCompassButtonEnabled Whether the compass button is enabled on the map
+     * @property isScaleBarEnabled Whether the scale bar is enabled on the map
+     * @property shouldFocusOnMyLocationOnInitialization Whether to automatically focus on user's location during map initialization
      * @property gridLineConfig The configuration for grid lines on the map
      * @property buttonConfig The configuration for map control buttons
      */
@@ -73,6 +75,7 @@ object W3WMapDefaults {
         val isBuildingEnable: Boolean,
         val isCompassButtonEnabled: Boolean,
         val isScaleBarEnabled: Boolean,
+        val shouldFocusOnMyLocationOnInitialization: Boolean,
         val gridLineConfig: GridLinesConfig,
         val buttonConfig: ButtonConfig
     )
@@ -208,6 +211,7 @@ object W3WMapDefaults {
         isBuildingEnable: Boolean = true,
         isCompassButtonEnabled: Boolean = true,
         isScaleBarEnabled: Boolean = false,
+        shouldFocusOnMyLocationOnInitialization: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
     ): MapConfig {
@@ -216,6 +220,7 @@ object W3WMapDefaults {
             isBuildingEnable = isBuildingEnable,
             gridLineConfig = gridLineConfig,
             buttonConfig = buttonConfig,
+            shouldFocusOnMyLocationOnInitialization = shouldFocusOnMyLocationOnInitialization,
             isCompassButtonEnabled = isCompassButtonEnabled,
             isScaleBarEnabled = isScaleBarEnabled
         )

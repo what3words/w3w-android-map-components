@@ -61,7 +61,7 @@ fun W3WGoogleMap(
     onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
-    onMapProjectionUpdated: (W3WMapProjection) -> Unit
+    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
     val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
@@ -92,9 +92,11 @@ fun W3WGoogleMap(
             .conflate()
             .onEach { (position, projection) ->
                 projection?.let {
-                    if (mapConfig.buttonConfig.isRecallFeatureEnabled) {
+                    if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                         mapProjection?.projection = projection
-                        mapProjection?.let(onMapProjectionUpdated)
+                        mapProjection?.let {
+                            onMapProjectionUpdated?.invoke(it)
+                        }
                     }
                     updateCameraBound(
                         projection,

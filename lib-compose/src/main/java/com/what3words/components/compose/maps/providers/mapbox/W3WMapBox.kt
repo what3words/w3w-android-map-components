@@ -75,7 +75,7 @@ fun W3WMapBox(
     onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
-    onMapProjectionUpdated: (W3WMapProjection) -> Unit,
+    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null
 ) {
     var mapView: MapView? by remember {
         mutableStateOf(null)
@@ -86,14 +86,6 @@ fun W3WMapBox(
     var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
 
     val density = LocalDensity.current.density
-    val cameraForCoordinatesPadding = remember(density) {
-        EdgeInsets(
-            0.0,
-            MAPBOX_DEFAULT_CAMERA_PADDING * density,
-            0.0,
-            MAPBOX_DEFAULT_CAMERA_PADDING * density
-        )
-    }
 
     LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
@@ -147,7 +139,12 @@ fun W3WMapBox(
                     map.cameraForCoordinates(
                         points,
                         CameraOptions.Builder().build(),
-                        cameraForCoordinatesPadding,
+                        EdgeInsets(
+                            0.0,
+                            state.cameraState.cameraPadding.toDouble(),
+                            0.0,
+                            state.cameraState.cameraPadding.toDouble()
+                        ),
                         null,
                         null
                     ) { options ->
@@ -251,9 +248,9 @@ fun W3WMapBox(
                 }
             })
 
-            if (mapConfig.buttonConfig.isRecallFeatureEnabled) {
+            if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                 mapView?.mapboxMap?.let { map ->
-                    onMapProjectionUpdated(W3WMapBoxMapProjection(map))
+                    onMapProjectionUpdated?.invoke(W3WMapBoxMapProjection(map))
                 }
             }
         }
