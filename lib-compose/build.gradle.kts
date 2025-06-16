@@ -19,7 +19,7 @@ plugins {
  */
 val isSnapshotRelease = findProperty("IS_SNAPSHOT_RELEASE") == "true"
 version =
-    if (isSnapshotRelease) "${findProperty("LIBRARY_COMPOSE_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_COMPOSE_VERSION")}"
+    if (isSnapshotRelease) "${findProperty("LIBRARY_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_VERSION")}"
 
 android {
     namespace = "com.what3words.map.components.compose"
@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
-        buildConfigField("String", "LIBRARY_COMPOSE_VERSION", "\"${findProperty("LIBRARY_COMPOSE_VERSION")}\"")
+        buildConfigField("String", "LIBRARY_VERSION", "\"${findProperty("LIBRARY_VERSION")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
