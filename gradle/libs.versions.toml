@@ -8,6 +8,7 @@ jvmTarget = "1.8"
 androidGradlePlugin = "8.8.2"
 autonomousappsAnalysis = "1.20.0"
 gradleKtlint = "10.1.0"
+jreleaser = "1.17.0"
 
 #Kotlin
 kotlin = "2.1.0"
@@ -110,3 +111,4 @@ maven-publish = { id = "maven-publish" }
 signing = { id = "signing" }
 kotlin-parcelize = { id = "kotlin-parcelize" }
 jacoco = { id = "jacoco" }
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
