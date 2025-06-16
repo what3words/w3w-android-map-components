@@ -43,7 +43,7 @@ jobs:
           else
             echo "lib-compose=false" >> $GITHUB_OUTPUT
           fi
-          
+
   build_test:
     runs-on: ubuntu-latest
     steps:
@@ -64,10 +64,14 @@ jobs:
           java-version: '17'
 
       - name: Restore gradle.properties
+        env:
+
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         shell: bash
         run: |
           mkdir -p ~/.gradle/
           echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+          echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
