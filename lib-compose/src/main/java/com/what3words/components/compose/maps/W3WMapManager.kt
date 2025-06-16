@@ -1895,7 +1895,7 @@ class W3WMapManager(
     companion object {
         const val LIST_DEFAULT_ID = "LIST_DEFAULT_ID"
         private val HEADER_MAP_COMPONENT =
-            mapOf("X-W3W-AS-Component" to ("what3words-Map-Android/" + BuildConfig.LIBRARY_COMPOSE_VERSION))
+            mapOf("X-W3W-AS-Component" to ("what3words-Map-Android/" + BuildConfig.LIBRARY_VERSION))
 
         /**
          * The default saver implementation for [W3WMapManager].
