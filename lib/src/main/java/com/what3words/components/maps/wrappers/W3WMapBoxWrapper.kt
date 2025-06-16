@@ -40,12 +40,21 @@ import com.what3words.androidwrapper.helpers.DispatcherProvider
 import com.what3words.components.maps.extensions.contains
 import com.what3words.components.maps.extensions.generateUniqueId
 import com.what3words.components.maps.extensions.main
-import com.what3words.components.maps.models.SuggestionWithCoordinatesAndStyle
+import com.what3words.components.maps.models.W3WAddressWithStyle
 import com.what3words.components.maps.models.W3WMarkerColor
 import com.what3words.components.maps.models.toCircle
 import com.what3words.components.maps.models.toGridFill
 import com.what3words.components.maps.models.toPin
 import com.what3words.components.maps.views.W3WMap
+import com.what3words.core.datasource.text.W3WTextDataSource
+import com.what3words.core.types.common.W3WError
+import com.what3words.core.types.common.W3WResult
+import com.what3words.core.types.domain.W3WAddress
+import com.what3words.core.types.domain.W3WSuggestion
+import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.core.types.geometry.W3WRectangle
+import com.what3words.core.types.geometry.toGeoJSON
+import com.what3words.core.types.language.W3WRFC5646Language
 import com.what3words.javawrapper.request.BoundingBox
 import com.what3words.javawrapper.request.Coordinates
 import com.what3words.javawrapper.response.APIResponse
@@ -70,12 +79,12 @@ import java.nio.ByteBuffer
 class W3WMapBoxWrapper(
     private val context: Context,
     private val mapView: MapboxMap,
-    private val wrapper: What3WordsAndroidWrapper,
+    private val textDataSource: W3WTextDataSource,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
 ) : W3WMapWrapper {
     private var gridColor: GridColor = GridColor.AUTO
     private var isDirty: Boolean = false
-    private var w3WMapManager: W3WMapManager = W3WMapManager(wrapper, this, dispatchers)
+    private var w3WMapManager: W3WMapManager = W3WMapManager(textDataSource, this, dispatchers)
     private var isDarkMode: Boolean = false
     private var zoomSwitchLevel: Float = DEFAULT_ZOOM_SWITCH_LEVEL
     private var selectedZoomedLayerId: String? = null
@@ -98,8 +107,8 @@ class W3WMapBoxWrapper(
         const val SQUARE_IMAGE_ID_PREFIX = "SQUARE_IMAGE_%s"
     }
 
-    private var onMarkerClickedCallback: Consumer<SuggestionWithCoordinates>? = null
-    private var lastScaledBounds: BoundingBox? = null
+    private var onMarkerClickedCallback: Consumer<W3WAddress>? = null
+    private var lastScaledBounds: W3WRectangle? = null
     internal var isGridVisible: Boolean = false
     private var searchJob: Job? = null
     private var shouldDrawGrid: Boolean = true
@@ -116,7 +125,7 @@ class W3WMapBoxWrapper(
     /**
      * Checks if a marker was clicked on the map. This because the [MapboxMap.addOnMapClickListener] does not take into account markers at higher zoom levels.
      */
-    fun checkIfMarkerClicked(point: Point, clickedMarker: (SuggestionWithCoordinates?) -> Unit) {
+    fun checkIfMarkerClicked(point: Point, clickedMarker: (W3WAddress?) -> Unit) {
         if (mapView.cameraState.zoom < zoomSwitchLevel) {
             mapView.queryRenderedFeatures(
                 RenderedQueryGeometry(mapView.pixelForCoordinate(point)),
@@ -124,19 +133,19 @@ class W3WMapBoxWrapper(
             ) { result ->
                 val features = result.value ?: return@queryRenderedFeatures clickedMarker(null)
                 val w3wSource = features.filter { feature ->
-                    w3WMapManager.suggestionsCached.any { it.suggestion.words == feature.source }
+                    w3WMapManager.listOfVisibleAddresses.any { it.address.words == feature.source }
                 }
                 if (w3wSource.isNotEmpty()) {
                     val source = w3wSource.first().source
                     val suggestion =
-                        w3WMapManager.suggestionsCached.first { it.suggestion.words == source }
-                    clickedMarker(suggestion.suggestion)
+                        w3WMapManager.listOfVisibleAddresses.first { it.address.words == source }
+                    clickedMarker(suggestion.address)
                 } else {
                     clickedMarker(null)
                 }
             }
         } else {
-            clickedMarker(findMarkerByCoordinates(point.latitude(), point.longitude()))
+            clickedMarker(findMarkerByCoordinates(W3WCoordinates(point.latitude(), point.longitude())))
         }
     }
 
@@ -149,7 +158,7 @@ class W3WMapBoxWrapper(
                 || mapView.getStyle()?.styleURI == Style.OUTDOORS)
     }
 
-    override fun setLanguage(language: String): W3WMapBoxWrapper {
+    override fun setLanguage(language: W3WRFC5646Language): W3WMapBoxWrapper {
         w3WMapManager.language = language
         return this
     }
@@ -172,21 +181,21 @@ class W3WMapBoxWrapper(
     }
 
     @Deprecated("Use checkIfMarkerClicked onMapClick events instead")
-    override fun onMarkerClicked(callback: Consumer<SuggestionWithCoordinates>): W3WMapBoxWrapper {
+    override fun onMarkerClicked(callback: Consumer<W3WAddress>): W3WMapBoxWrapper {
         onMarkerClickedCallback = callback
         return this
     }
 
-    //region add/remove by suggestion
+    //region add/remove/select by W3WSuggestions
 
     override fun addMarkerAtSuggestion(
-        suggestion: Suggestion,
+        suggestion: W3WSuggestion,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
-        w3WMapManager.addWords(
-            suggestion.words,
+        w3WMapManager.addSuggestion(
+            suggestion,
             markerColor,
             {
                 isDirty = true
@@ -197,13 +206,13 @@ class W3WMapBoxWrapper(
     }
 
     override fun addMarkerAtSuggestion(
-        listSuggestions: List<Suggestion>,
+        listSuggestions: List<W3WSuggestion>,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<List<W3WAddress>>?,
+        onError: Consumer<W3WError>?
     ) {
-        w3WMapManager.addWords(
-            listSuggestions.map { it.words },
+        w3WMapManager.addSuggestion(
+            listSuggestions,
             markerColor,
             {
                 isDirty = true
@@ -213,24 +222,43 @@ class W3WMapBoxWrapper(
         )
     }
 
-    override fun removeMarkerAtSuggestion(suggestion: Suggestion) {
+    override fun removeMarkerAtSuggestion(suggestion: W3WSuggestion) {
         isDirty = true
-        w3WMapManager.removeWords(suggestion.words)
+        w3WMapManager.removeSuggestion(suggestion)
     }
 
-    override fun removeMarkerAtSuggestion(listSuggestions: List<Suggestion>) {
+    override fun removeMarkerAtSuggestion(listSuggestions: List<W3WSuggestion>) {
         isDirty = true
-        w3WMapManager.removeWords(listSuggestions.map { it.words })
+        w3WMapManager.removeSuggestion(listSuggestions)
     }
 
     override fun selectAtSuggestion(
-        suggestion: Suggestion,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        suggestion: W3WSuggestion,
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
         isDirty = true
-        w3WMapManager.selectWords(
-            suggestion.words,
+        w3WMapManager.selectSuggestion(
+            suggestion,
+            {
+                isDirty = true
+                onSuccess?.accept(it)
+            },
+            onError
+        )
+    }
+    //endregion
+
+    //region add/remove/select by W3WAddress
+    override fun addMarkerAtAddress(
+        address: W3WAddress,
+        markerColor: W3WMarkerColor,
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
+    ) {
+        w3WMapManager.addAddress(
+            address,
+            markerColor,
             {
                 isDirty = true
                 onSuccess?.accept(it)
@@ -239,51 +267,50 @@ class W3WMapBoxWrapper(
         )
     }
 
-    override fun addMarkerAtSuggestionWithCoordinates(
-        suggestion: SuggestionWithCoordinates,
+    override fun addMarkerAtAddress(
+        listAddresses: List<W3WAddress>,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<List<W3WAddress>>?,
+        onError: Consumer<W3WError>?
     ) {
-        isDirty = true
-        if (suggestion.coordinates != null) {
-            w3WMapManager.addSuggestionWithCoordinates(suggestion, markerColor, onSuccess)
-        } else {
-            w3WMapManager.addWords(suggestion.words, markerColor, onSuccess, onError)
-        }
+        w3WMapManager.addAddress(listAddresses, markerColor, {
+            isDirty = true
+            onSuccess?.accept(it)
+        }, onError)
     }
 
-    override fun selectAtSuggestionWithCoordinates(
-        suggestion: SuggestionWithCoordinates,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+    override fun selectAtAddress(
+        address: W3WAddress,
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
-        if (suggestion.coordinates != null) {
-            w3WMapManager.selectSuggestionWithCoordinates(suggestion) {
-                isDirty = true
-                onSuccess?.accept(it)
-            }
-        } else {
-            w3WMapManager.selectWords(suggestion.words, {
-                isDirty = true
-                onSuccess?.accept(it)
-            }, onError)
-        }
+        w3WMapManager.selectedAddress(address, {
+            isDirty = true
+            onSuccess?.accept(it)
+        }, onError)
+    }
+
+    override fun removeMarkerAtAddress(address: W3WAddress) {
+        isDirty = true
+        w3WMapManager.removeAddress(address)
+    }
+
+    override fun removeMarkerAtAddress(listAddresses: List<W3WAddress>) {
+        isDirty = true
+        w3WMapManager.removeAddress(listAddresses)
     }
     //endregion
 
-    //region add/remove by coordinates
+    //region add/remove/select by coordinates
 
     override fun addMarkerAtCoordinates(
-        lat: Double,
-        lng: Double,
+        coordinates: W3WCoordinates,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.addCoordinates(
-            lat,
-            lng,
+            coordinates,
             markerColor,
             {
                 isDirty = true
@@ -294,10 +321,10 @@ class W3WMapBoxWrapper(
     }
 
     override fun addMarkerAtCoordinates(
-        listCoordinates: List<Pair<Double, Double>>,
+        listCoordinates: List<W3WCoordinates>,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<List<W3WAddress>>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.addCoordinates(
             listCoordinates,
@@ -311,14 +338,12 @@ class W3WMapBoxWrapper(
     }
 
     override fun selectAtCoordinates(
-        lat: Double,
-        lng: Double,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        coordinates: W3WCoordinates,
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.selectCoordinates(
-            lat,
-            lng,
+            coordinates,
             {
                 isDirty = true
                 onSuccess?.accept(it)
@@ -327,27 +352,27 @@ class W3WMapBoxWrapper(
         )
     }
 
-    override fun findMarkerByCoordinates(lat: Double, lng: Double): SuggestionWithCoordinates? {
-        return w3WMapManager.squareContains(lat, lng)?.suggestion
+    override fun findMarkerByCoordinates(coordinates: W3WCoordinates): W3WAddress? {
+        return w3WMapManager.squareContains(coordinates)?.address
     }
 
-    override fun removeMarkerAtCoordinates(lat: Double, lng: Double) {
+    override fun removeMarkerAtCoordinates(coordinates: W3WCoordinates) {
         isDirty = true
-        w3WMapManager.removeCoordinates(lat, lng)
+        w3WMapManager.removeCoordinates(coordinates)
     }
 
-    override fun removeMarkerAtCoordinates(listCoordinates: List<Pair<Double, Double>>) {
+    override fun removeMarkerAtCoordinates(listCoordinates: List<W3WCoordinates>) {
         isDirty = true
         w3WMapManager.removeCoordinates(listCoordinates)
     }
-//endregion
+    //endregion
 
-    //region add/remove by words
+    //region add/remove/select by words
     override fun addMarkerAtWords(
         words: String,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.addWords(
             words,
@@ -363,8 +388,8 @@ class W3WMapBoxWrapper(
     override fun addMarkerAtWords(
         listWords: List<String>,
         markerColor: W3WMarkerColor,
-        onSuccess: Consumer<List<SuggestionWithCoordinates>>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<List<W3WAddress>>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.addWords(
             listWords,
@@ -379,8 +404,8 @@ class W3WMapBoxWrapper(
 
     override fun selectAtWords(
         words: String,
-        onSuccess: Consumer<SuggestionWithCoordinates>?,
-        onError: Consumer<APIResponse.What3WordsError>?
+        onSuccess: Consumer<W3WAddress>?,
+        onError: Consumer<W3WError>?
     ) {
         w3WMapManager.selectWords(
             words,
@@ -407,12 +432,12 @@ class W3WMapBoxWrapper(
         w3WMapManager.clearList()
     }
 
-    override fun getAllMarkers(): List<SuggestionWithCoordinates> {
+    override fun getAllMarkers(): List<W3WAddress> {
         return w3WMapManager.getList()
     }
 
-    override fun getSelectedMarker(): SuggestionWithCoordinates? {
-        return w3WMapManager.selectedSuggestion
+    override fun getSelectedMarker(): W3WAddress? {
+        return w3WMapManager.selectedAddress
     }
 
     override fun unselect() {
@@ -485,7 +510,7 @@ class W3WMapBoxWrapper(
      */
     private fun scaleBounds(
         scale: Float = DEFAULT_BOUNDS_SCALE
-    ): BoundingBox {
+    ): W3WRectangle {
         val bounds = mapView
             .coordinateBoundsForCamera(mapView.cameraState.toCameraOptions())
         val center = bounds.center()
@@ -498,12 +523,12 @@ class W3WMapBoxWrapper(
         val finalSWLng =
             ((scale * (bounds.southwest.longitude() - center.longitude()) + center.longitude()))
 
-        return BoundingBox(
-            Coordinates(
+        return W3WRectangle(
+            W3WCoordinates(
                 finalSWLat,
                 finalSWLng
             ),
-            Coordinates(finalNELat, finalNELng)
+            W3WCoordinates(finalNELat, finalNELng)
         )
     }
 
@@ -532,145 +557,149 @@ class W3WMapBoxWrapper(
         if (shouldCancelPreviousJob) searchJob?.cancel()
         searchJob = CoroutineScope(dispatchers.main()).launch {
             val grid = withContext(dispatchers.io()) {
-                wrapper.gridSectionGeoJson(lastScaledBounds!!).execute()
+                textDataSource.gridSection(lastScaledBounds!!)
             }
-            isDirty = if (grid.isSuccessful) {
-                drawLinesOnMap(grid.toGeoJsonString())
-                drawZoomedMarkers()
-                false
-            } else {
-                false
+            isDirty = when (grid) {
+                is W3WResult.Failure -> false
+                is W3WResult.Success -> {
+                    drawLinesOnMap(grid.value.toGeoJSON())
+                    drawZoomedMarkers()
+                    false
+                }
             }
         }
     }
 
     private fun drawZoomedMarkers() {
-        w3WMapManager.suggestionsCached.forEach {
+        w3WMapManager.listOfVisibleAddresses.forEach {
             drawFilledZoomedMarker(it)
         }
-        if (w3WMapManager.selectedSuggestion != null) {
-            drawOutlineZoomedMarker(w3WMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedAddress != null) {
+            drawOutlineZoomedMarker(w3WMapManager.selectedAddress!!)
         }
     }
 
     /** [drawOutlineZoomedMarker] will be responsible for the highlighting the selected square by adding four lines to [MapboxMap.style] using [LineLayer].*/
-    private fun drawOutlineZoomedMarker(suggestion: SuggestionWithCoordinates) {
-        val listLines = LineString.fromLngLats(
-            listOf(
-                Point.fromLngLat(
-                    suggestion.square.southwest.lng,
-                    suggestion.square.northeast.lat
-                ),
-                Point.fromLngLat(
-                    suggestion.square.northeast.lng,
-                    suggestion.square.northeast.lat
-                ),
-                Point.fromLngLat(
-                    suggestion.square.northeast.lng,
-                    suggestion.square.southwest.lat
-                ),
-                Point.fromLngLat(
-                    suggestion.square.southwest.lng,
-                    suggestion.square.southwest.lat
-                ),
-                Point.fromLngLat(
-                    suggestion.square.southwest.lng,
-                    suggestion.square.northeast.lat
-                ),
-                Point.fromLngLat(
-                    suggestion.square.northeast.lng,
-                    suggestion.square.northeast.lat
+    private fun drawOutlineZoomedMarker(address: W3WAddress) {
+        if (address.square != null && address.center != null) {
+            val listLines = LineString.fromLngLats(
+                listOf(
+                    Point.fromLngLat(
+                        address.square!!.southwest.lng,
+                        address.square!!.northeast.lat
+                    ),
+                    Point.fromLngLat(
+                        address.square!!.northeast.lng,
+                        address.square!!.northeast.lat
+                    ),
+                    Point.fromLngLat(
+                        address.square!!.northeast.lng,
+                        address.square!!.southwest.lat
+                    ),
+                    Point.fromLngLat(
+                        address.square!!.southwest.lng,
+                        address.square!!.southwest.lat
+                    ),
+                    Point.fromLngLat(
+                        address.square!!.southwest.lng,
+                        address.square!!.northeast.lat
+                    ),
+                    Point.fromLngLat(
+                        address.square!!.northeast.lng,
+                        address.square!!.northeast.lat
+                    )
                 )
             )
-        )
-        mapView.getStyle { style ->
-            val test = listLines.toJson()
-            selectedZoomedLayerId = String.format(
-                SELECTED_ZOOMED_LAYER_PREFIX,
-                suggestion.coordinates.generateUniqueId()
-            )
-            if (style.styleSourceExists(SELECTED_ZOOMED_SOURCE)) {
-                style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.data(test)
-            } else {
-                style.addSource(
-                    geoJsonSource(SELECTED_ZOOMED_SOURCE) {
-                        data(test)
-                    }
+            mapView.getStyle { style ->
+                val test = listLines.toJson()
+                selectedZoomedLayerId = String.format(
+                    SELECTED_ZOOMED_LAYER_PREFIX,
+                    address.center!!.generateUniqueId()
                 )
-            }
-            if (!style.styleLayerExists(selectedZoomedLayerId!!)) {
-                style.addLayer(
-                    lineLayer(selectedZoomedLayerId!!, SELECTED_ZOOMED_SOURCE) {
-                        lineColor(
-                            if (shouldShowDarkGrid()) {
-                                context.getColor(R.color.grid_selected_normal)
-                            } else {
-                                context.getColor(R.color.grid_selected_sat)
-                            }
-                        )
-                        lineWidth(getGridSelectedBorderSizeBasedOnZoomLevel())
-                    }
-                )
+                if (style.styleSourceExists(SELECTED_ZOOMED_SOURCE)) {
+                    style.getSourceAs<GeoJsonSource>(SELECTED_ZOOMED_SOURCE)?.data(test)
+                } else {
+                    style.addSource(
+                        geoJsonSource(SELECTED_ZOOMED_SOURCE) {
+                            data(test)
+                        }
+                    )
+                }
+                if (!style.styleLayerExists(selectedZoomedLayerId!!)) {
+                    style.addLayer(
+                        lineLayer(selectedZoomedLayerId!!, SELECTED_ZOOMED_SOURCE) {
+                            lineColor(
+                                if (shouldShowDarkGrid()) {
+                                    context.getColor(R.color.grid_selected_normal)
+                                } else {
+                                    context.getColor(R.color.grid_selected_sat)
+                                }
+                            )
+                            lineWidth(getGridSelectedBorderSizeBasedOnZoomLevel())
+                        }
+                    )
+                }
             }
         }
     }
 
     /** [drawZoomedMarkers] will be responsible for the drawing all square images to four coordinates (top right, then clockwise) by adding them [MapboxMap.style] using [RasterLayer], still looking for a better option for this, this is the way I found it online.*/
-    private fun drawFilledZoomedMarker(suggestion: SuggestionWithCoordinatesAndStyle) {
-        main(dispatchers) {
-            val id = String.format(
-                SQUARE_IMAGE_ID_PREFIX,
-                suggestion.suggestion.coordinates.generateUniqueId()
-            )
-            bitmapFromDrawableRes(context, suggestion.markerColor.toGridFill())?.let { image ->
-                mapView.getStyle { style ->
-                    if (!style.styleSourceExists(id)) {
-                        style.addSource(
-                            imageSource(id) {
-                                this.coordinates(
-                                    listOf(
+    private fun drawFilledZoomedMarker(address: W3WAddressWithStyle) {
+        if (address.address.square != null && address.address.center != null) {
+            main(dispatchers) {
+                val id = String.format(
+                    SQUARE_IMAGE_ID_PREFIX,
+                    address.address.center!!.generateUniqueId()
+                )
+                bitmapFromDrawableRes(context, address.markerColor.toGridFill())?.let { image ->
+                    mapView.getStyle { style ->
+                        if (!style.styleSourceExists(id)) {
+                            style.addSource(
+                                imageSource(id) {
+                                    this.coordinates(
                                         listOf(
-                                            suggestion.suggestion.square.southwest.lng,
-                                            suggestion.suggestion.square.northeast.lat
-                                        ),
-                                        listOf(
-                                            suggestion.suggestion.square.northeast.lng,
-                                            suggestion.suggestion.square.northeast.lat
+                                            listOf(
+                                                address.address.square!!.southwest.lng,
+                                                address.address.square!!.northeast.lat
+                                            ),
+                                            listOf(
+                                                address.address.square!!.northeast.lng,
+                                                address.address.square!!.northeast.lat
 
-                                        ),
-                                        listOf(
-                                            suggestion.suggestion.square.northeast.lng,
-                                            suggestion.suggestion.square.southwest.lat
-
-                                        ),
-                                        listOf(
-                                            suggestion.suggestion.square.southwest.lng,
-                                            suggestion.suggestion.square.southwest.lat
+                                            ),
+                                            listOf(
+                                                address.address.square!!.northeast.lng,
+                                                address.address.square!!.southwest.lat
+                                            ),
+                                            listOf(
+                                                address.address.square!!.southwest.lng,
+                                                address.address.square!!.southwest.lat
+                                            )
                                         )
                                     )
-                                )
-                            }
-                        )
-                        style.addLayerBelow(
-                            RasterLayer(
-                                id,
-                                id
-                            ), GRID_LAYER
-                        )
-                        val imageSource: ImageSource =
-                            style.getSourceAs(id)!!
-                        val byteBuffer = ByteBuffer.allocate(image.byteCount)
-                        image.copyPixelsToBuffer(byteBuffer)
-                        imageSource.updateImage(
-                            Image(
-                                image.width,
-                                image.height,
-                                byteBuffer.array()
+                                }
                             )
-                        )
-                    } else {
-                        val layer = style.getLayerAs<RasterLayer>(id)
-                        layer?.visibility(Visibility.VISIBLE)
+                            style.addLayerBelow(
+                                RasterLayer(
+                                    id,
+                                    id
+                                ), GRID_LAYER
+                            )
+                            val imageSource: ImageSource =
+                                style.getSourceAs(id)!!
+                            val byteBuffer = ByteBuffer.allocate(image.byteCount)
+                            image.copyPixelsToBuffer(byteBuffer)
+                            imageSource.updateImage(
+                                Image(
+                                    image.width,
+                                    image.height,
+                                    byteBuffer.array()
+                                )
+                            )
+                        } else {
+                            val layer = style.getLayerAs<RasterLayer>(id)
+                            layer?.visibility(Visibility.VISIBLE)
+                        }
                     }
                 }
             }
@@ -715,11 +744,9 @@ class W3WMapBoxWrapper(
                     style.removeStyleLayer(t.id)
                     style.removeStyleSource(SELECTED_ZOOMED_SOURCE)
                 }
-            w3WMapManager.suggestionsCached.forEach {
-                val id = String.format(
-                    SQUARE_IMAGE_ID_PREFIX,
-                    it.suggestion.coordinates.generateUniqueId()
-                )
+            w3WMapManager.listOfVisibleAddresses.forEach {
+                val id =
+                    String.format(SQUARE_IMAGE_ID_PREFIX, it.address.center?.generateUniqueId())
                 if (style.styleLayerExists(id)) {
                     style.removeStyleLayer(id)
                     style.removeStyleSource(id)
@@ -731,23 +758,23 @@ class W3WMapBoxWrapper(
     private fun deleteMarkers() {
         try {
             runBlocking {
-                w3WMapManager.suggestionsRemoved.forEach { suggestion ->
+                w3WMapManager.listOfAddressesToRemove.forEach { suggestion ->
                     mapView.getStyle { style ->
                         val id = String.format(
                             SQUARE_IMAGE_ID_PREFIX,
-                            suggestion.suggestion.coordinates.generateUniqueId()
+                            suggestion.address.center?.generateUniqueId()
                         )
                         if (style.styleLayerExists(id)) {
                             style.removeStyleLayer(id)
                             style.removeStyleSource(id)
                         }
-                        if (style.styleLayerExists(suggestion.suggestion.words)) {
-                            style.removeStyleLayer(suggestion.suggestion.words)
-                            style.removeStyleSource(suggestion.suggestion.words)
+                        if (style.styleLayerExists(suggestion.address.words)) {
+                            style.removeStyleLayer(suggestion.address.words)
+                            style.removeStyleSource(suggestion.address.words)
                         }
                     }
                 }
-                w3WMapManager.suggestionsRemoved.clear()
+                w3WMapManager.listOfAddressesToRemove.clear()
             }
         } catch (e: Exception) {
         }
@@ -756,10 +783,9 @@ class W3WMapBoxWrapper(
 
     /** [drawMarkersOnMap] holds the logic to decide which kind of pin should be added to [MapboxMap.style] based on selection and added points.*/
     private fun drawMarkersOnMap() {
-        w3WMapManager.suggestionsCached.forEach {
-            if (w3WMapManager.selectedSuggestion?.square?.contains(
-                    it.suggestion.coordinates.lat,
-                    it.suggestion.coordinates.lng
+        w3WMapManager.listOfVisibleAddresses.forEach {
+            if (w3WMapManager.selectedAddress?.square?.contains(
+                    it.address.center
                 ) == true
             ) {
                 drawPin(it)
@@ -767,80 +793,49 @@ class W3WMapBoxWrapper(
                 drawCircle(it)
             }
         }
-        if (w3WMapManager.selectedSuggestion != null && w3WMapManager.suggestionsCached.all { it.suggestion.words != w3WMapManager.selectedSuggestion!!.words }) {
-            drawSelectedPin(w3WMapManager.selectedSuggestion!!)
+        if (w3WMapManager.selectedAddress != null && w3WMapManager.listOfVisibleAddresses.all { it.address.words != w3WMapManager.selectedAddress!!.words }) {
+            drawSelectedPin(w3WMapManager.selectedAddress!!)
         }
     }
 
     /** [drawSelectedPin] will be responsible for the drawing of the selected but not added w3w pins (i.e [R.drawable.ic_marker_pin_white] for [Style.SATELLITE]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
-    private fun drawSelectedPin(data: SuggestionWithCoordinates) {
-        val image = if (shouldShowDarkGrid()) {
-            R.drawable.ic_marker_pin_dark_blue
-        } else {
-            R.drawable.ic_marker_pin_white
-        }
-        bitmapFromDrawableRes(
-            context,
-            image
-        )?.let { bitmap ->
-            mapView.getStyle { style ->
-                style.addImage(image.toString(), bitmap)
-                if (style.styleSourceExists(SELECTED_SOURCE)) {
-                    style.getSourceAs<GeoJsonSource>(SELECTED_SOURCE)
-                        ?.geometry(Point.fromLngLat(data.coordinates.lng, data.coordinates.lat))
-                } else {
-                    style.addSource(
-                        geoJsonSource(SELECTED_SOURCE) {
-                            geometry(Point.fromLngLat(data.coordinates.lng, data.coordinates.lat))
-                        }
-                    )
-                }
-                selectedPinLayerId =
-                    String.format(SELECTED_PIN_LAYER_PREFIX, data.coordinates.generateUniqueId())
-                if (!style.styleLayerExists(selectedPinLayerId!!)) {
-                    style.addLayer(
-                        symbolLayer(selectedPinLayerId!!, SELECTED_SOURCE) {
-                            iconImage(image.toString())
-                            iconAnchor(IconAnchor.BOTTOM)
-                            iconAllowOverlap(true)
-                        }
-                    )
-                }
+    private fun drawSelectedPin(data: W3WAddress) {
+        data.center?.let { center ->
+            val image = if (shouldShowDarkGrid()) {
+                R.drawable.ic_marker_pin_dark_blue
+            } else {
+                R.drawable.ic_marker_pin_white
             }
-        }
-    }
-
-    /** [drawPin] will be responsible for the drawing of the selected and added w3w pins (i.e [R.drawable.ic_marker_pin_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
-    private fun drawPin(data: SuggestionWithCoordinatesAndStyle) {
-        data.markerColor.toPin().let { markerFillColor ->
-            bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
+            bitmapFromDrawableRes(
+                context,
+                image
+            )?.let { bitmap ->
                 mapView.getStyle { style ->
-                    style.addImage(
-                        String.format(PIN_ID_PREFIX, data.markerColor.toString()),
-                        bitmap
-                    )
-                    if (!style.styleSourceExists(data.suggestion.words)) {
+                    style.addImage(image.toString(), bitmap)
+                    if (style.styleSourceExists(SELECTED_SOURCE)) {
+                        style.getSourceAs<GeoJsonSource>(SELECTED_SOURCE)
+                            ?.geometry(Point.fromLngLat(center.lng, center.lat))
+                    } else {
                         style.addSource(
-                            geoJsonSource(data.suggestion.words) {
+                            geoJsonSource(SELECTED_SOURCE) {
                                 geometry(
                                     Point.fromLngLat(
-                                        data.suggestion.coordinates.lng,
-                                        data.suggestion.coordinates.lat
+                                        center.lng,
+                                        center.lat
                                     )
                                 )
                             }
                         )
                     }
-                    if (!style.styleLayerExists(
-                            data.suggestion.coordinates.generateUniqueId().toString()
+                    selectedPinLayerId =
+                        String.format(
+                            SELECTED_PIN_LAYER_PREFIX,
+                            center.generateUniqueId()
                         )
-                    ) {
+                    if (!style.styleLayerExists(selectedPinLayerId!!)) {
                         style.addLayer(
-                            symbolLayer(
-                                data.suggestion.coordinates.generateUniqueId().toString(),
-                                data.suggestion.words
-                            ) {
-                                iconImage(String.format(PIN_ID_PREFIX, data.markerColor.toString()))
+                            symbolLayer(selectedPinLayerId!!, SELECTED_SOURCE) {
+                                iconImage(image.toString())
                                 iconAnchor(IconAnchor.BOTTOM)
                                 iconAllowOverlap(true)
                             }
@@ -851,46 +846,96 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [drawCircle] will be responsible for the drawing of the w3w circle pins (i.e [R.drawable.ic_marker_circle_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
-    private fun drawCircle(data: SuggestionWithCoordinatesAndStyle) {
-        data.markerColor.toCircle().let { markerFillColor ->
-            bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
-                mapView.getStyle { style ->
-                    style.addImage(
-                        String.format(CIRCLE_ID_PREFIX, data.markerColor.toString()),
-                        bitmap
-                    )
-                    if (!style.styleSourceExists(data.suggestion.words)) {
-                        style.addSource(
-                            geoJsonSource(data.suggestion.words) {
-                                geometry(
-                                    Point.fromLngLat(
-                                        data.suggestion.coordinates.lng,
-                                        data.suggestion.coordinates.lat
-                                    )
-                                )
-                            }
+    /** [drawPin] will be responsible for the drawing of the selected and added w3w pins (i.e [R.drawable.ic_marker_pin_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
+    private fun drawPin(data: W3WAddressWithStyle) {
+        data.address.center?.let { center ->
+            data.markerColor.toPin().let { markerFillColor ->
+                bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
+                    mapView.getStyle { style ->
+                        style.addImage(
+                            String.format(PIN_ID_PREFIX, data.markerColor.toString()),
+                            bitmap
                         )
+                        if (!style.styleSourceExists(data.address.words)) {
+                            style.addSource(
+                                geoJsonSource(data.address.words) {
+                                    geometry(
+                                        Point.fromLngLat(
+                                            center.lng,
+                                            center.lat
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                        if (!style.styleLayerExists(
+                                center.generateUniqueId().toString()
+                            )
+                        ) {
+                            style.addLayer(
+                                symbolLayer(
+                                    center.generateUniqueId().toString(),
+                                    data.address.words
+                                ) {
+                                    iconImage(
+                                        String.format(
+                                            PIN_ID_PREFIX,
+                                            data.markerColor.toString()
+                                        )
+                                    )
+                                    iconAnchor(IconAnchor.BOTTOM)
+                                    iconAllowOverlap(true)
+                                }
+                            )
+                        }
                     }
-                    if (!style.styleLayerExists(
-                            data.suggestion.coordinates.generateUniqueId().toString()
+                }
+            }
+        }
+    }
+
+    /** [drawCircle] will be responsible for the drawing of the w3w circle pins (i.e [R.drawable.ic_marker_circle_red]) by adding them to [MapboxMap.style] using a [SymbolLayer].*/
+    private fun drawCircle(data: W3WAddressWithStyle) {
+        data.address.center?.let { center ->
+            data.markerColor.toCircle().let { markerFillColor ->
+                bitmapFromDrawableRes(context, markerFillColor)?.let { bitmap ->
+                    mapView.getStyle { style ->
+                        style.addImage(
+                            String.format(CIRCLE_ID_PREFIX, data.markerColor.toString()),
+                            bitmap
                         )
-                    ) {
-                        style.addLayer(
-                            symbolLayer(
-                                data.suggestion.coordinates.generateUniqueId().toString(),
-                                data.suggestion.words
-                            ) {
-                                iconImage(
-                                    String.format(
-                                        CIRCLE_ID_PREFIX,
-                                        data.markerColor.toString()
+                        if (!style.styleSourceExists(data.address.words)) {
+                            style.addSource(
+                                geoJsonSource(data.address.words) {
+                                    geometry(
+                                        Point.fromLngLat(
+                                            center.lng,
+                                            center.lat
+                                        )
                                     )
-                                )
-                                iconAnchor(IconAnchor.CENTER)
-                                iconAllowOverlap(true)
-                            }
-                        )
+                                }
+                            )
+                        }
+                        if (!style.styleLayerExists(
+                                center.generateUniqueId().toString()
+                            )
+                        ) {
+                            style.addLayer(
+                                symbolLayer(
+                                    center.generateUniqueId().toString(),
+                                    data.address.words
+                                ) {
+                                    iconImage(
+                                        String.format(
+                                            CIRCLE_ID_PREFIX,
+                                            data.markerColor.toString()
+                                        )
+                                    )
+                                    iconAnchor(IconAnchor.CENTER)
+                                    iconAllowOverlap(true)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -943,13 +988,13 @@ class W3WMapBoxWrapper(
     /** [getGridColorBasedOnZoomLevel] will get the grid color based on [MapboxMap.cameraState] zoom. */
     private fun getGridSelectedBorderSizeBasedOnZoomLevel(zoom: Double = mapView.cameraState.zoom): Double {
         return when {
-            zoom < zoomSwitchLevel -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
+            zoom < 19 -> context.resources.getDimension(R.dimen.grid_width_mapbox_gone)
                 .toDouble()
 
-            zoom >= zoomSwitchLevel && zoom < (zoomSwitchLevel + 1) -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
+            zoom >= 19 && zoom < 20 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_far)
                 .toDouble()
 
-            zoom >= (zoomSwitchLevel + 1) && zoom < (zoomSwitchLevel + 2) -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
+            zoom >= 20 && zoom < 21 -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_middle)
                 .toDouble()
 
             else -> context.resources.getDimension(R.dimen.grid_selected_width_mapbox_close)
@@ -957,7 +1002,7 @@ class W3WMapBoxWrapper(
         }
     }
 
-    /** [clearMarkers] will clear the [selectedPinLayerId] and all [W3WMapManager.suggestionsCached] added [SymbolLayer]'s from [MapboxMap.style].*/
+    /** [clearMarkers] will clear the [selectedPinLayerId] and all [W3WMapManager.listOfVisibleAddresses] added [SymbolLayer]'s from [MapboxMap.style].*/
     private fun clearMarkers() {
         mapView.getStyle { style ->
             selectedPinLayerId?.let {
@@ -967,13 +1012,10 @@ class W3WMapBoxWrapper(
                 }
             }
 
-            w3WMapManager.suggestionsCached.forEach {
-                if (style.styleLayerExists(
-                        it.suggestion.coordinates.generateUniqueId().toString()
-                    )
-                ) {
-                    style.removeStyleLayer(it.suggestion.coordinates.generateUniqueId().toString())
-                    style.removeStyleSource(it.suggestion.words)
+            w3WMapManager.listOfVisibleAddresses.forEach {
+                if (style.styleLayerExists(it.address.center?.generateUniqueId().toString())) {
+                    style.removeStyleLayer(it.address.center?.generateUniqueId().toString())
+                    style.removeStyleSource(it.address.words)
                 }
             }
         }
