@@ -1,0 +1,196 @@
+name: Build, test and snapshot
+
+on:
+  push:
+    branches:
+      - 'task/**'
+      - 'bug/**'
+      - 'fix/**'
+      - 'epic/**'
+  pull_request:
+    branches:
+      - 'epic/**'
+    types: [ closed ]
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lib-changed: ${{ steps.changes.outputs.lib }}
+      lib-compose-changed: ${{ steps.changes.outputs.lib-compose }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changes
+        run: |
+          # Get the last successful commit on the default branch
+          git fetch origin main
+          LAST_SUCCESSFUL_COMMIT=$(git rev-parse origin/main)
+
+          # Compare changes between current commit and last successful commit
+          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib/"; then
+            echo "lib=true" >> $GITHUB_OUTPUT
+          else
+            echo "lib=false" >> $GITHUB_OUTPUT
+          fi
+
+          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib-compose/"; then
+            echo "lib-compose=true" >> $GITHUB_OUTPUT
+          else
+            echo "lib-compose=false" >> $GITHUB_OUTPUT
+          fi
+          
+  build_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls /dev/kvm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Restore gradle.properties
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check for SNAPSHOT dependencies
+        if: github.event_name == 'pull_request' && github.base_ref == 'staging'
+        run: ./gradlew :lib:checkSnapshotDependencies
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Run Lib Unit Test
+        run: ./gradlew lib:testDebugUnitTest
+
+      - name: Upload Lib Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lib-test-results
+          path: lib/build/test-results/testDebugUnitTest
+
+      - name: Run Lib Compose Unit Test
+        run: ./gradlew lib-compose:jacocoTestReport
+
+      - name: Upload Lib Compose Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lib-compose-test-results
+          path: lib-compose/build/reports/jacoco/jacocoTestReport
+
+  snapshot-lib:
+    # This job must explicitly depend on build_test and detect-changes
+    needs: [build_test, detect-changes]
+    # Run for direct commits to epic branches OR when PRs are merged into epic branches
+    # AND only when build_test succeeds AND lib has changed
+    if: >
+      success() && 
+      needs.detect-changes.outputs.lib-changed == 'true' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
+       (github.event_name == 'pull_request' && github.event.action == 'closed' && 
+        github.event.pull_request.merged == true && startsWith(github.base_ref, 'epic/')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Restore gradle.properties
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+          echo "MAVEN_CENTRAL_USERNAME=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
+          echo "MAVEN_CENTRAL_PASSWORD=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
+          echo "IS_SNAPSHOT_RELEASE=true">> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
+      - name: Setup Gradle with caching
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Publish SNAPSHOT
+        run: ./gradlew lib:publishMavenPublicationToSonatypeSnapshotsRepository
+  snapshot-compose-lib:
+    # This job must explicitly depend on build_test and detect-changes
+    needs: [build_test, detect-changes]
+    # Run for direct commits to epic branches OR when PRs are merged into epic branches
+    # AND only when build_test succeeds AND lib-compose has changed
+    if: >
+      success() && 
+      needs.detect-changes.outputs.lib-compose-changed == 'true' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
+       (github.event_name == 'pull_request' && github.event.action == 'closed' && 
+        github.event.pull_request.merged == true && startsWith(github.base_ref, 'epic/')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Restore gradle.properties
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
+          echo "MAVEN_CENTRAL_USERNAME=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
+          echo "MAVEN_CENTRAL_PASSWORD=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
+          echo "IS_SNAPSHOT_RELEASE=true">> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
+      - name: Setup Gradle with caching
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Publish SNAPSHOT
+        run: ./gradlew lib-compose:publishMavenPublicationToSonatypeSnapshotsRepository
