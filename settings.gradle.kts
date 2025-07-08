@@ -18,9 +18,9 @@ dependencyResolutionManagement {
             credentials.password = providers.gradleProperty("MAPBOX_DOWNLOADS_TOKEN").get()
             authentication.create<BasicAuthentication>("basic")
         }
-        maven(url = "https://s01.oss.sonatype.org/content/repositories/comwhat3words-1446")
         maven(url = "https://s01.oss.sonatype.org/content/repositories/snapshots/")
     }
 }
 rootProject.name = "w3w-android-components-maps"
 include(":lib")
+include(":lib-compose")

@@ -2,6 +2,7 @@ package com.what3words.components.maps.views
 
 import androidx.fragment.app.Fragment
 import com.what3words.androidwrapper.What3WordsAndroidWrapper
+import com.what3words.core.datasource.text.W3WTextDataSource
 
 /** [W3WMapFragment] A generic fragment interface to apply to all different map providers Fragments */
 interface W3WMapFragment {
@@ -30,27 +31,14 @@ interface W3WMapFragment {
     }
 
     /**
-     * A [W3WMapFragment] initializer that will use our API as a data source.
+     * A [W3WMapFragment] initializer that will use our API or SDK as a data source.
      *
-     * @param key the API key to do all the internal API calls needed to get what3words addresses information.
+     * @param dataSource the [W3WTextDataSource] implementation to do all the internal API/SDK calls needed to get what3words addresses information.
      * @param callback this [OnMapReadyCallback] will be invoked when the [W3WMap] inside [W3WMapFragment] is rendered and ready to be used.
      * @param mapEventsCallback [MapEventsCallback] multiple [W3WMap] map events that allow the developer to add some extra needed logic on their apps.
      */
-    fun apiKey(
-        key: String,
-        callback: OnMapReadyCallback,
-        mapEventsCallback: MapEventsCallback? = null
-    )
-
-    /**
-     * A [W3WMapFragment] initializer that will use our SDK as a data source.
-     *
-     * @param source the [What3WordsAndroidWrapper] SDK implementation to do all the internal API calls needed to get what3words addresses information.
-     * @param callback [OnMapReadyCallback] that will be invoked when the [W3WMap] inside [W3WMapFragment] is rendered and ready to be used.
-     * @param mapEventsCallback [MapEventsCallback] multiple [W3WMap] map events that allow developer add some extra needed logic on their apps.
-     */
-    fun sdk(
-        source: What3WordsAndroidWrapper,
+    fun initialize(
+        dataSource: W3WTextDataSource,
         callback: OnMapReadyCallback,
         mapEventsCallback: MapEventsCallback? = null
     )

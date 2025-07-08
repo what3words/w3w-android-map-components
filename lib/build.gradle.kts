@@ -1,12 +1,14 @@
 import java.net.URI
+import java.util.Base64
 
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jlleitschuh.gradle.ktlint")
-    id("maven-publish")
-    id("signing")
-    id("org.jetbrains.dokka") version "1.5.0"
+    id(libs.plugins.android.library.get().pluginId)
+    id(libs.plugins.kotlin.android.get().pluginId)
+    id(libs.plugins.gradle.ktlint.get().pluginId)
+    id(libs.plugins.maven.publish.get().pluginId)
+    id(libs.plugins.signing.get().pluginId)
+    alias(libs.plugins.dokka)
+    id(libs.plugins.jreleaser.get().pluginId)
 }
 
 /**
@@ -18,11 +20,11 @@ version =
     if (isSnapshotRelease) "${findProperty("LIBRARY_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_VERSION")}"
 
 android {
-    compileSdk = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
     namespace = "com.what3words.map.components"
 
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -43,7 +45,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = libs.versions.jvmTarget.get()
     }
 
     testOptions {
@@ -62,65 +64,65 @@ android {
 }
 
 dependencies {
-    implementation("com.google.android.material:material:1.12.0")
+    implementation(libs.material)
     // what3words
-    api("com.what3words:w3w-android-wrapper:4.0.2")
-    api("com.what3words:w3w-android-api-sdk-bridge:1.0.8")
+    api(libs.what3words.api.wrapper)
 
     // Google maps
-    compileOnly("com.google.android.gms:play-services-maps:19.0.0")
-    compileOnly("com.google.maps.android:android-maps-utils:3.4.0")
-    testImplementation("com.google.android.gms:play-services-maps:19.0.0")
+    compileOnly(libs.googlemap.playservice)
+    compileOnly(libs.googlemap.utils)
+    testImplementation(libs.googlemap.playservice)
 
     // Mapbox
-    compileOnly("com.mapbox.maps:android:10.18.3")
+    compileOnly(libs.mapbox.v10)
 
     // kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     // Testing
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("androidx.test:core:1.6.1")
-    testImplementation("com.google.truth:truth:1.4.2")
-    testImplementation("io.mockk:mockk:1.13.5")
-    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation(libs.junit4)
+    testImplementation(libs.androidx.core)
+    testImplementation(libs.truth)
+    testImplementation(libs.mockk)
+    testImplementation(libs.androidx.core.testing)
+}
+
+tasks.register("checkSnapshotDependencies") {
+    doLast {
+        val snapshotDependencies = allprojects.flatMap { project ->
+            project.configurations
+                .asSequence()
+                .filter { it.isCanBeResolved }
+                .flatMap { it.allDependencies }
+                .filter { it.version?.contains("SNAPSHOT", ignoreCase = true) == true }
+                .map { "${project.name}:${it.group}:${it.name}:${it.version}" }
+                .distinct()
+                .toList()
+        }
+
+        if (snapshotDependencies.isNotEmpty()) {
+            snapshotDependencies.forEach { println("SNAPSHOT dependency found: $it") }
+            throw GradleException("SNAPSHOT dependencies found.")
+        } else {
+            println("No SNAPSHOT dependencies found.")
+        }
+    }
 }
 
 //region publishing
-
-val ossrhUsername = findProperty("OSSRH_USERNAME") as String?
-val ossrhPassword = findProperty("OSSRH_PASSWORD") as String?
-val signingKey = findProperty("SIGNING_KEY") as String?
-val signingKeyPwd = findProperty("SIGNING_KEY_PWD") as String?
-
 publishing {
-    repositories {
-        maven {
-            name = "sonatype"
-            val releasesRepoUrl =
-                "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            val snapshotsRepoUrl =
-                "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            url = if (version.toString()
-                    .endsWith("SNAPSHOT")
-            ) URI.create(snapshotsRepoUrl) else URI.create(releasesRepoUrl)
+    publications {
+        create<MavenPublication>("maven") {
+            afterEvaluate {
+                from(components["release"])
+            }
 
-            credentials {
-                username = ossrhUsername
-                password = ossrhPassword
-            }
-        }
-        publications {
-            create<MavenPublication>("Maven") {
-                artifactId = "w3w-android-map-components"
-                groupId = "com.what3words"
-                version = project.version.toString()
-                afterEvaluate {
-                    from(components["release"])
-                }
-            }
+            groupId = "com.what3words"
+            artifactId = "w3w-android-map-components"
+            version = project.version.toString()
+
             withType(MavenPublication::class.java) {
                 val publicationName = name
                 val dokkaJar =
@@ -160,13 +162,59 @@ publishing {
                     }
                 }
             }
+            // POM metadata
+        }
+    }
+
+    repositories {
+        maven {
+            name = "sonatypeSnapshots"
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+            credentials {
+                username = findProperty("MAVEN_CENTRAL_USERNAME") as? String
+                password = findProperty("MAVEN_CENTRAL_PASSWORD") as? String
+            }
+        }
+        maven {
+            name = "stagingLocal"
+            url = uri(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
         }
     }
 }
 
-signing {
-    useInMemoryPgpKeys(signingKey, signingKeyPwd)
-    sign(publishing.publications)
-}
+jreleaser {
+    release {
+        github {
+            repoOwner = "what3words"
+            overwrite = true
+        }
+    }
 
+    signing {
+        active.set(org.jreleaser.model.Active.ALWAYS)
+        armored.set(true)
+        publicKey.set(
+            findProperty("W3W_GPG_PUBLIC_KEY")?.toString()
+                ?.let { String(Base64.getDecoder().decode(it)) } ?: "")
+        secretKey.set(
+            findProperty("W3W_GPG_SECRET_KEY")?.toString()
+                ?.let { String(Base64.getDecoder().decode(it)) } ?: "")
+        passphrase.set(findProperty("W3W_GPG_PASSPHRASE")?.toString())
+    }
+    deploy {
+        maven {
+            mavenCentral {
+                create("sonatype") {
+                    active.set(org.jreleaser.model.Active.ALWAYS)
+                    url.set("https://central.sonatype.com/api/v1/publisher")
+                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
+                    username.set(findProperty("MAVEN_CENTRAL_USERNAME")?.toString())
+                    password.set(findProperty("MAVEN_CENTRAL_PASSWORD")?.toString())
+                    verifyPom.set(false)
+                    setStage(org.jreleaser.model.api.deploy.maven.MavenCentralMavenDeployer.Stage.UPLOAD.toString())
+                }
+            }
+        }
+    }
+}
 //endregion
