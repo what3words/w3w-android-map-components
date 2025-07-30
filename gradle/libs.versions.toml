@@ -35,7 +35,7 @@ secretsGradlePlugin = "2.0.1"
 sonarqubeGradlePlugin = "3.3"
 
 #Map Box
-mapboxV10 = "10.18.3"
+mapboxV10 = "10.19.0"
 mapboxV11 = "11.8.0"
 
 #Google Map
@@ -87,8 +87,8 @@ secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.se
 sonarqube-gradle-plugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarqubeGradlePlugin" }
 
 #Map Box
-mapbox-v10 = { module = "com.mapbox.maps:android", version.ref = "mapboxV10" }
-mapbox-v11 = { module = "com.mapbox.maps:android", version.ref = "mapboxV11" }
+mapbox-v10 = { module = "com.mapbox.maps:android-ndk27", version.ref = "mapboxV10" }
+mapbox-v11 = { module = "com.mapbox.maps:android-ndk27", version.ref = "mapboxV11" }
 extension-mapbox-compose = { module = "com.mapbox.extension:maps-compose", version.ref = "mapboxV11" }
 
 #Google Map
