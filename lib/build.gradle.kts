@@ -167,6 +167,7 @@ publishing {
     }
 
     repositories {
+        mavenLocal()
         maven {
             name = "sonatypeSnapshots"
             url = uri("https://central.sonatype.com/repository/maven-snapshots/")
