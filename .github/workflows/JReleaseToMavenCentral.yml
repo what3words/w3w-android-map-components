@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - 'staging'
-  pull_request:
-    branches:
-      - 'staging'
-    types: [closed]
   workflow_dispatch:    # Allow manual triggering
 
 jobs:
