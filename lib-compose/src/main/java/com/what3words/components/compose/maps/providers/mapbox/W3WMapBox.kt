@@ -9,15 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
-import com.mapbox.maps.CameraChanged
-import com.mapbox.maps.CameraChangedCallback
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
-import com.mapbox.maps.MapIdle
-import com.mapbox.maps.MapIdleCallback
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
@@ -83,10 +78,6 @@ fun W3WMapBox(
 
     val mapViewportState = (state.cameraState as W3WMapboxCameraState).cameraState
 
-    var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
-
-    val density = LocalDensity.current.density
-
     LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
             .filterNotNull()
@@ -96,7 +87,6 @@ fun W3WMapBox(
                         mapboxMap,
                         mapConfig.gridLineConfig,
                         onCameraBoundUpdate = { gridBound, visibleBound ->
-                            lastProcessedCameraState = currentCameraState
                             state.cameraState.gridBound = gridBound
                             state.cameraState.visibleBound = visibleBound
                             onCameraUpdated(state.cameraState)
@@ -230,23 +220,19 @@ fun W3WMapBox(
                 it.mapboxMap.setBounds(cameraBounds)
             }
 
-            it.mapboxMap.subscribeMapIdle(object : MapIdleCallback {
-                override fun run(mapIdle: MapIdle) {
-                    if (state.cameraState.isCameraMoving == true) {
-                        state.cameraState.isCameraMoving = false
-                        onCameraUpdated(state.cameraState)
-                    }
+            it.mapboxMap.subscribeMapIdle {
+                if (state.cameraState.isCameraMoving) {
+                    state.cameraState.isCameraMoving = false
+                    onCameraUpdated(state.cameraState)
                 }
-            })
+            }
 
-            it.mapboxMap.subscribeCameraChanged(object : CameraChangedCallback {
-                override fun run(cameraChanged: CameraChanged) {
-                    if (state.cameraState.isCameraMoving == false) {
-                        state.cameraState.isCameraMoving = true
-                        onCameraUpdated(state.cameraState)
-                    }
+            it.mapboxMap.subscribeCameraChanged {
+                if (!state.cameraState.isCameraMoving) {
+                    state.cameraState.isCameraMoving = true
+                    onCameraUpdated(state.cameraState)
                 }
-            })
+            }
 
             if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                 mapView?.mapboxMap?.let { map ->

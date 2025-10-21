@@ -237,7 +237,7 @@ fun W3WMapBoxDrawGridLines(
         }
     }
 
-    val lineLayerState = remember {
+    val lineLayerState = remember(gridLineColor, gridLineWidth) {
         LineLayerState().apply {
             lineOcclusionOpacity = DoubleValue(0.0)
             lineEmissiveStrength = DoubleValue(1.0)
@@ -569,10 +569,22 @@ private fun DrawZoomInSelectedAddress(
                             Feature.fromGeometry(
                                 LineString.fromLngLats(
                                     listOf(
-                                        Point.fromLngLat(square.southwest.lng, square.northeast.lat),
-                                        Point.fromLngLat(square.northeast.lng, square.northeast.lat),
-                                        Point.fromLngLat(square.northeast.lng, square.southwest.lat),
-                                        Point.fromLngLat(square.southwest.lng, square.southwest.lat),
+                                        Point.fromLngLat(
+                                            square.southwest.lng,
+                                            square.northeast.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.northeast.lng,
+                                            square.northeast.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.northeast.lng,
+                                            square.southwest.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.southwest.lng,
+                                            square.southwest.lat
+                                        ),
                                         Point.fromLngLat(square.southwest.lng, square.northeast.lat)
                                     )
                                 )
@@ -583,7 +595,7 @@ private fun DrawZoomInSelectedAddress(
             }
         }
 
-        val lineLayerState = remember {
+        val lineLayerState = remember(selectedMarkerColor) {
             LineLayerState().apply {
                 lineOcclusionOpacity = DoubleValue(0.0)
                 lineEmissiveStrength = DoubleValue(1.0)
