@@ -114,7 +114,7 @@ jobs:
       needs.detect-changes.outputs.lib-changed == 'true' &&
       ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
        (github.event_name == 'pull_request' && github.event.action == 'closed' && 
-        github.event.pull_request.merged == true && startsWith(github.base_ref, 'epic/')))
+        github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -161,7 +161,7 @@ jobs:
       needs.detect-changes.outputs.lib-compose-changed == 'true' &&
       ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
        (github.event_name == 'pull_request' && github.event.action == 'closed' && 
-        github.event.pull_request.merged == true && startsWith(github.base_ref, 'epic/')))
+        github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
