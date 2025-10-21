@@ -9,8 +9,20 @@ on:
       - 'epic/**'
   pull_request:
     branches:
-      - 'epic/**'
+      - 'staging'
     types: [ closed ]
+  workflow_dispatch:
+    inputs:
+      force_snapshot_lib:
+        description: 'Force snapshot-lib to run'
+        required: false
+        type: boolean
+        default: false
+      force_snapshot_compose_lib:
+        description: 'Force snapshot-compose-lib to run'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   detect-changes:
@@ -108,13 +120,14 @@ jobs:
     # This job must explicitly depend on build_test and detect-changes
     needs: [build_test, detect-changes]
     # Run for direct commits to epic branches OR when PRs are merged into epic branches
-    # AND only when build_test succeeds AND lib has changed
+    # AND only when build_test succeeds AND lib has changed OR manually triggered with force_snapshot_lib
     if: >
       success() && 
-      needs.detect-changes.outputs.lib-changed == 'true' &&
-      ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
-       (github.event_name == 'pull_request' && github.event.action == 'closed' && 
-        github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.force_snapshot_lib == 'true') ||
+       (needs.detect-changes.outputs.lib-changed == 'true' &&
+        ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
+         (github.event_name == 'pull_request' && github.event.action == 'closed' && 
+          github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -155,13 +168,14 @@ jobs:
     # This job must explicitly depend on build_test and detect-changes
     needs: [build_test, detect-changes]
     # Run for direct commits to epic branches OR when PRs are merged into epic branches
-    # AND only when build_test succeeds AND lib-compose has changed
+    # AND only when build_test succeeds AND lib-compose has changed OR manually triggered with force_snapshot_compose_lib
     if: >
       success() && 
-      needs.detect-changes.outputs.lib-compose-changed == 'true' &&
-      ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
-       (github.event_name == 'pull_request' && github.event.action == 'closed' && 
-        github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.force_snapshot_compose_lib == 'true') ||
+       (needs.detect-changes.outputs.lib-compose-changed == 'true' &&
+        ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/epic/')) ||
+         (github.event_name == 'pull_request' && github.event.action == 'closed' && 
+          github.event.pull_request.merged == true && startsWith(github.base_ref, 'staging')))))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.PathParser
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.map.components.compose.R
+import androidx.core.graphics.createBitmap
 
 /**
  * Creates a bitmap for the standard what3words marker.
@@ -187,7 +188,7 @@ fun getBitMapFromPathData(
 
     // Create a Bitmap of the target size
     val bitmap = try {
-        Bitmap.createBitmap(widthScaled + paddingPx * 2, heightScaled + paddingPx * 2, Bitmap.Config.ARGB_8888)
+        createBitmap(widthScaled + paddingPx * 2, heightScaled + paddingPx * 2)
     } catch (e: OutOfMemoryError) {
         throw IllegalArgumentException("Bitmap too large to allocate", e)
     }
