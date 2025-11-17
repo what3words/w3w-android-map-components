@@ -41,12 +41,27 @@ interface W3WCameraState<T> {
      * @param latLng The W3W latLng to move the camera to.
      * @param animate Whether to animate the camera movement.
      */
+    @Deprecated("Use moveToPosition(latLng: W3WCoordinates, zoom: Float?, bearing: Float?, tilt: Float?, animateDuration: Long? = null) instead")
     suspend fun moveToPosition(
         latLng: W3WCoordinates,
         zoom: Float? = null,
         bearing: Float? = null,
         tilt: Float? = null,
         animate: Boolean = false,
+    )
+
+    /**
+     * Moves the camera to the specified latLng.
+     *
+     * @param latLng The W3W latLng to move the camera to.
+     * @param animateDuration Whether to animate the camera movement and the duration of the animation.
+     */
+    suspend fun moveToPosition(
+        latLng: W3WCoordinates,
+        zoom: Float? = null,
+        bearing: Float? = null,
+        tilt: Float? = null,
+        animateDuration: Long? = null
     )
 
     /**
