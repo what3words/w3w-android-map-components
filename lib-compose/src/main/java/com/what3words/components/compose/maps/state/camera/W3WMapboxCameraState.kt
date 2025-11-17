@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.animation.viewport.MapViewportState
+import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
 
@@ -56,6 +57,7 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         )
     }
 
+    @Deprecated("Use moveToPosition(latLng: W3WCoordinates, zoom: Float?, bearing: Float?, tilt: Float?, animateDuration: Long? = null)")
     override suspend fun moveToPosition(
         latLng: W3WCoordinates,
         zoom: Float?,
@@ -71,6 +73,23 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
             .build()
 
         updateCameraPosition(cameraOptions, animate)
+    }
+
+    override suspend fun moveToPosition(
+        latLng: W3WCoordinates,
+        zoom: Float?,
+        bearing: Float?,
+        tilt: Float?,
+        animateDuration: Long?
+    ) {
+        val cameraOptions = CameraOptions.Builder()
+            .pitch(tilt?.toDouble() ?: cameraState.cameraState?.pitch)
+            .bearing(bearing?.toDouble() ?: cameraState.cameraState?.bearing)
+            .center(Point.fromLngLat(latLng.lng, latLng.lat))
+            .zoom(zoom?.toDouble() ?: cameraState.cameraState?.zoom)
+            .build()
+
+        updateCameraPosition(cameraOptions, animateDuration)
     }
 
     override suspend fun moveToPosition(
@@ -117,6 +136,20 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         if (animate) {
             cameraState.flyTo(
                 cameraOptions
+            )
+        } else {
+            cameraState.setCameraOptions(
+                cameraOptions
+            )
+        }
+    }
+
+    private fun updateCameraPosition(cameraOptions: CameraOptions, animateDuration: Long?) {
+        if (animateDuration != null) {
+            val animateOptions = MapAnimationOptions.Builder().duration(animateDuration).build()
+            cameraState.flyTo(
+                cameraOptions = cameraOptions,
+                animationOptions = animateOptions
             )
         } else {
             cameraState.setCameraOptions(

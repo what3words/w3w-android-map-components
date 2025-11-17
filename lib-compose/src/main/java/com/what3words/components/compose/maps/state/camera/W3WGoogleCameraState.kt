@@ -54,6 +54,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         )
     }
 
+    @Deprecated("Use moveToPosition(latLng: W3WCoordinates, zoom: Float?, bearing: Float?, tilt: Float?, animateDuration: Long? = null)")
     override suspend fun moveToPosition(
         latLng: W3WCoordinates,
         zoom: Float?,
@@ -68,6 +69,23 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
                 bearing ?: cameraState.position.tilt,
                 tilt ?: cameraState.position.bearing
             ), animate
+        )
+    }
+
+    override suspend fun moveToPosition(
+        latLng: W3WCoordinates,
+        zoom: Float?,
+        bearing: Float?,
+        tilt: Float?,
+        animateDuration: Long?
+    ) {
+        updateCameraPosition(
+            CameraPosition(
+                LatLng(latLng.lat, latLng.lng),
+                zoom ?: cameraState.position.zoom,
+                bearing ?: cameraState.position.tilt,
+                tilt ?: cameraState.position.bearing
+            ), animateDuration
         )
     }
 
@@ -107,7 +125,7 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
     override fun getCenter(): W3WCoordinates? {
         return try {
             cameraState.position.target.let { W3WCoordinates(it.latitude, it.longitude) }
-        } catch (ex: NullPointerException) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -127,6 +145,22 @@ class W3WGoogleCameraState(initialCameraState: CameraPositionState) :
         withContext(Main) {
             if (animate) {
                 cameraState.animate(update = CameraUpdateFactory.newCameraPosition(cameraPosition))
+            } else {
+                cameraState.position = cameraPosition
+            }
+        }
+    }
+
+    private suspend fun updateCameraPosition(
+        cameraPosition: CameraPosition,
+        animateDuration: Long?
+    ) {
+        withContext(Main) {
+            if (animateDuration != null) {
+                cameraState.animate(
+                    update = CameraUpdateFactory.newCameraPosition(cameraPosition),
+                    animateDuration.toInt()
+                )
             } else {
                 cameraState.position = cameraPosition
             }
