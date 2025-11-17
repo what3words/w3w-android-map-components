@@ -1,15 +1,12 @@
 package com.what3words.map.components.compose
 
-import android.graphics.PointF
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.what3words.components.compose.maps.MapProvider
 import com.what3words.components.compose.maps.W3WMapManager
-import com.what3words.components.compose.maps.models.W3WMapProjection
 import com.what3words.components.compose.maps.state.W3WButtonsState
 import com.what3words.components.compose.maps.state.W3WMapState
 import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.core.datasource.text.W3WTextDataSource
-import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.Dispatchers
@@ -44,9 +41,6 @@ open class BaseW3WMapManagerTest {
         ).apply {
             setTextDataSource(textDataSource)
         }
-
-        // Mock CameraUpdateFactory's behavior
-        coEvery { cameraStateMock.moveToPosition(any(), any(), any(), any(), any()) } returns Unit
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
