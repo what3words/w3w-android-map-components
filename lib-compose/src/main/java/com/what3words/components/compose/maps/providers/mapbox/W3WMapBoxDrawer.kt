@@ -484,7 +484,7 @@ private fun DrawZoomInMarkers(
                 },
                 rasterLayerState = remember {
                     RasterLayerState().apply {
-                        rasterContrast = DoubleValue(1.0)
+                        rasterEmissiveStrength = DoubleValue(1.0)
                     }
                 }
             )
