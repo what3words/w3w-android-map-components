@@ -314,153 +314,102 @@ internal fun W3WMapContent(
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
-    // Handles check location permissions, if isMyLocationEnabled enable
-    MapPermissionsHandler(mapState = mapState, onError = onError) {
+    var bounds by remember { mutableStateOf(Rect.Zero) }
 
-        var bounds by remember { mutableStateOf(Rect.Zero) }
+    // Check if the map is initialized, use to prevent LaunchedEffect to re-run on configuration changes
+    val isInitialized = rememberSaveable { mutableStateOf(false) }
 
-        // Check if the map is initialized, use to prevent LaunchedEffect to re-run on configuration changes
-        val isInitialized = rememberSaveable { mutableStateOf(false) }
+    // // Fetch current location when launch, but not on configuration changes
+    LaunchedEffect(isInitialized) {
+        if (!isInitialized.value) {
+            if (mapState.isMyLocationEnabled && mapConfig.shouldFocusOnMyLocationOnInitialization) onMyLocationClicked.invoke()
+            isInitialized.value = true
+        }
+    }
 
-        // // Fetch current location when launch, but not on configuration changes
-        LaunchedEffect(isInitialized) {
-            if (!isInitialized.value) {
-                if (mapState.isMyLocationEnabled && mapConfig.shouldFocusOnMyLocationOnInitialization) onMyLocationClicked.invoke()
-                isInitialized.value = true
+    val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
+        when (mapState.mapType) {
+            W3WMapType.NORMAL,
+            W3WMapType.TERRAIN -> {
+                if (mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
+            }
+
+            W3WMapType.HYBRID,
+            W3WMapType.SATELLITE -> {
+                mapColors.satelliteMapColor
             }
         }
+    }
 
-        val mapColor = remember(mapState.mapType, mapState.isDarkMode) {
-            when (mapState.mapType) {
-                W3WMapType.NORMAL,
-                W3WMapType.TERRAIN -> {
-                    if (mapState.isDarkMode) mapColors.darkMapColor else mapColors.normalMapColor
-                }
-
-                W3WMapType.HYBRID,
-                W3WMapType.SATELLITE -> {
-                    mapColors.satelliteMapColor
-                }
+    val recallButtonColor = remember(mapState.selectedAddress, mapState.markers, mapColor) {
+        derivedStateOf {
+            val markersAtSelectedSquare =
+                mapState.markers.filter { it.square.contains(mapState.selectedAddress?.center) }
+            val color = when (markersAtSelectedSquare.size) {
+                0 -> mapColor.markerColors.selectedZoomOutColor
+                1 -> markersAtSelectedSquare.first().color
+                else -> mapColor.markerColors.defaultMarkerColor
             }
-        }
-
-        val recallButtonColor = remember(mapState.selectedAddress, mapState.markers, mapColor) {
-            derivedStateOf {
-                val markersAtSelectedSquare =
-                    mapState.markers.filter { it.square.contains(mapState.selectedAddress?.center) }
-                val color = when (markersAtSelectedSquare.size) {
-                    0 -> mapColor.markerColors.selectedZoomOutColor
-                    1 -> markersAtSelectedSquare.first().color
-                    else -> mapColor.markerColors.defaultMarkerColor
-                }
-                W3WMapButtonsDefault.RecallButtonColor(
-                    recallArrowColor = color.slash,
-                    recallBackgroundColor = color.background
-                )
-            }
-        }
-
-        val buttonsLayoutConfig = layoutConfig.buttonsLayoutConfig
-
-        LaunchedEffect(bounds) {
-            bounds.let {
-                val leftTop = PointF(it.left, it.top)
-                val rightTop = PointF(it.right, it.top)
-                val rightBottom = PointF(it.right, it.bottom)
-                val leftBottom = PointF(it.left, it.bottom)
-                onMapViewPortProvided.invoke(
-                    W3WGridScreenCell(
-                        leftTop,
-                        rightTop,
-                        rightBottom,
-                        leftBottom
-                    )
-                )
-            }
-        }
-
-        Box(
-            modifier = modifier
-                .onGloballyPositioned { coordinates ->
-                    bounds = coordinates.boundsInParent()
-                }
-        ) {
-            W3WMapView(
-                modifier = modifier,
-                layoutConfig = layoutConfig,
-                mapConfig = mapConfig,
-                mapColor = mapColor,
-                mapProvider = mapProvider,
-                mapState = mapState,
-                onMarkerClicked = onMarkerClicked,
-                onMapClicked = onMapClicked,
-                content = content,
-                onCameraUpdated = onCameraUpdated,
-                onMapProjectionUpdated = onMapProjectionUpdated
-            )
-
-            MapButtons(
-                modifier = Modifier
-                    .align(buttonsLayoutConfig.buttonAlignment.toComposeAlignment())
-                    .padding(buttonsLayoutConfig.buttonPadding),
-                buttonConfig = mapConfig.buttonConfig,
-                buttonState = buttonState,
-                mapType = mapState.mapType,
-                locationButtonColor = locationButtonColor,
-                recallButtonColor = recallButtonColor.value,
-                onMapTypeClicked = onMapTypeClicked,
-                onMyLocationClicked = onMyLocationClicked,
-                onRecallClicked = onRecallClicked,
-                onRecallButtonPositionProvided = onRecallButtonPositionProvided,
+            W3WMapButtonsDefault.RecallButtonColor(
+                recallArrowColor = color.slash,
+                recallBackgroundColor = color.background
             )
         }
     }
-}
 
-/**
- * A composable function that handles location permissions for the map.
- *
- * This function checks if the "My Location" feature is enabled in the map state
- * and requests the necessary location permissions if needed. If the permissions
- * are granted, it displays the provided content. Otherwise, it invokes the
- * `onError` callback with a [W3WError] indicating that permissions are required.
- *
- * @param mapState The [W3WMapState] object that holds the state of the map.
- * @param onError Callback invoked when an error occurs, such as when location
- *   permissions are denied.
- * @param content The composable content to be displayed if location permissions
- *   are granted or if the "My Location" feature is disabled.
- */
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-internal fun MapPermissionsHandler(
-    mapState: W3WMapState,
-    onError: ((W3WError) -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    if (mapState.isMyLocationEnabled) {
-        val permissionState = rememberMultiplePermissionsState(
-            listOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION
+    val buttonsLayoutConfig = layoutConfig.buttonsLayoutConfig
+
+    LaunchedEffect(bounds) {
+        bounds.let {
+            val leftTop = PointF(it.left, it.top)
+            val rightTop = PointF(it.right, it.top)
+            val rightBottom = PointF(it.right, it.bottom)
+            val leftBottom = PointF(it.left, it.bottom)
+            onMapViewPortProvided.invoke(
+                W3WGridScreenCell(
+                    leftTop,
+                    rightTop,
+                    rightBottom,
+                    leftBottom
+                )
             )
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                bounds = coordinates.boundsInParent()
+            }
+    ) {
+        W3WMapView(
+            modifier = modifier,
+            layoutConfig = layoutConfig,
+            mapConfig = mapConfig,
+            mapColor = mapColor,
+            mapProvider = mapProvider,
+            mapState = mapState,
+            onMarkerClicked = onMarkerClicked,
+            onMapClicked = onMapClicked,
+            content = content,
+            onCameraUpdated = onCameraUpdated,
+            onMapProjectionUpdated = onMapProjectionUpdated
         )
 
-        LaunchedEffect(Unit) {
-            permissionState.launchMultiplePermissionRequest()
-        }
-
-        when {
-            permissionState.allPermissionsGranted -> {
-                content()
-            }
-
-            else -> {
-                onError?.invoke(W3WError(message = "Map component needs permission"))
-            }
-        }
-    } else {
-        content()
+        MapButtons(
+            modifier = Modifier
+                .align(buttonsLayoutConfig.buttonAlignment.toComposeAlignment())
+                .padding(buttonsLayoutConfig.buttonPadding),
+            buttonConfig = mapConfig.buttonConfig,
+            buttonState = buttonState,
+            mapType = mapState.mapType,
+            locationButtonColor = locationButtonColor,
+            recallButtonColor = recallButtonColor.value,
+            onMapTypeClicked = onMapTypeClicked,
+            onMyLocationClicked = onMyLocationClicked,
+            onRecallClicked = onRecallClicked,
+            onRecallButtonPositionProvided = onRecallButtonPositionProvided,
+        )
     }
 }
 
