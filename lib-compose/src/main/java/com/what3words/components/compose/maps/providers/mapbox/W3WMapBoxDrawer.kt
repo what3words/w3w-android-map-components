@@ -44,7 +44,6 @@ import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -83,7 +82,7 @@ fun W3WMapBoxDrawer(
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
             derivedStateOf {
-                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel && cameraState.getZoomLevel() >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel
             }
         }
 
@@ -284,7 +283,7 @@ fun W3WMapBoxDrawSelectedAddress(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
@@ -334,7 +333,7 @@ fun W3WMapBoxDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel >= zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
