@@ -45,6 +45,10 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
     //TODO: This is work around for the function cameraForCoordinates not support in compose
     var cameraForCoordinates: MutableList<Point>? = mutableListOf()
     var cameraPadding: Int = CAMERA_DEFAULT_PADDING
+    var cameraPaddingLeft: Int = CAMERA_DEFAULT_PADDING
+    var cameraPaddingTop: Int = CAMERA_DEFAULT_PADDING
+    var cameraPaddingRight: Int = CAMERA_DEFAULT_PADDING
+    var cameraPaddingBottom: Int = CAMERA_DEFAULT_PADDING
 
     override suspend fun orientCamera() {
         updateCameraPosition(
@@ -97,6 +101,34 @@ class W3WMapboxCameraState(initialCameraState: MapViewportState) :
         padding: Int,
     ) {
         this.cameraPadding = padding
+        // Use uniform padding for all sides when only single padding is provided
+        this.cameraPaddingLeft = padding
+        this.cameraPaddingTop = padding
+        this.cameraPaddingRight = padding
+        this.cameraPaddingBottom = padding
+        cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng, it.lat) }.toMutableList()
+    }
+
+    /**
+     * Moves the camera to fit all coordinates with individual padding for each side.
+     *
+     * @param listLatLng The list of W3W coordinates to fit in the camera view.
+     * @param paddingLeft The padding in pixels on the left side.
+     * @param paddingTop The padding in pixels on the top side.
+     * @param paddingRight The padding in pixels on the right side.
+     * @param paddingBottom The padding in pixels on the bottom side.
+     */
+    suspend fun moveToPosition(
+        listLatLng: List<W3WCoordinates>,
+        paddingLeft: Int,
+        paddingTop: Int,
+        paddingRight: Int,
+        paddingBottom: Int,
+    ) {
+        this.cameraPaddingLeft = paddingLeft
+        this.cameraPaddingTop = paddingTop
+        this.cameraPaddingRight = paddingRight
+        this.cameraPaddingBottom = paddingBottom
         cameraForCoordinates = listLatLng.map { Point.fromLngLat(it.lng, it.lat) }.toMutableList()
     }
 
