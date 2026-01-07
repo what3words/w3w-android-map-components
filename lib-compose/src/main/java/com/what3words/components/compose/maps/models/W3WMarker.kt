@@ -25,7 +25,8 @@ data class W3WMarker(
     val color: W3WMarkerColor,
     val center: W3WCoordinates,
     val title: String? = null,
-    val snippet: String? = null
+    val snippet: String? = null,
+    val zoomOutScale: Float = 1f,
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(

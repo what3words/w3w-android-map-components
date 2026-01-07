@@ -125,7 +125,7 @@ fun W3WMapBox(
         state.cameraState.cameraForCoordinates?.let { points ->
             mapView?.let { mapView ->
                 mapView.mapboxMap.also { map ->
-                    // Set the camera based on coordinates
+                    // Set the camera based on coordinates with individual padding for each side
                     map.cameraForCoordinates(
                         points,
                         CameraOptions.Builder().build(),
