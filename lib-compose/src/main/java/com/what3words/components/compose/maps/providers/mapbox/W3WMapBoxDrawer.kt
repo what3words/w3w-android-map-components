@@ -395,16 +395,15 @@ private fun DrawZoomOutMarkers(
             val color = if (markersBySquareId[squareId]!!.size == 1) markersBySquareId[squareId]!!
                 .first().color else defaultMarkerColor
 
+            val marker = markersBySquareId[squareId]!!.first() // Get the information from the first marker in the list
             val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
-                    density,
+                    density * marker.zoomOutScale,
                     color
                 )
             }
 
-            val marker =
-                markersBySquareId[squareId]!!.first() // Get the information from the first marker in the list
             PointAnnotationOptions()
                 .withPoint(Point.fromLngLat(marker.center.lng, marker.center.lat))
                 .withIconImage(bitmap)

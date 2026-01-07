@@ -130,10 +130,10 @@ fun W3WMapBox(
                         points,
                         CameraOptions.Builder().build(),
                         EdgeInsets(
-                            state.cameraState.cameraPaddingTop.toDouble(),
-                            state.cameraState.cameraPaddingLeft.toDouble(),
-                            state.cameraState.cameraPaddingBottom.toDouble(),
-                            state.cameraState.cameraPaddingRight.toDouble()
+                            0.0,
+                            state.cameraState.cameraPadding.toDouble(),
+                            0.0,
+                            state.cameraState.cameraPadding.toDouble()
                         ),
                         null,
                         null

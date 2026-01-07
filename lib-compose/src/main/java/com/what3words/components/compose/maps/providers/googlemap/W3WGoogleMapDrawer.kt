@@ -497,17 +497,17 @@ private fun DrawZoomOutMarkers(
         val color =
             if (markers.size == 1) markers.first().color else defaultMarkerColor
 
+        val marker = markers.first() // Get the information from the first marker in the list
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
                     context,
-                    density,
+                    density * marker.zoomOutScale,
                     color
                 )
             )
         }
 
-        val marker = markers.first() // Get the information from the first marker in the list
         val position = LatLng(marker.center.lat, marker.center.lng)
         val state = rememberUpdatedMarkerState(position)
 
