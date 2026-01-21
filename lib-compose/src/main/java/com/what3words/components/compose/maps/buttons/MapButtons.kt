@@ -107,13 +107,14 @@ internal fun MapButtons(
         if (buttonConfig.isMyLocationFeatureEnabled && buttonState.isMyLocationButtonVisible) {
             MyLocationButton(
                 layoutConfig = layoutConfig.locationButtonLayoutConfig,
-                accuracyDistance = buttonState.accuracyDistance.toInt(),
+                accuracyDistanceInMeter = buttonState.accuracyDistance.toInt(),
                 isButtonEnabled = buttonState.isMyLocationButtonEnabled,
                 locationStatus = buttonState.locationStatus,
                 colors = locationButtonColor,
                 onMyLocationClicked = onMyLocationClicked,
                 resourceString = resourceString,
                 contentDescription = contentDescription,
+                unitMetric = buttonConfig.unitMetric
             )
         }
         if (buttonConfig.isMapSwitchFeatureEnabled && buttonState.isMapSwitchButtonVisible) {

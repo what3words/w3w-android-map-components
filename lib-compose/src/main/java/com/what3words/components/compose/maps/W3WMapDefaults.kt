@@ -7,8 +7,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.MapProvider.GOOGLE_MAP
-import com.what3words.components.compose.maps.MapProvider.MAPBOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerColor
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
@@ -133,6 +131,7 @@ object W3WMapDefaults {
         val isMyLocationFeatureEnabled: Boolean,
         val shouldSelectOnMyLocationClicked: Boolean,
         val isRecallFeatureEnabled: Boolean,
+        val unitMetric: DistanceUnit = DistanceUnit.METER
     )
 
     /**
@@ -260,13 +259,15 @@ object W3WMapDefaults {
         isMapSwitchFeatureEnabled: Boolean = true,
         isMyLocationFeatureEnabled: Boolean = true,
         shouldSelectOnMyLocationClicked: Boolean = true,
-        isRecallFeatureEnabled: Boolean = false
+        isRecallFeatureEnabled: Boolean = false,
+        unitMetric: DistanceUnit = DistanceUnit.METER
     ): ButtonConfig {
         return ButtonConfig(
             isMapSwitchFeatureEnabled = isMapSwitchFeatureEnabled,
             isMyLocationFeatureEnabled = isMyLocationFeatureEnabled,
             shouldSelectOnMyLocationClicked = shouldSelectOnMyLocationClicked,
-            isRecallFeatureEnabled = isRecallFeatureEnabled
+            isRecallFeatureEnabled = isRecallFeatureEnabled,
+            unitMetric = unitMetric
         )
     }
 
@@ -398,4 +399,9 @@ object W3WMapDefaults {
             selectedColor = selectedColor
         )
     }
+}
+
+enum class DistanceUnit(val unit: String) {
+    METER("m"),
+    FEET("ft")
 }
