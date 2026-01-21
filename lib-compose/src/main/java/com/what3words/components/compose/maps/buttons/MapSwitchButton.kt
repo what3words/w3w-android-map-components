@@ -40,7 +40,7 @@ internal fun MapSwitchButton(
     contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     onMapTypeChange: (W3WMapType) -> Unit
 ) {
-    var mapType by remember { mutableStateOf(w3wMapType) }
+    var mapType by remember(w3wMapType) { mutableStateOf(w3wMapType) }
     IconButton(
         modifier = modifier
             .padding(layoutConfig.buttonPadding)
