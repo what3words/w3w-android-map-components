@@ -54,8 +54,6 @@ sealed class ButtonAlignment {
 object W3WMapDefaults {
     val LOCATION_DEFAULT = W3WCoordinates(51.521251, -0.203586)
     val MARKER_COLOR_DEFAULT = W3WMarkerColor(background = colors_red_50, slash = colors_red_99)
-    const val MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE = 19f
-    const val MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX = 18.5f
     const val DEFAULT_MAP_ZOOM_SWITCH_LEVEL = 19f
 
     /**

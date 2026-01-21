@@ -28,7 +28,7 @@ jacocoVersion = "0.8.11"
 androidxComposeBom = "2025.04.00"
 
 #Material
-material = "1.12.0"
+material = "1.13.0"
 
 #Sonarqube
 secretsGradlePlugin = "2.0.1"
@@ -36,7 +36,7 @@ sonarqubeGradlePlugin = "3.3"
 
 #Map Box
 mapboxV10 = "10.19.0"
-mapboxV11 = "11.8.0"
+mapboxV11 = "11.16.2"
 
 #Google Map
 googleMap = "6.1.1"
@@ -45,7 +45,7 @@ googleMapPlayService = "19.0.0"
 
 #What3words Library
 what3wordsWrapper = "4.0.3"
-what3wordsDesignLibrary = "2.0.4"
+what3wordsDesignLibrary = "2.0.6"
 
 #Maven Publish
 dokka = "2.0.0"

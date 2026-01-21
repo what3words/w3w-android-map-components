@@ -9,15 +9,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import android.util.Log
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
-import com.mapbox.maps.CameraChanged
-import com.mapbox.maps.CameraChangedCallback
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
-import com.mapbox.maps.MapIdle
-import com.mapbox.maps.MapIdleCallback
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
@@ -48,6 +44,9 @@ import kotlinx.coroutines.flow.onEach
 private const val MAPBOX_MIN_ZOOM_LEVEL = 3.0
 private const val MAPBOX_MAX_ZOOM_PITCH = 60.0
 private const val MAPBOX_DEFAULT_CAMERA_PADDING = 10.0
+// This is used to calculate the padding for the camera when the user's padding is too large.
+// It ensures that at least 1/3 of the map width is available for the content.
+private const val FALLBACK_PADDING_RATIO = 3
 
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
@@ -83,10 +82,6 @@ fun W3WMapBox(
 
     val mapViewportState = (state.cameraState as W3WMapboxCameraState).cameraState
 
-    var lastProcessedCameraState by remember { mutableStateOf(mapViewportState.cameraState) }
-
-    val density = LocalDensity.current.density
-
     LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
             .filterNotNull()
@@ -96,7 +91,6 @@ fun W3WMapBox(
                         mapboxMap,
                         mapConfig.gridLineConfig,
                         onCameraBoundUpdate = { gridBound, visibleBound ->
-                            lastProcessedCameraState = currentCameraState
                             state.cameraState.gridBound = gridBound
                             state.cameraState.visibleBound = visibleBound
                             onCameraUpdated(state.cameraState)
@@ -135,15 +129,26 @@ fun W3WMapBox(
         state.cameraState.cameraForCoordinates?.let { points ->
             mapView?.let { mapView ->
                 mapView.mapboxMap.also { map ->
-                    // Set the camera based on coordinates
+                    // Set the camera based on coordinates with individual padding for each side
+                    val mapWidth = map.getSize().width.toDouble()
+                    val targetPadding = state.cameraState.cameraPadding.toDouble()
+                    // If the target padding is too large (taking up more than the full width),
+                    // fallback to using a portion of the width as padding to ensure content visibility.
+                    val padding = if (targetPadding * 2 >= mapWidth) {
+                        Log.w("W3WMapBox", "The padding provided is too large for the map width. Falling back to using 1/$FALLBACK_PADDING_RATIO of the map width as padding.")
+                        mapWidth / FALLBACK_PADDING_RATIO
+                    } else {
+                        targetPadding
+                    }
+
                     map.cameraForCoordinates(
                         points,
                         CameraOptions.Builder().build(),
                         EdgeInsets(
                             0.0,
-                            state.cameraState.cameraPadding.toDouble(),
+                            padding,
                             0.0,
-                            state.cameraState.cameraPadding.toDouble()
+                            padding
                         ),
                         null,
                         null
@@ -230,23 +235,19 @@ fun W3WMapBox(
                 it.mapboxMap.setBounds(cameraBounds)
             }
 
-            it.mapboxMap.subscribeMapIdle(object : MapIdleCallback {
-                override fun run(mapIdle: MapIdle) {
-                    if (state.cameraState.isCameraMoving == true) {
-                        state.cameraState.isCameraMoving = false
-                        onCameraUpdated(state.cameraState)
-                    }
+            it.mapboxMap.subscribeMapIdle {
+                if (state.cameraState.isCameraMoving) {
+                    state.cameraState.isCameraMoving = false
+                    onCameraUpdated(state.cameraState)
                 }
-            })
+            }
 
-            it.mapboxMap.subscribeCameraChanged(object : CameraChangedCallback {
-                override fun run(cameraChanged: CameraChanged) {
-                    if (state.cameraState.isCameraMoving == false) {
-                        state.cameraState.isCameraMoving = true
-                        onCameraUpdated(state.cameraState)
-                    }
+            it.mapboxMap.subscribeCameraChanged {
+                if (!state.cameraState.isCameraMoving) {
+                    state.cameraState.isCameraMoving = true
+                    onCameraUpdated(state.cameraState)
                 }
-            })
+            }
 
             if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                 mapView?.mapboxMap?.let { map ->

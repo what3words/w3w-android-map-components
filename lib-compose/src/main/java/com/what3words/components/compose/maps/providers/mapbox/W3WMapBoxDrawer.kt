@@ -44,7 +44,6 @@ import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.extension.style.sources.updateImage
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.models.W3WMarker
@@ -83,7 +82,7 @@ fun W3WMapBoxDrawer(
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
             derivedStateOf {
-                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel && cameraState.getZoomLevel() >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel
             }
         }
 
@@ -237,7 +236,7 @@ fun W3WMapBoxDrawGridLines(
         }
     }
 
-    val lineLayerState = remember {
+    val lineLayerState = remember(gridLineColor, gridLineWidth) {
         LineLayerState().apply {
             lineOcclusionOpacity = DoubleValue(0.0)
             lineEmissiveStrength = DoubleValue(1.0)
@@ -284,7 +283,7 @@ fun W3WMapBoxDrawSelectedAddress(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
@@ -334,7 +333,7 @@ fun W3WMapBoxDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel >= zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_MAP_BOX
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
@@ -396,16 +395,15 @@ private fun DrawZoomOutMarkers(
             val color = if (markersBySquareId[squareId]!!.size == 1) markersBySquareId[squareId]!!
                 .first().color else defaultMarkerColor
 
+            val marker = markersBySquareId[squareId]!!.first() // Get the information from the first marker in the list
             val bitmap = bitmapCache.getOrPut(color.id) {
                 getPinBitmap(
                     context,
-                    density,
+                    density * marker.zoomOutScale,
                     color
                 )
             }
 
-            val marker =
-                markersBySquareId[squareId]!!.first() // Get the information from the first marker in the list
             PointAnnotationOptions()
                 .withPoint(Point.fromLngLat(marker.center.lng, marker.center.lat))
                 .withIconImage(bitmap)
@@ -484,7 +482,7 @@ private fun DrawZoomInMarkers(
                 },
                 rasterLayerState = remember {
                     RasterLayerState().apply {
-                        rasterContrast = DoubleValue(1.0)
+                        rasterEmissiveStrength = DoubleValue(1.0)
                     }
                 }
             )
@@ -569,10 +567,22 @@ private fun DrawZoomInSelectedAddress(
                             Feature.fromGeometry(
                                 LineString.fromLngLats(
                                     listOf(
-                                        Point.fromLngLat(square.southwest.lng, square.northeast.lat),
-                                        Point.fromLngLat(square.northeast.lng, square.northeast.lat),
-                                        Point.fromLngLat(square.northeast.lng, square.southwest.lat),
-                                        Point.fromLngLat(square.southwest.lng, square.southwest.lat),
+                                        Point.fromLngLat(
+                                            square.southwest.lng,
+                                            square.northeast.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.northeast.lng,
+                                            square.northeast.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.northeast.lng,
+                                            square.southwest.lat
+                                        ),
+                                        Point.fromLngLat(
+                                            square.southwest.lng,
+                                            square.southwest.lat
+                                        ),
                                         Point.fromLngLat(square.southwest.lng, square.northeast.lat)
                                     )
                                 )
@@ -583,7 +593,7 @@ private fun DrawZoomInSelectedAddress(
             }
         }
 
-        val lineLayerState = remember {
+        val lineLayerState = remember(selectedMarkerColor) {
             LineLayerState().apply {
                 lineOcclusionOpacity = DoubleValue(0.0)
                 lineEmissiveStrength = DoubleValue(1.0)

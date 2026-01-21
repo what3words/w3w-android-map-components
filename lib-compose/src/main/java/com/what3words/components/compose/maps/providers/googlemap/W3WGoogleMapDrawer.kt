@@ -24,7 +24,6 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
 import com.what3words.components.compose.maps.W3WMapDefaults
-import com.what3words.components.compose.maps.W3WMapDefaults.MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
 import com.what3words.components.compose.maps.extensions.contains
 import com.what3words.components.compose.maps.extensions.id
 import com.what3words.components.compose.maps.mapper.toGoogleLatLng
@@ -61,7 +60,7 @@ fun W3WGoogleMapDrawer(
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
             derivedStateOf {
-                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel && cameraState.getZoomLevel() >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+                mapConfig.gridLineConfig.isGridEnabled && cameraState.getZoomLevel() >= mapConfig.gridLineConfig.zoomSwitchLevel
             }
         }
 
@@ -233,7 +232,7 @@ fun W3WGoogleMapDrawSelectedAddress(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel > zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
@@ -381,7 +380,7 @@ fun W3WGoogleMapDrawMarkers(
 ) {
     val drawZoomIn = remember(zoomLevel) {
         derivedStateOf {
-            zoomLevel >= zoomSwitchLevel && zoomLevel >= MIN_SUPPORT_GRID_ZOOM_LEVEL_GOOGLE
+            zoomLevel >= zoomSwitchLevel
         }
     }
 
@@ -498,17 +497,17 @@ private fun DrawZoomOutMarkers(
         val color =
             if (markers.size == 1) markers.first().color else defaultMarkerColor
 
+        val marker = markers.first() // Get the information from the first marker in the list
         val icon = bitmapCache.getOrPut(color.id) {
             BitmapDescriptorFactory.fromBitmap(
                 getPinBitmap(
                     context,
-                    density,
+                    density * marker.zoomOutScale,
                     color
                 )
             )
         }
 
-        val marker = markers.first() // Get the information from the first marker in the list
         val position = LatLng(marker.center.lat, marker.center.lng)
         val state = rememberUpdatedMarkerState(position)
 
