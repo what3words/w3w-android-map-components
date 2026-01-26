@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,14 +42,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.what3words.components.compose.maps.state.LocationStatus
 import com.what3words.components.compose.maps.utils.ImmediateAnimatedVisibility
+import com.what3words.design.library.ui.models.DisplayUnits
+import com.what3words.design.library.ui.models.getAccuracyString
 import com.what3words.design.library.ui.theme.W3WTheme
 import com.what3words.map.components.compose.R
 import kotlinx.coroutines.delay
 
 const val SAFE_ACCURACY_DISTANCE = 100
 const val WARNING_ACCURACY_DISTANCE = 200
-const val METER = "m"
-const val FEET = "ft"
 const val ACCURACY_VISIBLE_TIME = 3000L
 
 private enum class SearchIconState {
@@ -60,10 +61,10 @@ private enum class SearchIconState {
  * A composable function to display a "Find My Location" button.
  *
  * @param modifier The modifier for the button.
- * @param accuracyDistance The accuracy of the current location in meters.
+ * @param accuracyDistanceInMeter The accuracy of the current location in meters.
  * @param isButtonEnabled Whether the location button is enabled or not.
  * @param locationStatus The status of the location service.
- * @param unitMetrics The unit of accuracy distance, default is "m".
+ * @param displayUnit The unit of accuracy distance, default is METRIC.
  * @param layoutConfig Configuration for the button's layout, including positioning, size, and other layout properties. Defaults to [W3WMapButtonsDefault.defaultLocationButtonConfig].
  * @param colors Defines the color scheme of the location button, such as background and icon colors. Defaults to [W3WMapButtonsDefault.defaultLocationButtonColor].
  * @param resourceString The resource string for the button, default is [W3WMapButtonsDefault.defaultResourceString].
@@ -72,17 +73,18 @@ private enum class SearchIconState {
  */
 @Composable
 internal fun MyLocationButton(
-    modifier: Modifier = Modifier,
-    accuracyDistance: Int,
+    accuracyDistanceInMeter: Float,
     isButtonEnabled: Boolean,
     locationStatus: LocationStatus,
-    unitMetrics: String = METER,
+    onMyLocationClicked: () -> Unit,
+    modifier: Modifier = Modifier,
+    displayUnit: DisplayUnits = DisplayUnits.METRIC,
     layoutConfig: W3WMapButtonsDefault.LocationButtonLayoutConfig = W3WMapButtonsDefault.defaultLocationButtonConfig(),
     colors: W3WMapButtonsDefault.LocationButtonColor = W3WMapButtonsDefault.defaultLocationButtonColor(),
     resourceString: W3WMapButtonsDefault.ResourceString = W3WMapButtonsDefault.defaultResourceString(),
-    contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
-    onMyLocationClicked: () -> Unit
+    contentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription()
 ) {
+    val context = LocalContext.current
 
     var isShowingAccuracy by remember { mutableStateOf(false) }
     var searchingIconState by remember { mutableStateOf(SearchIconState.ICON_ONE) }
@@ -161,7 +163,12 @@ internal fun MyLocationButton(
                         .padding(start = 12.dp, end = 4.dp)
                 ) {
                     Text(
-                        text = resourceString.accuracyMessage.format(accuracyDistance, unitMetrics),
+                        text = resourceString.accuracyMessage.format(
+                            getAccuracyString(
+                                accuracyDistanceInMeter,
+                                displayUnit
+                            )
+                        ),
                         style = layoutConfig.accuracyTextStyle,
                         color = colors.accuracyTextColor,
                         maxLines = 1 // Prevent text overflow
@@ -202,10 +209,10 @@ internal fun MyLocationButton(
                         modifier = Modifier.size(layoutConfig.locationIconSize)
                     )
                 }
-                if (accuracyDistance >= SAFE_ACCURACY_DISTANCE) {
+                if (accuracyDistanceInMeter >= SAFE_ACCURACY_DISTANCE) {
                     WarningIndicator(
                         modifier = Modifier.align(Alignment.TopEnd),
-                        accuracyDistance = accuracyDistance,
+                        accuracyDistance = accuracyDistanceInMeter,
                         buttonConfig = layoutConfig,
                         colors = colors,
                         contentDescription = contentDescription
@@ -219,7 +226,7 @@ internal fun MyLocationButton(
 @Composable
 private fun WarningIndicator(
     modifier: Modifier,
-    accuracyDistance: Int,
+    accuracyDistance: Float,
     buttonConfig: W3WMapButtonsDefault.LocationButtonLayoutConfig,
     colors: W3WMapButtonsDefault.LocationButtonColor,
     contentDescription: W3WMapButtonsDefault.ContentDescription,
@@ -256,9 +263,8 @@ private fun A1() {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 0,
+            accuracyDistanceInMeter = 0f,
             isButtonEnabled = true,
-            unitMetrics = METER,
             locationStatus = LocationStatus.SEARCHING
         )
     }
@@ -272,9 +278,8 @@ private fun A2() {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 0,
+            accuracyDistanceInMeter = 0f,
             isButtonEnabled = true,
-            unitMetrics = METER,
             locationStatus = LocationStatus.INACTIVE
         )
     }
@@ -288,9 +293,8 @@ private fun A3() {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 70,
+            accuracyDistanceInMeter = 70f,
             isButtonEnabled = true,
-            unitMetrics = METER,
             locationStatus = LocationStatus.ACTIVE
         )
     }
@@ -304,9 +308,8 @@ private fun A4() {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 120,
+            accuracyDistanceInMeter = 120f,
             isButtonEnabled = true,
-            unitMetrics = METER,
             locationStatus = LocationStatus.ACTIVE
         )
     }
@@ -320,9 +323,8 @@ private fun A5() {
         MyLocationButton(
             modifier = Modifier,
             onMyLocationClicked = {},
-            accuracyDistance = 220,
+            accuracyDistanceInMeter = 220f,
             isButtonEnabled = true,
-            unitMetrics = METER,
             locationStatus = LocationStatus.ACTIVE
         )
     }
@@ -337,9 +339,8 @@ private fun A6() {
             MyLocationButton(
                 modifier = Modifier,
                 onMyLocationClicked = {},
-                accuracyDistance = 220,
+                accuracyDistanceInMeter = 220f,
                 isButtonEnabled = true,
-                unitMetrics = METER,
                 locationStatus = LocationStatus.ACTIVE
             )
         }

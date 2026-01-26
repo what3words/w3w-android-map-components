@@ -7,11 +7,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.MapProvider.GOOGLE_MAP
-import com.what3words.components.compose.maps.MapProvider.MAPBOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerColor
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.design.library.ui.models.DisplayUnits
 import com.what3words.design.library.ui.theme.colors_blue_20
 import com.what3words.design.library.ui.theme.colors_blue_99
 import com.what3words.design.library.ui.theme.colors_grey_100
@@ -133,6 +132,7 @@ object W3WMapDefaults {
         val isMyLocationFeatureEnabled: Boolean,
         val shouldSelectOnMyLocationClicked: Boolean,
         val isRecallFeatureEnabled: Boolean,
+        val displayUnit: DisplayUnits = DisplayUnits.METRIC
     )
 
     /**
@@ -260,13 +260,15 @@ object W3WMapDefaults {
         isMapSwitchFeatureEnabled: Boolean = true,
         isMyLocationFeatureEnabled: Boolean = true,
         shouldSelectOnMyLocationClicked: Boolean = true,
-        isRecallFeatureEnabled: Boolean = false
+        isRecallFeatureEnabled: Boolean = false,
+        displayUnit: DisplayUnits = DisplayUnits.METRIC
     ): ButtonConfig {
         return ButtonConfig(
             isMapSwitchFeatureEnabled = isMapSwitchFeatureEnabled,
             isMyLocationFeatureEnabled = isMyLocationFeatureEnabled,
             shouldSelectOnMyLocationClicked = shouldSelectOnMyLocationClicked,
-            isRecallFeatureEnabled = isRecallFeatureEnabled
+            isRecallFeatureEnabled = isRecallFeatureEnabled,
+            displayUnit = displayUnit
         )
     }
 
