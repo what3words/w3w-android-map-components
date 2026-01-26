@@ -4,6 +4,7 @@ import java.util.Base64
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
     id(libs.plugins.maven.publish.get().pluginId)
     id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
@@ -152,6 +153,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test)
     api(libs.kotlinx.collections.immutable)
+    api(libs.kotlinx.serialization.json)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
