@@ -21,7 +21,8 @@ fun W3WAddress.toW3WMarker(makerColor: W3WMarkerColor = MARKER_COLOR_DEFAULT): W
         words = this.words,
         square = this.square!!,
         color = makerColor,
-        center = this.center!!
+        center = this.center!!,
+        language = this.language,
     )
 }
 

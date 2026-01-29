@@ -7,13 +7,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
+import com.what3words.core.types.language.W3WLanguage
+import com.what3words.core.types.language.W3WProprietaryLanguage
 
 /**
  * Represents a marker on a map, associated with a what3words address.
@@ -31,6 +26,7 @@ data class W3WMarker(
     val square: W3WRectangle,
     val color: W3WMarkerColor,
     val center: W3WCoordinates,
+    val language: W3WLanguage,
     val title: String? = null,
     val snippet: String? = null,
     val zoomOutScale: Float = 1f,
@@ -56,6 +52,7 @@ data class W3WMarker(
             parcel.readDouble(),
             parcel.readDouble()
         ),
+        W3WProprietaryLanguage(parcel.readString()!!, parcel.readString(), null, null),
         parcel.readString(),
         parcel.readString()
     )
@@ -96,12 +93,9 @@ data class W3WMarker(
  * @property slash The color of the slash in the marker.
  * @property id A unique identifier generated from the combination of background and slash colors.
  */
-@Serializable
 @Immutable
 data class W3WMarkerColor(
-    @Serializable(with = ColorSerializer::class)
     val background: Color,
-    @Serializable(with = ColorSerializer::class)
     val slash: Color
 ) {
     val id: Long
@@ -110,16 +104,4 @@ data class W3WMarkerColor(
             val slashLong = slash.toArgb().toLong() and 0xFFFFFFFFL
             return (backgroundLong shl 32) or slashLong
         }
-}
-
-object ColorSerializer : KSerializer<Color> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Color", PrimitiveKind.LONG)
-
-    override fun serialize(encoder: Encoder, value: Color) {
-        encoder.encodeLong(value.value.toLong())
-    }
-
-    override fun deserialize(decoder: Decoder): Color {
-        return Color(decoder.decodeLong().toULong())
-    }
 }
