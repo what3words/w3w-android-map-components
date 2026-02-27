@@ -71,6 +71,7 @@ object W3WMapDefaults {
         val darkModeCustomJsonStyle: String?,
         val isBuildingEnable: Boolean,
         val isCompassButtonEnabled: Boolean,
+        val isGoogleCompassAlignedRight: Boolean,
         val isScaleBarEnabled: Boolean,
         val shouldFocusOnMyLocationOnInitialization: Boolean,
         val gridLineConfig: GridLinesConfig,
@@ -208,6 +209,7 @@ object W3WMapDefaults {
         darkModeCustomJsonStyle: String? = null,
         isBuildingEnable: Boolean = true,
         isCompassButtonEnabled: Boolean = true,
+        isGoogleCompassAlignedRight: Boolean = true,
         isScaleBarEnabled: Boolean = false,
         shouldFocusOnMyLocationOnInitialization: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
@@ -220,6 +222,7 @@ object W3WMapDefaults {
             buttonConfig = buttonConfig,
             shouldFocusOnMyLocationOnInitialization = shouldFocusOnMyLocationOnInitialization,
             isCompassButtonEnabled = isCompassButtonEnabled,
+            isGoogleCompassAlignedRight = isGoogleCompassAlignedRight,
             isScaleBarEnabled = isScaleBarEnabled
         )
     }
