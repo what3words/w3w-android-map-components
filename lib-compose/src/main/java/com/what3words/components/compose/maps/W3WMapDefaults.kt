@@ -61,6 +61,7 @@ object W3WMapDefaults {
      * @property darkModeCustomJsonStyle The custom JSON style for dark mode
      * @property isBuildingEnable Whether 3D buildings are enabled on the map
      * @property isCompassButtonEnabled Whether the compass button is enabled on the map
+     * @property isGoogleCompassAlignedRight Whether the compass button should be aligned to the right on Google Maps
      * @property isScaleBarEnabled Whether the scale bar is enabled on the map
      * @property shouldFocusOnMyLocationOnInitialization Whether to automatically focus on user's location during map initialization
      * @property gridLineConfig The configuration for grid lines on the map
