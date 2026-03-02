@@ -6,6 +6,7 @@ import android.widget.RelativeLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,11 +32,9 @@ import com.what3words.components.compose.maps.state.camera.W3WCameraState
 import com.what3words.components.compose.maps.state.camera.W3WGoogleCameraState
 import com.what3words.core.types.geometry.W3WCoordinates
 import com.what3words.core.types.geometry.W3WRectangle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /**
@@ -56,16 +55,16 @@ import kotlin.math.roundToInt
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
 fun W3WGoogleMap(
-    modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
     mapColor: W3WMapDefaults.MapColor,
     state: W3WMapState,
-    content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: (W3WCoordinates) -> Unit,
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
+    modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
     val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
@@ -84,17 +83,19 @@ fun W3WGoogleMap(
 
     val cameraPositionState = (state.cameraState as W3WGoogleCameraState).cameraState
 
-    var lastProcessedPosition by remember { mutableStateOf(cameraPositionState.position) }
-
     var mapProjection: W3WGoogleMapProjection? by remember {
         mutableStateOf(null)
+    }
+
+    val movableContent = remember {
+        movableContentOf { content?.let { it() } }
     }
 
     LaunchedEffect(cameraPositionState) {
         /// A hybrid approach that combines immediate updates for significant changes with debounced updates for fine-tuning
         snapshotFlow { cameraPositionState.position to cameraPositionState.projection }
             .conflate()
-            .onEach { (position, projection) ->
+            .onEach { (_, projection) ->
                 projection?.let {
                     if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                         mapProjection?.projection = projection
@@ -106,7 +107,6 @@ fun W3WGoogleMap(
                         projection,
                         mapConfig.gridLineConfig
                     ) { gridBound, visibleBound ->
-                        lastProcessedPosition = position
                         state.cameraState.gridBound = gridBound
                         state.cameraState.visibleBound = visibleBound
                         onCameraUpdated(state.cameraState)
@@ -169,7 +169,8 @@ fun W3WGoogleMap(
             mapColor = mapColor,
             onMarkerClicked = onMarkerClicked
         )
-        content?.invoke()
+
+        movableContent()
     }
 }
 
@@ -183,40 +184,42 @@ fun W3WGoogleMap(
  * @param gridLinesConfig Configuration for the grid lines, including scale factor
  * @param onCameraBoundUpdate Callback that receives the calculated grid bounds and visible bounds
  */
-suspend fun updateCameraBound(
+fun updateCameraBound(
     projection: Projection,
     gridLinesConfig: W3WMapDefaults.GridLinesConfig,
     onCameraBoundUpdate: (gridBound: W3WRectangle, visibleBound: W3WRectangle) -> Unit
 ) {
-    withContext(Dispatchers.IO) {
-        val lastScaledBounds =
-            scaleBounds(projection.visibleRegion.latLngBounds, projection, gridLinesConfig)
-        val gridBound = W3WRectangle(
-            W3WCoordinates(
-                lastScaledBounds.southwest.latitude,
-                lastScaledBounds.southwest.longitude
-            ),
-            W3WCoordinates(
-                lastScaledBounds.northeast.latitude,
-                lastScaledBounds.northeast.longitude
-            )
-        )
-
-        val visibleBound = W3WRectangle(
-            W3WCoordinates(
-                projection.visibleRegion.latLngBounds.southwest.latitude,
-                projection.visibleRegion.latLngBounds.southwest.longitude
-            ),
-            W3WCoordinates(
-                projection.visibleRegion.latLngBounds.northeast.latitude,
-                projection.visibleRegion.latLngBounds.northeast.longitude
-            )
-        )
-
-        withContext(Dispatchers.Main) {
-            onCameraBoundUpdate.invoke(gridBound, visibleBound)
-        }
+    val latLngBounds = try {
+        projection.visibleRegion.latLngBounds
+    } catch (_: IllegalStateException) {
+        // Map layout isn't ready. Skip this frame safely.
+        return
     }
+
+    val lastScaledBounds = scaleBounds(latLngBounds, projection, gridLinesConfig)
+    val gridBound = W3WRectangle(
+        W3WCoordinates(
+            lastScaledBounds.southwest.latitude,
+            lastScaledBounds.southwest.longitude
+        ),
+        W3WCoordinates(
+            lastScaledBounds.northeast.latitude,
+            lastScaledBounds.northeast.longitude
+        )
+    )
+
+    val visibleBound = W3WRectangle(
+        W3WCoordinates(
+            latLngBounds.southwest.latitude,
+            latLngBounds.southwest.longitude
+        ),
+        W3WCoordinates(
+            latLngBounds.northeast.latitude,
+            latLngBounds.northeast.longitude
+        )
+    )
+
+    onCameraBoundUpdate.invoke(gridBound, visibleBound)
 }
 
 /**
