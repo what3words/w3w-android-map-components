@@ -1,8 +1,6 @@
 package com.what3words.components.compose.maps
 
 import android.graphics.PointF
-import android.view.View
-import android.widget.RelativeLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -19,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.doOnLayout
 import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
 import com.what3words.components.compose.maps.buttons.MapButtons
@@ -315,8 +311,6 @@ internal fun W3WMapContent(
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
 ) {
-    val view = LocalView.current
-
     var bounds by remember { mutableStateOf(Rect.Zero) }
 
     // Check if the map is initialized, use to prevent LaunchedEffect to re-run on configuration changes
@@ -378,24 +372,6 @@ internal fun W3WMapContent(
             )
         }
     }
-
-    // Reposition Google Map compass to align with app's design
-    LaunchedEffect(mapProvider, mapConfig.isGoogleCompassAlignedRight) {
-        if (mapProvider == MapProvider.GOOGLE_MAP && mapConfig.isGoogleCompassAlignedRight) {
-            val compass = view.findViewWithTag<View>("GoogleMapCompass")
-
-            compass?.doOnLayout {
-                val params = compass.layoutParams as RelativeLayout.LayoutParams
-                params.addRule(RelativeLayout.ALIGN_PARENT_START, 0)
-                params.addRule(RelativeLayout.ALIGN_PARENT_END)
-                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
-
-                compass.layoutParams = params
-                compass.requestLayout()
-            }
-        }
-    }
-
 
     Box(
         modifier = modifier

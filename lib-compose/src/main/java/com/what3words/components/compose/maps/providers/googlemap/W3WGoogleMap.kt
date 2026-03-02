@@ -1,6 +1,8 @@
 package com.what3words.components.compose.maps.providers.googlemap
 
 import android.graphics.Point
+import android.view.View
+import android.widget.RelativeLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -9,6 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.doOnLayout
 import com.google.android.gms.maps.Projection
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -114,6 +118,24 @@ fun W3WGoogleMap(
     LaunchedEffect(cameraPositionState.isMoving) {
         state.cameraState.isCameraMoving = cameraPositionState.isMoving
         onCameraUpdated(state.cameraState)
+    }
+
+    // Reposition Google Map compass to align with app's design
+    val view = LocalView.current
+    LaunchedEffect(mapConfig.isGoogleCompassAlignedRight) {
+        if (mapConfig.isGoogleCompassAlignedRight) {
+            val compass = view.findViewWithTag<View>("GoogleMapCompass")
+
+            compass?.doOnLayout {
+                val params = compass.layoutParams as RelativeLayout.LayoutParams
+                params.addRule(RelativeLayout.ALIGN_PARENT_START, 0)
+                params.addRule(RelativeLayout.ALIGN_PARENT_END)
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+
+                compass.layoutParams = params
+                compass.requestLayout()
+            }
+        }
     }
 
     GoogleMap(
