@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps
 
-import android.Manifest
 import android.graphics.PointF
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -18,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.what3words.components.compose.maps.W3WMapDefaults.MapColors
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMapColors
 import com.what3words.components.compose.maps.buttons.MapButtons
@@ -443,7 +440,7 @@ internal fun W3WMapView(
     onMarkerClicked: ((W3WMarker) -> Unit),
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
-    onMapProjectionUpdated:  ((W3WMapProjection) -> Unit)? = null,
+    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
 ) {
     when (mapProvider) {
         MapProvider.GOOGLE_MAP -> {
