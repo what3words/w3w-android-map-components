@@ -119,14 +119,22 @@ internal fun MyLocationButton(
     }
 
     LaunchedEffect(locationStatus) {
-        if (locationStatus == LocationStatus.SEARCHING) {
-            while (true) {
-                // Switch searching icon
-                searchingIconState = SearchIconState.ICON_ONE
-                delay(400L)
-                searchingIconState = SearchIconState.ICON_TWO
-                delay(800L)
+        when (locationStatus) {
+            LocationStatus.SEARCHING -> {
+                while (true) {
+                    // Switch searching icon
+                    searchingIconState = SearchIconState.ICON_ONE
+                    delay(400L)
+                    searchingIconState = SearchIconState.ICON_TWO
+                    delay(800L)
+                }
             }
+
+            LocationStatus.INACTIVE -> {
+                isShowingAccuracy = false
+            }
+
+            else -> {}
         }
     }
 
@@ -209,7 +217,7 @@ internal fun MyLocationButton(
                         modifier = Modifier.size(layoutConfig.locationIconSize)
                     )
                 }
-                if (accuracyDistanceInMeter >= SAFE_ACCURACY_DISTANCE) {
+                if (accuracyDistanceInMeter >= SAFE_ACCURACY_DISTANCE && locationStatus != LocationStatus.INACTIVE) {
                     WarningIndicator(
                         modifier = Modifier.align(Alignment.TopEnd),
                         accuracyDistance = accuracyDistanceInMeter,

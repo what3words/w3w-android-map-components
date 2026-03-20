@@ -59,6 +59,8 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
 
+import com.mapbox.maps.MapboxExperimental
+
 /**
  * Main drawer component for rendering what3words elements on a Mapbox map.
  *
@@ -350,7 +352,8 @@ fun W3WMapBoxDrawMarkers(
     if (drawZoomIn.value) {
         DrawZoomInMarkers(
             defaultMarkerColor,
-            markers
+            markers,
+            onMarkerClicked,
         )
     } else {
         DrawZoomOutMarkers(
@@ -435,14 +438,17 @@ private fun DrawZoomOutMarkers(
  * @param defaultMarkerColor The default color to use for squares with multiple markers
  * @param markers The list of markers to display on the map
  */
+@OptIn(MapboxExperimental::class)
 @Composable
 @MapboxMapComposable
 private fun DrawZoomInMarkers(
     defaultMarkerColor: W3WMarkerColor,
-    markers: ImmutableList<W3WMarker>
+    markers: ImmutableList<W3WMarker>,
+    onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
+    val currentOnMarkerClicked by rememberUpdatedState(onMarkerClicked)
 
     // Map of cached bitmap with key is the ID of the W3WColor
     val bitmapCache = remember { mutableMapOf<Long, Bitmap>() }
@@ -483,6 +489,10 @@ private fun DrawZoomInMarkers(
                 rasterLayerState = remember {
                     RasterLayerState().apply {
                         rasterEmissiveStrength = DoubleValue(1.0)
+                        interactionsState.onClicked { _, _ ->
+                            currentOnMarkerClicked(marker)
+                            true
+                        }
                     }
                 }
             )
