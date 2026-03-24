@@ -397,7 +397,8 @@ fun W3WGoogleMapDrawMarkers(
     if (drawZoomIn.value) {
         DrawZoomInMarkers(
             defaultMarkerColor = defaultMarkerColor,
-            markers = markers
+            markers = markers,
+            onMarkerClicked = onMarkerClicked
         )
     } else {
         DrawZoomOutMarkers(
@@ -422,7 +423,8 @@ fun W3WGoogleMapDrawMarkers(
 @Composable
 private fun DrawZoomInMarkers(
     defaultMarkerColor: W3WMarkerColor,
-    markers: ImmutableList<W3WMarker>
+    markers: ImmutableList<W3WMarker>,
+    onMarkerClicked: (W3WMarker) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -460,6 +462,10 @@ private fun DrawZoomInMarkers(
                 )
             ),
             image = icon,
+            onClick = {
+                onMarkerClicked(marker)
+            },
+            clickable = true
         )
     }
 }

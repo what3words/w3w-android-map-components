@@ -7,11 +7,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.what3words.components.compose.maps.MapProvider.GOOGLE_MAP
-import com.what3words.components.compose.maps.MapProvider.MAPBOX
 import com.what3words.components.compose.maps.W3WMapDefaults.defaultMarkerColor
 import com.what3words.components.compose.maps.models.W3WMarkerColor
 import com.what3words.core.types.geometry.W3WCoordinates
+import com.what3words.design.library.ui.models.DisplayUnits
 import com.what3words.design.library.ui.theme.colors_blue_20
 import com.what3words.design.library.ui.theme.colors_blue_99
 import com.what3words.design.library.ui.theme.colors_grey_100
@@ -62,6 +61,7 @@ object W3WMapDefaults {
      * @property darkModeCustomJsonStyle The custom JSON style for dark mode
      * @property isBuildingEnable Whether 3D buildings are enabled on the map
      * @property isCompassButtonEnabled Whether the compass button is enabled on the map
+     * @property isGoogleCompassAlignedRight Whether the compass button should be aligned to the right on Google Maps
      * @property isScaleBarEnabled Whether the scale bar is enabled on the map
      * @property shouldFocusOnMyLocationOnInitialization Whether to automatically focus on user's location during map initialization
      * @property gridLineConfig The configuration for grid lines on the map
@@ -72,6 +72,7 @@ object W3WMapDefaults {
         val darkModeCustomJsonStyle: String?,
         val isBuildingEnable: Boolean,
         val isCompassButtonEnabled: Boolean,
+        val isGoogleCompassAlignedRight: Boolean,
         val isScaleBarEnabled: Boolean,
         val shouldFocusOnMyLocationOnInitialization: Boolean,
         val gridLineConfig: GridLinesConfig,
@@ -133,6 +134,7 @@ object W3WMapDefaults {
         val isMyLocationFeatureEnabled: Boolean,
         val shouldSelectOnMyLocationClicked: Boolean,
         val isRecallFeatureEnabled: Boolean,
+        val displayUnit: DisplayUnits = DisplayUnits.METRIC
     )
 
     /**
@@ -208,6 +210,7 @@ object W3WMapDefaults {
         darkModeCustomJsonStyle: String? = null,
         isBuildingEnable: Boolean = true,
         isCompassButtonEnabled: Boolean = true,
+        isGoogleCompassAlignedRight: Boolean = true,
         isScaleBarEnabled: Boolean = false,
         shouldFocusOnMyLocationOnInitialization: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
@@ -220,6 +223,7 @@ object W3WMapDefaults {
             buttonConfig = buttonConfig,
             shouldFocusOnMyLocationOnInitialization = shouldFocusOnMyLocationOnInitialization,
             isCompassButtonEnabled = isCompassButtonEnabled,
+            isGoogleCompassAlignedRight = isGoogleCompassAlignedRight,
             isScaleBarEnabled = isScaleBarEnabled
         )
     }
@@ -260,13 +264,15 @@ object W3WMapDefaults {
         isMapSwitchFeatureEnabled: Boolean = true,
         isMyLocationFeatureEnabled: Boolean = true,
         shouldSelectOnMyLocationClicked: Boolean = true,
-        isRecallFeatureEnabled: Boolean = false
+        isRecallFeatureEnabled: Boolean = false,
+        displayUnit: DisplayUnits = DisplayUnits.METRIC
     ): ButtonConfig {
         return ButtonConfig(
             isMapSwitchFeatureEnabled = isMapSwitchFeatureEnabled,
             isMyLocationFeatureEnabled = isMyLocationFeatureEnabled,
             shouldSelectOnMyLocationClicked = shouldSelectOnMyLocationClicked,
-            isRecallFeatureEnabled = isRecallFeatureEnabled
+            isRecallFeatureEnabled = isRecallFeatureEnabled,
+            displayUnit = displayUnit
         )
     }
 

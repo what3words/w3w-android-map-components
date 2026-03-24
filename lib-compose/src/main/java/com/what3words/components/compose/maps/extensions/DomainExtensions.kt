@@ -19,6 +19,14 @@ internal fun W3WRectangle.contains(coordinates: W3WCoordinates?): Boolean {
     else false
 }
 
+/**
+ * Generates a unique 64-bit ID using SplitMix64-based hash function.
+ * 
+ * Based on "Fast Splittable Pseudorandom Number Generators" (Steele et al., OOPSLA 2014)
+ * and java.util.SplittableRandom. Uses doubleToLongBits() for exact precision,
+ * XOR-shift-multiplication mixing for avalanche effect, and prime multipliers
+ * to prevent coordinate swap collisions.
+ */
 val W3WRectangle.id: Long
     get() {
         val sw = this.southwest
@@ -31,12 +39,37 @@ val W3WRectangle.id: Long
             throw IllegalArgumentException("Invalid longitude value: must be between -180 and 180")
         }
 
-        val swLatBits = (sw.lat * 1e6).toLong() and 0x7FFFFFFF
-        val swLngBits = (sw.lng * 1e6).toLong() and 0x7FFFFFFF
-        val neLatBits = (ne.lat * 1e6).toLong() and 0x7FFFFFFF
-        val neLngBits = (ne.lng * 1e6).toLong() and 0x7FFFFFFF
+        val swLat = java.lang.Double.doubleToLongBits(sw.lat)
+        val swLng = java.lang.Double.doubleToLongBits(sw.lng)
+        val neLat = java.lang.Double.doubleToLongBits(ne.lat)
+        val neLng = java.lang.Double.doubleToLongBits(ne.lng)
 
-        return (swLatBits shl 48) or (swLngBits shl 32) or (neLatBits shl 16) or neLngBits
+        var h1 = swLat * -7046029254386353131L
+        h1 = (h1 xor (h1 ushr 30)) * -4658895280553007687L
+        h1 = (h1 xor (h1 ushr 27)) * -7723592293110705685L
+        h1 = h1 xor (h1 ushr 31)
+
+        var h2 = swLng * -7046029254386353131L
+        h2 = (h2 xor (h2 ushr 30)) * -4658895280553007687L
+        h2 = (h2 xor (h2 ushr 27)) * -7723592293110705685L
+        h2 = h2 xor (h2 ushr 31)
+
+        var h3 = neLat * -7046029254386353131L
+        h3 = (h3 xor (h3 ushr 30)) * -4658895280553007687L
+        h3 = (h3 xor (h3 ushr 27)) * -7723592293110705685L
+        h3 = h3 xor (h3 ushr 31)
+
+        var h4 = neLng * -7046029254386353131L
+        h4 = (h4 xor (h4 ushr 30)) * -4658895280553007687L
+        h4 = (h4 xor (h4 ushr 27)) * -7723592293110705685L
+        h4 = h4 xor (h4 ushr 31)
+
+        var result = h1 + h2 * -4417273771661082387L + h3 * -2912652041462636481L + h4 * -744332891524214833L
+        result = (result xor (result ushr 33)) * -1110381560719973571L
+        result = (result xor (result ushr 33)) * -3956934367972663973L
+        result = result xor (result ushr 33)
+
+        return result
     }
 
 /** [computeVerticalLines] will compute vertical lines to work with [PolylineManager], it will invert every odd line to avoid diagonal connection.

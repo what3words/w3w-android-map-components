@@ -1,15 +1,16 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import android.util.Log
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
@@ -44,6 +45,7 @@ import kotlinx.coroutines.flow.onEach
 private const val MAPBOX_MIN_ZOOM_LEVEL = 3.0
 private const val MAPBOX_MAX_ZOOM_PITCH = 60.0
 private const val MAPBOX_DEFAULT_CAMERA_PADDING = 10.0
+
 // This is used to calculate the padding for the camera when the user's padding is too large.
 // It ensures that at least 1/3 of the map width is available for the content.
 private const val FALLBACK_PADDING_RATIO = 3
@@ -65,16 +67,16 @@ private const val FALLBACK_PADDING_RATIO = 3
  */
 @Composable
 fun W3WMapBox(
-    modifier: Modifier,
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
     mapColor: W3WMapDefaults.MapColor,
     state: W3WMapState,
-    content: (@Composable () -> Unit)? = null,
     onMarkerClicked: (W3WMarker) -> Unit,
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
-    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null
+    modifier: Modifier = Modifier,
+    onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null
 ) {
     var mapView: MapView? by remember {
         mutableStateOf(null)
@@ -135,7 +137,10 @@ fun W3WMapBox(
                     // If the target padding is too large (taking up more than the full width),
                     // fallback to using a portion of the width as padding to ensure content visibility.
                     val padding = if (targetPadding * 2 >= mapWidth) {
-                        Log.w("W3WMapBox", "The padding provided is too large for the map width. Falling back to using 1/$FALLBACK_PADDING_RATIO of the map width as padding.")
+                        Log.w(
+                            "W3WMapBox",
+                            "The padding provided is too large for the map width. Falling back to using 1/$FALLBACK_PADDING_RATIO of the map width as padding."
+                        )
                         mapWidth / FALLBACK_PADDING_RATIO
                     } else {
                         targetPadding
@@ -162,6 +167,10 @@ fun W3WMapBox(
                 }
             }
         }
+    }
+
+    val movableContent = remember {
+        movableContentOf { content?.let { it() } }
     }
 
     MapboxMap(
@@ -262,7 +271,8 @@ fun W3WMapBox(
             mapColor = mapColor,
             onMarkerClicked = onMarkerClicked
         )
-        content?.invoke()
+
+        movableContent()
     }
 }
 

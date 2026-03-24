@@ -346,11 +346,11 @@ object W3WMapButtonsDefault {
 
     /**
      * Creates default resource strings for buttons.
-     * @param accuracyMessage Format string for accuracy message. Default is "GPS Accuracy (%d%s)".
+     * @param accuracyMessage Format string for accuracy message. Default is "GPS Accuracy is %s".
      * @return [ResourceString] object with the specified strings.
      */
     fun defaultResourceString(
-        accuracyMessage: String = "GPS Accuracy (%d%s)"
+        accuracyMessage: String = "GPS Accuracy is %s"
     ): ResourceString {
         return ResourceString(
             accuracyMessage = accuracyMessage

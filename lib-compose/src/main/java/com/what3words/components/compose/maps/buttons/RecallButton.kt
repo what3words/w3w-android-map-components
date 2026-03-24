@@ -82,13 +82,28 @@ internal fun RecallButton(
 
     AnimatedVisibility(
         visible = shouldBeVisible,
+        modifier = modifier.onGloballyPositioned { coordinate ->
+            // Get the center position of the recall button container
+            val size = coordinate.size
+            val position = coordinate.positionInRoot()
+            val centerX = position.x + size.width / 2
+            val centerY = position.y + size.height / 2
+            val centerPoint = PointF(centerX, centerY)
+
+            val tempOffset = Offset(centerX, centerY)
+            if (tempOffset != buttonPosition) {
+                buttonPosition = tempOffset
+                positionCallback.value(centerPoint)
+            }
+        },
         enter = fadeIn(
             initialAlpha = 0f,
             animationSpec = tween(400)
         ) + slideIn(
             animationSpec = tween(400),
-            initialOffset = { size ->
-                IntOffset(
+            initialOffset = {
+                if (buttonPosition == Offset.Unspecified) IntOffset.Zero
+                else IntOffset(
                     x = (selectedPosition.x - buttonPosition.x).toInt(),
                     y = (selectedPosition.y - buttonPosition.y).toInt()
                 )
@@ -99,8 +114,9 @@ internal fun RecallButton(
             animationSpec = tween(durationMillis = 400, delayMillis = 200)
         ) + slideOut(
             animationSpec = tween(durationMillis = 400, delayMillis = 200),
-            targetOffset = { size ->
-                IntOffset(
+            targetOffset = {
+                if (buttonPosition == Offset.Unspecified) IntOffset.Zero
+                else IntOffset(
                     x = (selectedPosition.x - buttonPosition.x).toInt(),
                     y = (selectedPosition.y - buttonPosition.y).toInt()
                 )
@@ -109,22 +125,7 @@ internal fun RecallButton(
     ) {
         IconButton(
             onClick = { onRecallClicked() },
-            modifier = modifier
-                .onGloballyPositioned { coordinate ->
-                    // Get the center position of the recall button
-                    // Only trigger one time when the button is initialized
-                    // NOTE: onGloballyPositioned is called AFTER a composition,
-                    // so the first appear time the button can't perform the animation fully because lack of position info.
-                    if (!buttonPosition.isValid()) {
-                        val size = coordinate.size
-                        val position = coordinate.positionInRoot()
-                        val centerX = position.x + size.width / 2
-                        val centerY = position.y + size.height / 2
-                        val centerPoint = PointF(centerX, centerY)
-                        buttonPosition = Offset(centerX, centerY)
-                        positionCallback.value(centerPoint)
-                    }
-                }
+            modifier = Modifier
                 .padding(layoutConfig.buttonPadding)
                 .shadow(
                     elevation = if (isButtonEnabled) layoutConfig.elevation else 0.dp,
