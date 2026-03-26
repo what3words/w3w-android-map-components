@@ -136,7 +136,7 @@ fun W3WGoogleMapDrawer(
                 defaultMarkerColor = mapColor.markerColors.defaultMarkerColor,
                 zoomLevel = cameraState.getZoomLevel(),
                 zoomSwitchLevel = mapConfig.gridLineConfig.zoomSwitchLevel,
-                markers = state.markers,
+                markers = visibleMarkers,
                 selectedAddress = state.selectedAddress,
                 onMarkerClicked = onMarkerClicked
             )
