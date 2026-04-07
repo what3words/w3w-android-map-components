@@ -1,6 +1,7 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
 import android.util.Log
+import android.view.MotionEvent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +54,24 @@ private const val FALLBACK_PADDING_RATIO = 3
 /**
  * A composable function that displays a What3Words (W3W) map using the Mapbox Maps SDK for Android.
  *
+ * ## Dual-pane / split-screen gesture fix
+ *
+ * On automotive dual-pane displays (e.g. Hyundai/Kia infotainment systems), the Mapbox SDK's
+ * internal gesture handler uses [MotionEvent.getRawX]/[MotionEvent.getRawY] (display-absolute
+ * coordinates) for focal point calculations. When the app runs in a secondary pane, `getRawX/Y`
+ * includes the pane's display offset (e.g. ~860–2880px depending on the vehicle configuration)
+ * while `getX/Y` correctly returns view-relative coordinates. The [MapView] may also report
+ * `getLocationOnScreen() = (0, 0)` even when positioned on the right pane, preventing the SDK
+ * from compensating for the offset internally.
+ *
+ * This causes drag and pinch-to-zoom gestures to malfunction (tap still works because it uses a
+ * different code path). Fast flings may partially work due to velocity-based detection.
+ *
+ * **Workaround**: An [android.view.View.OnTouchListener] intercepts all touch events and creates
+ * corrected [MotionEvent] copies (via [createCorrectedMotionEvent]) where `getRawX() == getX()`
+ * and `getRawY() == getY()`, then dispatches the corrected event to [MapView.onTouchEvent].
+ * This is safe for single-pane displays where raw already equals local coordinates.
+ *
  * @param modifier Modifier for styling and layout of the map view.
  * @param layoutConfig Configuration for the map's layout, such as padding and content alignment.
  * @param mapConfig Configuration for the map's appearance, such as map type and zoom controls.
@@ -63,7 +82,6 @@ private const val FALLBACK_PADDING_RATIO = 3
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
- *
  */
 @Composable
 fun W3WMapBox(
@@ -244,6 +262,16 @@ fun W3WMapBox(
                 it.mapboxMap.setBounds(cameraBounds)
             }
 
+            // Fix for dual-pane/split-screen gesture handling.
+            // See class KDoc for full explanation.
+            @Suppress("ClickableViewAccessibility")
+            it.setOnTouchListener { view, event ->
+                val correctedEvent = createCorrectedMotionEvent(event)
+                view.onTouchEvent(correctedEvent)
+                correctedEvent.recycle()
+                true
+            }
+
             it.mapboxMap.subscribeMapIdle {
                 if (state.cameraState.isCameraMoving) {
                     state.cameraState.isCameraMoving = false
@@ -326,4 +354,50 @@ fun updateGridBound(
     )
 
     onCameraBoundUpdate.invoke(gridBound, visibleBound)
+}
+
+/**
+ * Creates a corrected [MotionEvent] where raw coordinates (getRawX/getRawY) match
+ * the view-local coordinates (getX/getY).
+ *
+ * This fixes an issue on automotive dual-pane displays where getRawX/getRawY returns
+ * display-absolute coordinates (offset by the pane position, e.g. ~2880px) while
+ * getX/getY correctly returns view-relative coordinates. Mapbox's gesture handler
+ * uses getRawX/getRawY for focal point calculations, which breaks gesture handling
+ * when the app window has a non-zero display offset.
+ *
+ * By creating a new MotionEvent from PointerCoords (which contain view-local positions),
+ * both raw and cooked coordinates will be identical and view-relative.
+ *
+ * @param event The original MotionEvent with potentially mismatched raw/local coordinates
+ * @return A new MotionEvent where getRawX() == getX() and getRawY() == getY()
+ */
+private fun createCorrectedMotionEvent(event: MotionEvent): MotionEvent {
+    val pointerCount = event.pointerCount
+    val pointerProperties = Array(pointerCount) { i ->
+        MotionEvent.PointerProperties().also { props ->
+            event.getPointerProperties(i, props)
+        }
+    }
+    val pointerCoords = Array(pointerCount) { i ->
+        MotionEvent.PointerCoords().also { coords ->
+            event.getPointerCoords(i, coords)
+        }
+    }
+    return MotionEvent.obtain(
+        event.downTime,
+        event.eventTime,
+        event.action,
+        pointerCount,
+        pointerProperties,
+        pointerCoords,
+        event.metaState,
+        event.buttonState,
+        event.xPrecision,
+        event.yPrecision,
+        event.deviceId,
+        event.edgeFlags,
+        event.source,
+        event.flags
+    )
 }
