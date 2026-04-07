@@ -1,5 +1,6 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
+import android.os.Build
 import android.util.Log
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.core.view.doOnLayout
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
@@ -82,6 +84,8 @@ private const val FALLBACK_PADDING_RATIO = 3
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
+ * @param onMapLoaded Callback invoked when the Mapbox map has finished loading and is ready for use.
+ *
  */
 @Composable
 fun W3WMapBox(
@@ -94,6 +98,7 @@ fun W3WMapBox(
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
     var mapView: MapView? by remember {
@@ -291,6 +296,8 @@ fun W3WMapBox(
                     onMapProjectionUpdated?.invoke(W3WMapBoxMapProjection(map))
                 }
             }
+
+            onMapLoaded?.invoke()
         }
 
         W3WMapBoxDrawer(
