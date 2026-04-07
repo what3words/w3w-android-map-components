@@ -1,6 +1,5 @@
 package com.what3words.components.compose.maps.providers.mapbox
 
-import android.os.Build
 import android.util.Log
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.padding
@@ -13,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.core.view.doOnLayout
 import com.mapbox.common.toValue
 import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
