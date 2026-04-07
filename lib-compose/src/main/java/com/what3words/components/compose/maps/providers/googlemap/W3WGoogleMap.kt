@@ -50,6 +50,8 @@ import kotlin.math.roundToInt
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
+ * @param onMapLoaded Callback invoked when the Google Map has finished loading and
+ *   [com.google.android.gms.maps.CameraUpdateFactory] is safe to use.
  *
  */
 @OptIn(MapsComposeExperimentalApi::class)
@@ -64,6 +66,7 @@ fun W3WGoogleMap(
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
@@ -143,6 +146,7 @@ fun W3WGoogleMap(
         cameraPositionState = cameraPositionState,
         contentPadding = layoutConfig.contentPadding,
         mapColorScheme = if (state.isDarkMode) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
+        onMapLoaded = { onMapLoaded?.invoke() },
         uiSettings = MapUiSettings(
             compassEnabled = mapConfig.isCompassButtonEnabled,
             indoorLevelPickerEnabled = false,

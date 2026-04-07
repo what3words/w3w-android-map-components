@@ -82,6 +82,8 @@ private const val FALLBACK_PADDING_RATIO = 3
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
+ * @param onMapLoaded Callback invoked when the Mapbox map has finished loading and is ready for use.
+ *
  */
 @Composable
 fun W3WMapBox(
@@ -94,6 +96,7 @@ fun W3WMapBox(
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
     var mapView: MapView? by remember {
@@ -291,6 +294,8 @@ fun W3WMapBox(
                     onMapProjectionUpdated?.invoke(W3WMapBoxMapProjection(map))
                 }
             }
+
+            onMapLoaded?.invoke()
         }
 
         W3WMapBoxDrawer(

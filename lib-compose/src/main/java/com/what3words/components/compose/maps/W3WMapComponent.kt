@@ -65,6 +65,8 @@ import kotlinx.coroutines.launch
  * @param locationSource optional source for fetching user location.
  * @param content composable content to display over the map.
  * @param onError callback for error occurrences.
+ * @param onMapLoaded callback invoked when the map has finished loading and is ready for camera
+ *   operations (e.g. safe to use [com.google.android.gms.maps.CameraUpdateFactory]).
  */
 @Composable
 fun W3WMapComponent(
@@ -79,6 +81,7 @@ fun W3WMapComponent(
     locationSource: W3WLocationSource? = null,
     content: (@Composable () -> Unit)? = null,
     onError: ((W3WError) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
 ) {
 
     val mapState by mapManager.mapState.collectAsState()
@@ -165,7 +168,8 @@ fun W3WMapComponent(
                 mapManager.updateCameraState(it)
             }
         },
-        onError = onError
+        onError = onError,
+        onMapLoaded = onMapLoaded
     )
 }
 
@@ -196,6 +200,8 @@ fun W3WMapComponent(
  * @param onMapProjectionProvided Callback providing map projection updates.
  * @param onMapViewPortProvided Callback providing map viewport updates.
  * @param onRecallButtonPositionProvided Callback providing recall button position.
+ * @param onMapLoaded Callback invoked when the map has finished loading and is ready for camera
+ *   operations (e.g. safe to use [com.google.android.gms.maps.CameraUpdateFactory]).
  */
 @Composable
 fun W3WMapComponent(
@@ -218,6 +224,7 @@ fun W3WMapComponent(
     onMapProjectionProvided: ((W3WMapProjection) -> Unit)? = null,
     onMapViewPortProvided: ((W3WGridScreenCell) -> Unit)? = null,
     onRecallButtonPositionProvided: ((PointF) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
 ) {
     W3WMapContent(
         modifier = modifier,
@@ -254,7 +261,8 @@ fun W3WMapComponent(
         },
         onRecallButtonPositionProvided = {
             onRecallButtonPositionProvided?.invoke(it)
-        }
+        },
+        onMapLoaded = onMapLoaded
     )
 }
 
@@ -288,6 +296,7 @@ fun W3WMapComponent(
  * @param onMapProjectionUpdated Callback providing map projection updates.
  * @param onMapViewPortProvided Callback providing map viewport updates.
  * @param onRecallButtonPositionProvided Callback providing recall button position.
+ * @param onMapLoaded Callback invoked when the map has finished loading and is ready for camera operations.
  */
 @Composable
 internal fun W3WMapContent(
@@ -310,6 +319,7 @@ internal fun W3WMapContent(
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
     onMapViewPortProvided: (W3WGridScreenCell) -> Unit,
     onRecallButtonPositionProvided: ((PointF) -> Unit),
+    onMapLoaded: (() -> Unit)? = null,
 ) {
     var bounds by remember { mutableStateOf(Rect.Zero) }
 
@@ -390,7 +400,8 @@ internal fun W3WMapContent(
             onMapClicked = onMapClicked,
             content = content,
             onCameraUpdated = onCameraUpdated,
-            onMapProjectionUpdated = onMapProjectionUpdated
+            onMapProjectionUpdated = onMapProjectionUpdated,
+            onMapLoaded = onMapLoaded
         )
 
         MapButtons(
@@ -427,6 +438,7 @@ internal fun W3WMapContent(
  * @param onMapClicked Callback invoked when the user clicks on the map.
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
+ * @param onMapLoaded Callback invoked when the map has finished loading and is ready for camera operations.
  */
 @Composable
 internal fun W3WMapView(
@@ -441,6 +453,7 @@ internal fun W3WMapView(
     onMapClicked: ((W3WCoordinates) -> Unit),
     onCameraUpdated: (W3WCameraState<*>) -> Unit,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
+    onMapLoaded: (() -> Unit)? = null,
 ) {
     when (mapProvider) {
         MapProvider.GOOGLE_MAP -> {
@@ -454,7 +467,8 @@ internal fun W3WMapView(
                 onMapClicked = onMapClicked,
                 onMarkerClicked = onMarkerClicked,
                 onCameraUpdated = onCameraUpdated,
-                onMapProjectionUpdated = onMapProjectionUpdated
+                onMapProjectionUpdated = onMapProjectionUpdated,
+                onMapLoaded = onMapLoaded
             )
         }
 
@@ -469,7 +483,8 @@ internal fun W3WMapView(
                 onMapClicked = onMapClicked,
                 onMarkerClicked = onMarkerClicked,
                 onCameraUpdated = onCameraUpdated,
-                onMapProjectionUpdated = onMapProjectionUpdated
+                onMapProjectionUpdated = onMapProjectionUpdated,
+                onMapLoaded = onMapLoaded
             )
         }
     }
