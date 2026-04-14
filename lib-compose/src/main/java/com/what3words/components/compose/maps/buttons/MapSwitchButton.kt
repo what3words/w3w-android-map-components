@@ -66,8 +66,9 @@ internal fun MapSwitchButton(
             painter = painterResource(
                 id = when (mapType) {
                     W3WMapType.NORMAL -> R.drawable.ic_map_satellite
+                    W3WMapType.TERRAIN -> R.drawable.ic_map_satellite
                     W3WMapType.SATELLITE -> R.drawable.ic_map_normal
-                    else -> R.drawable.ic_map_satellite
+                    W3WMapType.HYBRID -> R.drawable.ic_map_normal
                 }
             ),
             contentDescription = contentDescription.mapSwitchButtonDescription,
