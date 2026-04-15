@@ -21,6 +21,7 @@ import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
+import com.mapbox.maps.MapboxExperimental
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
@@ -59,8 +60,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
 
-import com.mapbox.maps.MapboxExperimental
-
 /**
  * Main drawer component for rendering what3words elements on a Mapbox map.
  *
@@ -72,6 +71,7 @@ import com.mapbox.maps.MapboxExperimental
  * @param mapConfig Configuration settings for the map
  * @param mapColor Color settings for map elements
  * @param onMarkerClicked Callback invoked when a marker is clicked
+ * @param onGridDrawn Callback invoked when the grid overlay is rendered
  */
 @Composable
 @MapboxMapComposable
@@ -79,7 +79,8 @@ fun W3WMapBoxDrawer(
     state: W3WMapState,
     mapConfig: W3WMapDefaults.MapConfig,
     mapColor: W3WMapDefaults.MapColor,
-    onMarkerClicked: (W3WMarker) -> Unit
+    onMarkerClicked: (W3WMarker) -> Unit,
+    onGridDrawn: (() -> Unit)? = null,
 ) {
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
@@ -93,7 +94,8 @@ fun W3WMapBoxDrawer(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
                 gridLineColor = mapColor.gridLineColor,
-                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth,
+                onGridDrawn = onGridDrawn,
             )
         }
 
@@ -193,6 +195,8 @@ fun W3WMapBoxDrawer(
  * @param verticalLines List of coordinates representing vertical grid lines
  * @param horizontalLines List of coordinates representing horizontal grid lines
  * @param gridLineColor Color to use when drawing the grid lines
+ * @param gridLineWidth Width of the rendered grid lines
+ * @param onGridDrawn Callback invoked after grid lines are rendered
  */
 @Composable
 @MapboxMapComposable
@@ -201,8 +205,11 @@ fun W3WMapBoxDrawGridLines(
     horizontalLines: List<W3WCoordinates>,
     gridLineColor: Color,
     gridLineWidth: Dp,
+    onGridDrawn: (() -> Unit)? = null,
 ) {
-    val verticalSourceState = remember(horizontalLines) {
+    val currentOnGridDrawn by rememberUpdatedState(onGridDrawn)
+
+    val verticalSourceState = remember(verticalLines) {
         GeoJsonSourceState(
             sourceId = "vertical-grid-source"
         ).apply {
@@ -245,6 +252,10 @@ fun W3WMapBoxDrawGridLines(
             lineWidth = DoubleValue(gridLineWidth.value.toDouble())
             lineColor = ColorValue(gridLineColor)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        currentOnGridDrawn?.invoke()
     }
 
     // Add line layers for vertical lines
