@@ -207,6 +207,8 @@ fun W3WMapBoxDrawGridLines(
     gridLineWidth: Dp,
     onGridDrawn: (() -> Unit)? = null,
 ) {
+    val currentOnGridDrawn by rememberUpdatedState(onGridDrawn)
+
     val verticalSourceState = remember(verticalLines) {
         GeoJsonSourceState(
             sourceId = "vertical-grid-source"
@@ -252,10 +254,8 @@ fun W3WMapBoxDrawGridLines(
         }
     }
 
-    LaunchedEffect(verticalLines, horizontalLines) {
-        if (verticalLines.isNotEmpty() || horizontalLines.isNotEmpty()) {
-            onGridDrawn?.invoke()
-        }
+    LaunchedEffect(Unit) {
+        currentOnGridDrawn?.invoke()
     }
 
     // Add line layers for vertical lines

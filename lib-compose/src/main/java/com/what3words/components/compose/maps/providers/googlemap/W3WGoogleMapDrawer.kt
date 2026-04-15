@@ -189,6 +189,8 @@ fun W3WGoogleMapDrawGridLines(
     gridLineWidth: Dp,
     onGridDrawn: (() -> Unit)? = null,
 ) {
+    val currentOnGridDrawn by rememberUpdatedState(onGridDrawn)
+
     val horizontalPolylines = remember(horizontalLines) {
         horizontalLines.map { LatLng(it.lat, it.lng) }
     }
@@ -197,10 +199,8 @@ fun W3WGoogleMapDrawGridLines(
         verticalLines.map { LatLng(it.lat, it.lng) }
     }
 
-    LaunchedEffect(horizontalPolylines, verticalPolylines) {
-        if (horizontalPolylines.isNotEmpty() || verticalPolylines.isNotEmpty()) {
-            onGridDrawn?.invoke()
-        }
+    LaunchedEffect(Unit) {
+        currentOnGridDrawn?.invoke()
     }
 
     Polyline(
