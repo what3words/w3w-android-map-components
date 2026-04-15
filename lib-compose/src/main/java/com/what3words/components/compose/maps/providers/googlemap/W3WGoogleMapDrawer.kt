@@ -47,6 +47,9 @@ import kotlinx.collections.immutable.toPersistentList
  *
  * @param state The [W3WMapState] object that holds the state of the map, including grid lines configuration.
  * @param mapConfig The [W3WMapDefaults.MapConfig] object that holds the configuration for the map, including styling options.
+ * @param mapColor The [W3WMapDefaults.MapColor] styling used for markers and grid lines.
+ * @param onMarkerClicked Callback invoked when a marker is tapped.
+ * @param onGridDrawn Callback invoked when the grid overlay is rendered.
  *
  */
 @Composable
@@ -55,7 +58,8 @@ fun W3WGoogleMapDrawer(
     state: W3WMapState,
     mapConfig: W3WMapDefaults.MapConfig,
     mapColor: W3WMapDefaults.MapColor,
-    onMarkerClicked: (W3WMarker) -> Unit
+    onMarkerClicked: (W3WMarker) -> Unit,
+    onGridDrawn: (() -> Unit)? = null,
 ) {
     state.cameraState?.let { cameraState ->
         val shouldDrawGrid = remember(mapConfig, cameraState.getZoomLevel()) {
@@ -70,7 +74,8 @@ fun W3WGoogleMapDrawer(
                 verticalLines = state.gridLines.verticalLines,
                 horizontalLines = state.gridLines.horizontalLines,
                 gridLineColor = mapColor.gridLineColor,
-                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth
+                gridLineWidth = mapConfig.gridLineConfig.gridLineWidth,
+                onGridDrawn = onGridDrawn,
             )
         }
 
@@ -172,6 +177,8 @@ fun W3WGoogleMapDrawer(
  * @param verticalLines List of coordinates representing vertical grid lines
  * @param horizontalLines List of coordinates representing horizontal grid lines
  * @param gridLineColor Color to use when drawing the grid lines
+ * @param gridLineWidth Width of the rendered grid lines
+ * @param onGridDrawn Callback invoked after grid lines are rendered
  */
 @Composable
 @GoogleMapComposable
@@ -179,7 +186,8 @@ fun W3WGoogleMapDrawGridLines(
     verticalLines: List<W3WCoordinates>,
     horizontalLines: List<W3WCoordinates>,
     gridLineColor: Color,
-    gridLineWidth: Dp
+    gridLineWidth: Dp,
+    onGridDrawn: (() -> Unit)? = null,
 ) {
     val horizontalPolylines = remember(horizontalLines) {
         horizontalLines.map { LatLng(it.lat, it.lng) }
@@ -187,6 +195,12 @@ fun W3WGoogleMapDrawGridLines(
 
     val verticalPolylines = remember(verticalLines) {
         verticalLines.map { LatLng(it.lat, it.lng) }
+    }
+
+    LaunchedEffect(horizontalPolylines, verticalPolylines) {
+        if (horizontalPolylines.isNotEmpty() || verticalPolylines.isNotEmpty()) {
+            onGridDrawn?.invoke()
+        }
     }
 
     Polyline(
