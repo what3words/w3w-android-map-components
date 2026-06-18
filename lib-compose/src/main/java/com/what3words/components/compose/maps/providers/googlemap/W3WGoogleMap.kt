@@ -52,6 +52,7 @@ import kotlin.math.roundToInt
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
  * @param onMapLoaded Callback invoked when the Google Map has finished loading and
  *   [com.google.android.gms.maps.CameraUpdateFactory] is safe to use.
+ * @param onGridDrawn Callback invoked when the grid overlay is rendered.
  *
  */
 @OptIn(MapsComposeExperimentalApi::class)
@@ -67,6 +68,7 @@ fun W3WGoogleMap(
     modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
     onMapLoaded: (() -> Unit)? = null,
+    onGridDrawn: (() -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
@@ -171,7 +173,8 @@ fun W3WGoogleMap(
             state = state,
             mapConfig = mapConfig,
             mapColor = mapColor,
-            onMarkerClicked = onMarkerClicked
+            onMarkerClicked = onMarkerClicked,
+            onGridDrawn = onGridDrawn
         )
 
         movableContent()

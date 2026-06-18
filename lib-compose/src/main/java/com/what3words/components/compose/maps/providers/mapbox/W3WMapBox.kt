@@ -18,7 +18,7 @@ import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
-import com.mapbox.maps.extension.compose.MapEffect
+import com.mapbox.maps.extension.compose.DisposableMapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.rememberMapState
 import com.mapbox.maps.extension.compose.style.BooleanValue
@@ -83,6 +83,8 @@ private const val FALLBACK_PADDING_RATIO = 3
  * @param onCameraUpdated Callback invoked when the camera position is updated.
  * @param onMapProjectionUpdated Callback invoked when the map projection is updated.
  * @param onMapLoaded Callback invoked when the Mapbox map has finished loading and is ready for use.
+ * @param onGridDrawn Callback invoked when the grid overlay is rendered at a zoom level
+ *   where grid lines are enabled.
  *
  */
 @Composable
@@ -97,6 +99,7 @@ fun W3WMapBox(
     modifier: Modifier = Modifier,
     onMapProjectionUpdated: ((W3WMapProjection) -> Unit)? = null,
     onMapLoaded: (() -> Unit)? = null,
+    onGridDrawn: (() -> Unit)? = null,
     content: (@Composable () -> Unit)? = null
 ) {
     var mapView: MapView? by remember {
@@ -250,7 +253,7 @@ fun W3WMapBox(
             )
         }
     ) {
-        MapEffect(Unit) {
+        DisposableMapEffect(Unit) {
             val cameraBounds = CameraBoundsOptions.Builder()
                 // Zoom out to continent level only, prevent zooming to the Earth. Zoom levels detail: https://docs.mapbox.com/help/glossary/zoom-level/
                 .minZoom(MAPBOX_MIN_ZOOM_LEVEL)
@@ -275,14 +278,14 @@ fun W3WMapBox(
                 true
             }
 
-            it.mapboxMap.subscribeMapIdle {
+            val mapIdleCancellable = it.mapboxMap.subscribeMapIdle {
                 if (state.cameraState.isCameraMoving) {
                     state.cameraState.isCameraMoving = false
                     onCameraUpdated(state.cameraState)
                 }
             }
 
-            it.mapboxMap.subscribeCameraChanged {
+            val cameraChangeCancellable = it.mapboxMap.subscribeCameraChanged {
                 if (!state.cameraState.isCameraMoving) {
                     state.cameraState.isCameraMoving = true
                     onCameraUpdated(state.cameraState)
@@ -296,13 +299,22 @@ fun W3WMapBox(
             }
 
             onMapLoaded?.invoke()
+
+            onDispose {
+                it.location.updateSettings {
+                    this.enabled = false
+                }
+                mapIdleCancellable.cancel()
+                cameraChangeCancellable.cancel()
+            }
         }
 
         W3WMapBoxDrawer(
             state = state,
             mapConfig = mapConfig,
             mapColor = mapColor,
-            onMarkerClicked = onMarkerClicked
+            onMarkerClicked = onMarkerClicked,
+            onGridDrawn = onGridDrawn,
         )
 
         movableContent()
