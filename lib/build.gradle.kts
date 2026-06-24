@@ -1,12 +1,10 @@
-import java.net.URI
 import java.util.Base64
 
 plugins {
     id(libs.plugins.android.library.get().pluginId)
-    id(libs.plugins.kotlin.android.get().pluginId)
     id(libs.plugins.gradle.ktlint.get().pluginId)
-    id(libs.plugins.maven.publish.get().pluginId)
-    id(libs.plugins.signing.get().pluginId)
+    id("maven-publish")
+    id("signing")
     alias(libs.plugins.dokka)
     id(libs.plugins.jreleaser.get().pluginId)
 }
@@ -36,16 +34,18 @@ android {
         }
         named("release") {
             isMinifyEnabled = false
-            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+            setProguardFiles(
+                listOf(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            )
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = libs.versions.jvmTarget.get()
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     testOptions {
@@ -63,15 +63,22 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget =
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(libs.versions.jvmToolchain.get())
+    }
+}
+
 dependencies {
-    implementation(libs.material)
+    implementation(libs.android.material)
     // what3words
-    api(libs.what3words.api.wrapper)
+    api(libs.w3w.android.wrapper)
 
     // Google maps
-    compileOnly(libs.googlemap.playservice)
-    compileOnly(libs.googlemap.utils)
-    testImplementation(libs.googlemap.playservice)
+    compileOnly(libs.gms.maps)
+    compileOnly(libs.googleMaps.utils)
+    testImplementation(libs.gms.maps)
 
     // Mapbox
     compileOnly(libs.mapbox.v10)
@@ -82,11 +89,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 
     // Testing
-    testImplementation(libs.junit4)
-    testImplementation(libs.androidx.core)
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.androidx.arch.core.testing)
 }
 
 tasks.register("checkSnapshotDependencies") {
@@ -130,7 +137,7 @@ publishing {
                         group = JavaBasePlugin.DOCUMENTATION_GROUP
                         description = "Assembles Kotlin docs with Dokka into a Javadoc jar"
                         archiveClassifier.set("javadoc")
-                        from(tasks.named("dokkaHtml"))
+                        from(tasks.named("dokkaGeneratePublicationHtml"))
 
                         // Each archive name should be distinct, to avoid implicit dependency issues.
                         // We use the same format as the sources Jar tasks.
@@ -208,7 +215,9 @@ jreleaser {
                 create("sonatype") {
                     active.set(org.jreleaser.model.Active.ALWAYS)
                     url.set("https://central.sonatype.com/api/v1/publisher")
-                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
+                    stagingRepository(
+                        layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                    )
                     username.set(findProperty("MAVEN_CENTRAL_USERNAME")?.toString())
                     password.set(findProperty("MAVEN_CENTRAL_PASSWORD")?.toString())
                     verifyPom.set(false)

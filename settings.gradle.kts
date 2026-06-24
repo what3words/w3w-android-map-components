@@ -8,6 +8,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven {
@@ -19,6 +20,18 @@ dependencyResolutionManagement {
             authentication.create<BasicAuthentication>("basic")
         }
         maven(url = "https://s01.oss.sonatype.org/content/repositories/snapshots/")
+        maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
+    }
+    versionCatalogs {
+        create("libs") {
+            from("com.what3words:android-version-catalog:2026.06.01")
+
+            // Pin minSdk to 24
+            version("minSdk", "24")
+
+            // Only used in :lib project, keep it away from remote catalog.
+            library("mapbox-v10", "com.mapbox.maps:android-ndk27:10.19.0")
+        }
     }
 }
 rootProject.name = "w3w-android-components-maps"

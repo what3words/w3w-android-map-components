@@ -1,17 +1,15 @@
-import java.net.URI
 import java.util.Base64
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
-    id(libs.plugins.maven.publish.get().pluginId)
-    id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
     alias(libs.plugins.compose.compiler)
-    id(libs.plugins.kotlin.parcelize.get().pluginId)
     id(libs.plugins.jreleaser.get().pluginId)
-    id(libs.plugins.jacoco.get().pluginId)
+    id("maven-publish")
+    id("signing")
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("jacoco")
 }
 
 /**
@@ -20,7 +18,11 @@ plugins {
  */
 val isSnapshotRelease = findProperty("IS_SNAPSHOT_RELEASE") == "true"
 version =
-    if (isSnapshotRelease) "${findProperty("LIBRARY_COMPOSE_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_COMPOSE_VERSION")}"
+    if (isSnapshotRelease) "${findProperty("LIBRARY_COMPOSE_VERSION")}-SNAPSHOT" else "${
+        findProperty(
+            "LIBRARY_COMPOSE_VERSION"
+        )
+    }"
 
 android {
     namespace = "com.what3words.map.components.compose"
@@ -28,7 +30,11 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
-        buildConfigField("String", "LIBRARY_VERSION", "\"${findProperty("LIBRARY_COMPOSE_VERSION")}\"")
+        buildConfigField(
+            "String",
+            "LIBRARY_VERSION",
+            "\"${findProperty("LIBRARY_COMPOSE_VERSION")}\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -47,16 +53,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    kotlinOptions {
-        jvmTarget = libs.versions.jvmTarget.get()
     }
 
     publishing {
@@ -66,8 +68,15 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget =
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(libs.versions.jvmToolchain.get())
+    }
+}
+
 jacoco {
-    toolVersion = libs.versions.jacocoVersion.get()
+    toolVersion = libs.versions.jacoco.core.get()
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
@@ -100,7 +109,12 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
-    sourceDirectories.setFrom(files("${project.projectDir}/src/main/java", "${project.projectDir}/src/main/kotlin"))
+    sourceDirectories.setFrom(
+        files(
+            "${project.projectDir}/src/main/java",
+            "${project.projectDir}/src/main/kotlin"
+        )
+    )
     classDirectories.setFrom(files(javaTree, kotlinTree))
     executionData.setFrom(fileTree("${buildDir}/outputs/unit_test_code_coverage/debugUnitTest").apply {
         include("testDebugUnitTest.exec")
@@ -131,22 +145,22 @@ tasks.register("checkSnapshotDependencies") {
 
 dependencies {
     // Material
-    implementation(libs.material)
+    implementation(libs.android.material)
     implementation(libs.accompanist.permissions)
 
     // what3words
-    api(libs.what3words.api.wrapper)
-    api(libs.what3words.designLibrary)
+    api(libs.w3w.android.wrapper)
+    api(libs.w3w.android.design.library)
 
     // Google maps
-    compileOnly(libs.googlemap.playservice)
-    compileOnly(libs.googlemap.utils)
-    testImplementation(libs.googlemap.playservice)
-    implementation(libs.googlemap.compose)
+    compileOnly(libs.gms.maps)
+    compileOnly(libs.googleMaps.utils)
+    testImplementation(libs.gms.maps)
+    implementation(libs.googleMaps.compose)
 
     // Mapbox
-    implementation(libs.mapbox.v11)
-    implementation(libs.extension.mapbox.compose)
+    implementation(libs.mapbox.ndk27)
+    implementation(libs.mapbox.mapsCompose)
 
     // kotlin
     implementation(libs.kotlinx.coroutines.core)
@@ -157,19 +171,19 @@ dependencies {
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.compose.material3)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.material.extended.icons)
-    implementation(libs.compose.ui.viewbinding)
-    debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.compose.material.icons)
+    implementation(libs.androidx.compose.ui.viewbinding)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.ui.tooling.preview)
 
     // Testing
-    testImplementation(libs.junit4)
-    testImplementation(libs.androidx.core)
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.androidx.arch.core.testing)
 }
 
 //region publishing
@@ -191,7 +205,7 @@ publishing {
                         group = JavaBasePlugin.DOCUMENTATION_GROUP
                         description = "Assembles Kotlin docs with Dokka into a Javadoc jar"
                         archiveClassifier.set("javadoc")
-                        from(tasks.named("dokkaHtml"))
+                        from(tasks.named("dokkaGeneratePublicationHtml"))
 
                         // Each archive name should be distinct, to avoid implicit dependency issues.
                         // We use the same format as the sources Jar tasks.
@@ -269,7 +283,9 @@ jreleaser {
                 create("sonatype") {
                     active.set(org.jreleaser.model.Active.ALWAYS)
                     url.set("https://central.sonatype.com/api/v1/publisher")
-                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
+                    stagingRepository(
+                        layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                    )
                     username.set(findProperty("MAVEN_CENTRAL_USERNAME")?.toString())
                     password.set(findProperty("MAVEN_CENTRAL_PASSWORD")?.toString())
                     verifyPom.set(false)
