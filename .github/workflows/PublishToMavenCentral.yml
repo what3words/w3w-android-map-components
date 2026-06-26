@@ -3,7 +3,7 @@ name: Publish Release
 on:
   push:
     branches:
-      - 'staging'
+      - 'main'   # Publishes an official release to Maven Central
   workflow_dispatch:    # Allow manual triggering
 
 jobs:
@@ -21,18 +21,19 @@ jobs:
       - name: Get changed files
         id: changes
         run: |
-          # Get the last successful commit on the default branch
-          git fetch origin main
-          LAST_SUCCESSFUL_COMMIT=$(git rev-parse origin/main)
+          # Diff the commits introduced by this push to main.
+          BASE="${{ github.event.before }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE=$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)
+          fi
 
-          # Compare changes between current commit and last successful commit
-          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib/"; then
+          if git diff --name-only HEAD "$BASE" | grep -q "^lib/"; then
             echo "lib=true" >> $GITHUB_OUTPUT
           else
             echo "lib=false" >> $GITHUB_OUTPUT
           fi
 
-          if git diff --name-only HEAD $LAST_SUCCESSFUL_COMMIT | grep -q "^lib-compose/"; then
+          if git diff --name-only HEAD "$BASE" | grep -q "^lib-compose/"; then
             echo "lib-compose=true" >> $GITHUB_OUTPUT
           else
             echo "lib-compose=false" >> $GITHUB_OUTPUT
@@ -62,44 +63,37 @@ jobs:
 
       - name: Create Gradle Properties
         env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          W3W_GPG_SECRET_KEY: ${{ secrets.W3W_GPG_SECRET_KEY }}
-          W3W_GPG_PASSPHRASE: ${{ secrets.W3W_GPG_PASSPHRASE }}
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         shell: bash
         run: |
           mkdir -p ~/.gradle/
           echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
-          # Central Portal credentials (read by the vanniktech maven-publish plugin)
-          echo "mavenCentralUsername=${MAVEN_CENTRAL_USERNAME}" >> ~/.gradle/gradle.properties
-          echo "mavenCentralPassword=${MAVEN_CENTRAL_PASSWORD}" >> ~/.gradle/gradle.properties
-          # In-memory GPG signing (the secret key is base64-encoded; vanniktech decodes it)
-          echo "signingInMemoryKey=${W3W_GPG_SECRET_KEY}" >> ~/.gradle/gradle.properties
-          echo "signingInMemoryKeyPassword=${W3W_GPG_PASSPHRASE}" >> ~/.gradle/gradle.properties
           echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}" >> ~/.gradle/gradle.properties
+
+      - name: Check for SNAPSHOT dependencies
+        run: ./gradlew :lib:checkSnapshotDependencies
 
       - name: Clean build
         run: ./gradlew clean
 
       - name: Publish to Maven Central
         run: ./gradlew :lib:publishToMavenCentral
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          IS_SNAPSHOT=$(grep '^IS_SNAPSHOT_RELEASE=' gradle.properties | cut -d'=' -f2 | tr -d ' ')
           VERSION=$(grep '^LIBRARY_VERSION=' gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          if [[ "$IS_SNAPSHOT" == "true" || "$VERSION" == *SNAPSHOT* ]]; then
-            echo "Snapshot release ($VERSION); skipping GitHub release."
-            exit 0
-          fi
           TAG="v${VERSION}"
           # Overwrite any existing release/tag (matches the previous jReleaser overwrite behaviour)
           gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --latest --generate-notes
 
   publish-lib-compose:
     needs: detect-changes
@@ -125,41 +119,34 @@ jobs:
 
       - name: Create Gradle Properties
         env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          W3W_GPG_SECRET_KEY: ${{ secrets.W3W_GPG_SECRET_KEY }}
-          W3W_GPG_PASSPHRASE: ${{ secrets.W3W_GPG_PASSPHRASE }}
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         shell: bash
         run: |
           mkdir -p ~/.gradle/
           echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
-          # Central Portal credentials (read by the vanniktech maven-publish plugin)
-          echo "mavenCentralUsername=${MAVEN_CENTRAL_USERNAME}" >> ~/.gradle/gradle.properties
-          echo "mavenCentralPassword=${MAVEN_CENTRAL_PASSWORD}" >> ~/.gradle/gradle.properties
-          # In-memory GPG signing (the secret key is base64-encoded; vanniktech decodes it)
-          echo "signingInMemoryKey=${W3W_GPG_SECRET_KEY}" >> ~/.gradle/gradle.properties
-          echo "signingInMemoryKeyPassword=${W3W_GPG_PASSPHRASE}" >> ~/.gradle/gradle.properties
           echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}" >> ~/.gradle/gradle.properties
+
+      - name: Check for SNAPSHOT dependencies
+        run: ./gradlew :lib-compose:checkSnapshotDependencies
 
       - name: Clean build
         run: ./gradlew clean
 
       - name: Publish to Maven Central
         run: ./gradlew :lib-compose:publishToMavenCentral
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          IS_SNAPSHOT=$(grep '^IS_SNAPSHOT_RELEASE=' gradle.properties | cut -d'=' -f2 | tr -d ' ')
           VERSION=$(grep '^LIBRARY_COMPOSE_VERSION=' gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          if [[ "$IS_SNAPSHOT" == "true" || "$VERSION" == *SNAPSHOT* ]]; then
-            echo "Snapshot release ($VERSION); skipping GitHub release."
-            exit 0
-          fi
-          TAG="v${VERSION}"
+          TAG="v${VERSION}-compose"
           # Overwrite any existing release/tag (matches the previous jReleaser overwrite behaviour)
           gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --latest --generate-notes
