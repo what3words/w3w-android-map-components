@@ -148,8 +148,8 @@ jobs:
         run: |
           mkdir -p ~/.gradle/
           echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
-          echo "MAVEN_CENTRAL_USERNAME=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
-          echo "MAVEN_CENTRAL_PASSWORD=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "mavenCentralUsername=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
+          echo "mavenCentralPassword=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
           echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
           echo "IS_SNAPSHOT_RELEASE=true">> ~/.gradle/gradle.properties
           cat ~/.gradle/gradle.properties
@@ -163,7 +163,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Publish SNAPSHOT
-        run: ./gradlew lib:publishMavenPublicationToSonatypeSnapshotsRepository
+        run: ./gradlew :lib:publishToMavenCentral
   snapshot-compose-lib:
     # This job must explicitly depend on build_test and detect-changes
     needs: [build_test, detect-changes]
@@ -196,8 +196,8 @@ jobs:
         run: |
           mkdir -p ~/.gradle/
           echo "GRADLE_USER_HOME=${HOME}/.gradle" >> $GITHUB_ENV
-          echo "MAVEN_CENTRAL_USERNAME=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
-          echo "MAVEN_CENTRAL_PASSWORD=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
+          echo "mavenCentralUsername=${MAVEN_CENTRAL_USERNAME}">> ~/.gradle/gradle.properties
+          echo "mavenCentralPassword=${MAVEN_CENTRAL_PASSWORD}">> ~/.gradle/gradle.properties
           echo "MAPBOX_DOWNLOADS_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}">> ~/.gradle/gradle.properties
           echo "IS_SNAPSHOT_RELEASE=true">> ~/.gradle/gradle.properties
           cat ~/.gradle/gradle.properties
@@ -211,4 +211,4 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Publish SNAPSHOT
-        run: ./gradlew lib-compose:publishMavenPublicationToSonatypeSnapshotsRepository
+        run: ./gradlew :lib-compose:publishToMavenCentral

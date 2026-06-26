@@ -8,7 +8,6 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
         maven {
@@ -19,7 +18,6 @@ dependencyResolutionManagement {
             credentials.password = providers.gradleProperty("MAPBOX_DOWNLOADS_TOKEN").get()
             authentication.create<BasicAuthentication>("basic")
         }
-        maven(url = "https://s01.oss.sonatype.org/content/repositories/snapshots/")
         maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
     }
     versionCatalogs {
