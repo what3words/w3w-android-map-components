@@ -72,17 +72,21 @@ fun W3WGoogleMap(
     content: (@Composable () -> Unit)? = null
 ) {
     // Update the map properties based on map type, isMyLocationEnabled, and dark mode
-    val mapProperties = remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
-        MapProperties(
-            isBuildingEnabled = mapConfig.isBuildingEnable,
-            isIndoorEnabled = false,
-            mapType = state.mapType.toGoogleMapType(),
-            isMyLocationEnabled = state.isMyLocationEnabled,
-            mapStyleOptions = if (state.isDarkMode) mapConfig.darkModeCustomJsonStyle?.let {
-                MapStyleOptions(
-                    it
-                )
-            } else null
+    val mapProperties by remember(state.mapType, state.isMyLocationEnabled, state.isDarkMode) {
+        mutableStateOf(
+            MapProperties(
+                isBuildingEnabled = mapConfig.isBuildingEnable,
+                isIndoorEnabled = false,
+                mapType = state.mapType.toGoogleMapType(),
+                isMyLocationEnabled = state.isMyLocationEnabled,
+                mapStyleOptions = if (state.isDarkMode) mapConfig.darkModeCustomJsonStyle?.let {
+                    MapStyleOptions(
+                        it
+                    )
+                } else {
+                    null
+                }
+            )
         )
     }
 
