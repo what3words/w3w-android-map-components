@@ -1,17 +1,15 @@
-import java.net.URI
-import java.util.Base64
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
-    id(libs.plugins.maven.publish.get().pluginId)
-    id(libs.plugins.signing.get().pluginId)
     alias(libs.plugins.dokka)
     alias(libs.plugins.compose.compiler)
-    id(libs.plugins.kotlin.parcelize.get().pluginId)
-    id(libs.plugins.jreleaser.get().pluginId)
-    id(libs.plugins.jacoco.get().pluginId)
+    alias(libs.plugins.vanniktech.maven.publish)
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("jacoco")
 }
 
 /**
@@ -20,7 +18,11 @@ plugins {
  */
 val isSnapshotRelease = findProperty("IS_SNAPSHOT_RELEASE") == "true"
 version =
-    if (isSnapshotRelease) "${findProperty("LIBRARY_COMPOSE_VERSION")}-SNAPSHOT" else "${findProperty("LIBRARY_COMPOSE_VERSION")}"
+    if (isSnapshotRelease) "${findProperty("LIBRARY_COMPOSE_VERSION")}-SNAPSHOT" else "${
+        findProperty(
+            "LIBRARY_COMPOSE_VERSION"
+        )
+    }"
 
 android {
     namespace = "com.what3words.map.components.compose"
@@ -28,7 +30,11 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
-        buildConfigField("String", "LIBRARY_VERSION", "\"${findProperty("LIBRARY_COMPOSE_VERSION")}\"")
+        buildConfigField(
+            "String",
+            "LIBRARY_VERSION",
+            "\"${findProperty("LIBRARY_COMPOSE_VERSION")}\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -47,27 +53,24 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
+}
 
-    kotlinOptions {
-        jvmTarget = libs.versions.jvmTarget.get()
-    }
-
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
+kotlin {
+    compilerOptions {
+        jvmTarget =
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(libs.versions.jvmToolchain.get())
     }
 }
 
 jacoco {
-    toolVersion = libs.versions.jacocoVersion.get()
+    toolVersion = libs.versions.jacoco.core.get()
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
@@ -100,7 +103,12 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
-    sourceDirectories.setFrom(files("${project.projectDir}/src/main/java", "${project.projectDir}/src/main/kotlin"))
+    sourceDirectories.setFrom(
+        files(
+            "${project.projectDir}/src/main/java",
+            "${project.projectDir}/src/main/kotlin"
+        )
+    )
     classDirectories.setFrom(files(javaTree, kotlinTree))
     executionData.setFrom(fileTree("${buildDir}/outputs/unit_test_code_coverage/debugUnitTest").apply {
         include("testDebugUnitTest.exec")
@@ -131,22 +139,22 @@ tasks.register("checkSnapshotDependencies") {
 
 dependencies {
     // Material
-    implementation(libs.material)
+    implementation(libs.android.material)
     implementation(libs.accompanist.permissions)
 
     // what3words
-    api(libs.what3words.api.wrapper)
-    api(libs.what3words.designLibrary)
+    api(libs.w3w.android.wrapper)
+    api(libs.w3w.android.design.library)
 
     // Google maps
-    compileOnly(libs.googlemap.playservice)
-    compileOnly(libs.googlemap.utils)
-    testImplementation(libs.googlemap.playservice)
-    implementation(libs.googlemap.compose)
+    compileOnly(libs.gms.maps)
+    compileOnly(libs.googleMaps.utils)
+    testImplementation(libs.gms.maps)
+    implementation(libs.googleMaps.compose)
 
     // Mapbox
-    implementation(libs.mapbox.v11)
-    implementation(libs.extension.mapbox.compose)
+    implementation(libs.mapbox.ndk27)
+    implementation(libs.mapbox.mapsCompose)
 
     // kotlin
     implementation(libs.kotlinx.coroutines.core)
@@ -157,125 +165,60 @@ dependencies {
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.compose.material3)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.material.extended.icons)
-    implementation(libs.compose.ui.viewbinding)
-    debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.compose.material.icons)
+    implementation(libs.androidx.compose.ui.viewbinding)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.ui.tooling.preview)
 
     // Testing
-    testImplementation(libs.junit4)
-    testImplementation(libs.androidx.core)
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.androidx.arch.core.testing)
 }
 
 //region publishing
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            afterEvaluate {
-                from(components["release"])
-            }
+mavenPublishing {
+    // Uploads to the Central Portal staging deployment (manual release on the portal),
+    // matching the previous jReleaser UPLOAD stage. SNAPSHOT versions are routed to the
+    // Central snapshots repository automatically.
+    publishToMavenCentral()
+    signAllPublications()
 
-            groupId = "com.what3words"
-            artifactId = "w3w-android-map-components-compose"
-            version = project.version.toString()
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = SourcesJar.Sources(),
+            javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
+        )
+    )
 
-            withType(MavenPublication::class.java) {
-                val publicationName = name
-                val dokkaJar =
-                    project.tasks.register("${publicationName}DokkaJar", Jar::class) {
-                        group = JavaBasePlugin.DOCUMENTATION_GROUP
-                        description = "Assembles Kotlin docs with Dokka into a Javadoc jar"
-                        archiveClassifier.set("javadoc")
-                        from(tasks.named("dokkaHtml"))
+    coordinates("com.what3words", "w3w-android-map-components-compose", project.version.toString())
 
-                        // Each archive name should be distinct, to avoid implicit dependency issues.
-                        // We use the same format as the sources Jar tasks.
-                        // https://youtrack.jetbrains.com/issue/KT-46466
-                        archiveBaseName.set("${archiveBaseName.get()}-$publicationName")
-                    }
-                artifact(dokkaJar)
-                pom {
-                    name.set("w3w-android-map-components-compose")
-                    description.set("Android library to integrate what3words with different map providers.")
-                    url.set("https://github.com/what3words/w3w-android-map-components")
-                    licenses {
-                        license {
-                            name.set("The MIT License (MIT)")
-                            url.set("https://github.com/what3words/w3w-android-map-components/blob/master/LICENSE")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("what3words")
-                            name.set("what3words")
-                            email.set("development@what3words.com")
-                        }
-                    }
-                    scm {
-                        connection.set("scm:git:git://github.com/what3words/w3w-android-map-components.git")
-                        developerConnection.set("scm:git:ssh://git@github.com:what3words/w3w-android-map-components.git")
-                        url.set("https://github.com/what3words/w3w-android-map-components")
-                    }
-                }
-            }
-            // POM metadata
-        }
-    }
-
-    repositories {
-        mavenLocal()
-        maven {
-            name = "sonatypeSnapshots"
-            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            credentials {
-                username = findProperty("MAVEN_CENTRAL_USERNAME") as? String
-                password = findProperty("MAVEN_CENTRAL_PASSWORD") as? String
+    pom {
+        name.set("w3w-android-map-components-compose")
+        description.set("Android library to integrate what3words with different map providers.")
+        url.set("https://github.com/what3words/w3w-android-map-components")
+        licenses {
+            license {
+                name.set("The MIT License (MIT)")
+                url.set("https://github.com/what3words/w3w-android-map-components/blob/master/LICENSE")
             }
         }
-        maven {
-            name = "stagingLocal"
-            url = uri(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
-        }
-    }
-}
-
-jreleaser {
-    release {
-        github {
-            repoOwner = "what3words"
-            overwrite = true
-        }
-    }
-
-    signing {
-        active.set(org.jreleaser.model.Active.ALWAYS)
-        armored.set(true)
-        publicKey.set(
-            findProperty("W3W_GPG_PUBLIC_KEY")?.toString()
-                ?.let { String(Base64.getDecoder().decode(it)) } ?: "")
-        secretKey.set(
-            findProperty("W3W_GPG_SECRET_KEY")?.toString()
-                ?.let { String(Base64.getDecoder().decode(it)) } ?: "")
-        passphrase.set(findProperty("W3W_GPG_PASSPHRASE")?.toString())
-    }
-    deploy {
-        maven {
-            mavenCentral {
-                create("sonatype") {
-                    active.set(org.jreleaser.model.Active.ALWAYS)
-                    url.set("https://central.sonatype.com/api/v1/publisher")
-                    stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
-                    username.set(findProperty("MAVEN_CENTRAL_USERNAME")?.toString())
-                    password.set(findProperty("MAVEN_CENTRAL_PASSWORD")?.toString())
-                    verifyPom.set(false)
-                    setStage(org.jreleaser.model.api.deploy.maven.MavenCentralMavenDeployer.Stage.UPLOAD.toString())
-                }
+        developers {
+            developer {
+                id.set("what3words")
+                name.set("what3words")
+                email.set("development@what3words.com")
             }
+        }
+        scm {
+            connection.set("scm:git:git://github.com/what3words/w3w-android-map-components.git")
+            developerConnection.set("scm:git:ssh://git@github.com:what3words/w3w-android-map-components.git")
+            url.set("https://github.com/what3words/w3w-android-map-components")
         }
     }
 }
