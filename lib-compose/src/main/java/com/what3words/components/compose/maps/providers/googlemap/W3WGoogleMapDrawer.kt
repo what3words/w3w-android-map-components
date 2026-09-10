@@ -104,7 +104,6 @@ fun W3WGoogleMapDrawer(
         if (state.markers.isNotEmpty()) {
             val zoomLevelThreshold =
                 mapConfig.gridLineConfig.zoomSwitchLevel - 2f // buffer 2 zoom levels to ensure it can start calculate the visible markers on time before switching to zoom in drawer.
-            var allMarkersDrawn by remember { mutableStateOf(false) }
             var visibleMarkers by remember {
                 mutableStateOf<ImmutableList<W3WMarker>>(
                     persistentListOf()
@@ -112,26 +111,20 @@ fun W3WGoogleMapDrawer(
             }
 
             LaunchedEffect(cameraState.gridBound, state.markers, cameraState.getZoomLevel()) {
-                val currentZoomLevel = cameraState.getZoomLevel()
-
-                if (currentZoomLevel >= zoomLevelThreshold) {
-                    allMarkersDrawn = false
-                    visibleMarkers = persistentListOf()
+                visibleMarkers = if (cameraState.getZoomLevel() >= zoomLevelThreshold) {
+                    persistentListOf()
+                } else {
+                    visibleMarkers.filter { it in state.markers }.toImmutableList()
                 }
 
-                if (!allMarkersDrawn) {
+                if (visibleMarkers.size < state.markers.size) {
                     val cameraBound = cameraState.gridBound
                     if (cameraBound != null) {
                         val newVisibleMarkers = state.markers.filter {
-                            cameraBound.contains(it.center) &&
-                                    !visibleMarkers.contains(it)
+                            cameraBound.contains(it.center) && it !in visibleMarkers
                         }
 
                         visibleMarkers = (visibleMarkers + newVisibleMarkers).toImmutableList()
-
-                        if (visibleMarkers.size == state.markers.size) {
-                            allMarkersDrawn = true
-                        }
                     }
                 }
             }
