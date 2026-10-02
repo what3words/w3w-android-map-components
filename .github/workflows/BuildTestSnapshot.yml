@@ -86,7 +86,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Accept licenses
         run: yes | sdkmanager --licenses || true
@@ -150,7 +152,9 @@ jobs:
           cache-read-only: false
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Publish SNAPSHOT
         run: ./gradlew :lib:publishToMavenCentral
@@ -212,7 +216,9 @@ jobs:
           cache-read-only: false
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Publish SNAPSHOT
         run: ./gradlew :lib-compose:publishToMavenCentral
