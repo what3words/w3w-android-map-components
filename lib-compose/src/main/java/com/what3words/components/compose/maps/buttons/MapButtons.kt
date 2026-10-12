@@ -38,8 +38,8 @@ import kotlin.math.ceil
  */
 @Composable
 internal fun MapButtons(
-    modifier: Modifier = Modifier,
     buttonState: W3WButtonsState,
+    modifier: Modifier = Modifier,
     mapType: W3WMapType,
     buttonConfig: W3WMapDefaults.ButtonConfig,
     layoutConfig: W3WMapButtonsDefault.ButtonLayoutConfig = defaultButtonLayoutConfig(),

@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
  * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
  * @param mapColors [W3WMapDefaults.MapColor] determines the map's color scheme based on mapType and dark mode.
  * @param locationButtonColor specifies color settings for the location button.
+ * @param buttonContentDescription [W3WMapButtonsDefault.ContentDescription] accessibility descriptions for the map buttons.
  * @param mapManager manages the map's state and interactions.
  * @param textDataSource data source for text related to the map.
  * @param onSelectedSquareChanged callback for when the selected square changes.
@@ -75,6 +76,7 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     locationButtonColor: W3WMapButtonsDefault.LocationButtonColor = defaultLocationButtonColor(),
+    buttonContentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     mapColors: MapColors = defaultMapColors(),
     mapManager: W3WMapManager,
     textDataSource: W3WTextDataSource,
@@ -126,6 +128,7 @@ fun W3WMapComponent(
         mapConfig = currentMapConfig,
         mapColors = mapColors,
         locationButtonColor = locationButtonColor,
+        buttonContentDescription = buttonContentDescription,
         mapProvider = mapManager.mapProvider,
         content = content,
         mapState = mapState,
@@ -191,6 +194,7 @@ fun W3WMapComponent(
  * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
  * @param mapColors [W3WMapDefaults.MapColor] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
  * @param locationButtonColor Color settings for the location button (the button to center on the user's current location).
+ * @param buttonContentDescription [W3WMapButtonsDefault.ContentDescription] accessibility descriptions for the map buttons.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -213,6 +217,7 @@ fun W3WMapComponent(
     layoutConfig: W3WMapDefaults.LayoutConfig = W3WMapDefaults.defaultLayoutConfig(),
     mapConfig: W3WMapDefaults.MapConfig = W3WMapDefaults.defaultMapConfig(),
     locationButtonColor: W3WMapButtonsDefault.LocationButtonColor = defaultLocationButtonColor(),
+    buttonContentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     mapColors: MapColors = defaultMapColors(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
@@ -237,6 +242,7 @@ fun W3WMapComponent(
         mapConfig = mapConfig,
         mapColors = mapColors,
         locationButtonColor = locationButtonColor,
+        buttonContentDescription = buttonContentDescription,
         mapProvider = mapProvider,
         content = content,
         mapState = mapState,
@@ -288,6 +294,7 @@ fun W3WMapComponent(
  * - If the `mapType` is `HYBRID` or `SATELLITE`, the satellite color scheme (`satelliteMapColor`) is used, regardless of the dark mode setting.
  * @param mapColors [W3WMapDefaults.MapColors] Configuration for the map's color such as light, dark and satellite mode will based on mapType and state isDarkMode
  * @param locationButtonColor Color settings for the location button (the button to center on the user's current location).
+ * @param buttonContentDescription [W3WMapButtonsDefault.ContentDescription] accessibility descriptions for the map buttons.
  * @param mapState The [W3WMapState] object that holds the mapState of the map.
  * @param buttonState The [W3WButtonsState] object that holds the buttonState of the map.
  * @param mapProvider An instance of enum [MapProvider] to define map provide: GoogleMap, MapBox.
@@ -311,6 +318,7 @@ internal fun W3WMapContent(
     layoutConfig: W3WMapDefaults.LayoutConfig,
     mapConfig: W3WMapDefaults.MapConfig,
     locationButtonColor: W3WMapButtonsDefault.LocationButtonColor,
+    buttonContentDescription: W3WMapButtonsDefault.ContentDescription = W3WMapButtonsDefault.defaultContentDescription(),
     mapColors: MapColors = defaultMapColors(),
     mapState: W3WMapState,
     buttonState: W3WButtonsState,
@@ -420,6 +428,7 @@ internal fun W3WMapContent(
             buttonConfig = mapConfig.buttonConfig,
             buttonState = buttonState,
             mapType = mapState.mapType,
+            contentDescription = buttonContentDescription,
             locationButtonColor = locationButtonColor,
             recallButtonColor = recallButtonColor.value,
             onMapTypeClicked = onMapTypeClicked,
