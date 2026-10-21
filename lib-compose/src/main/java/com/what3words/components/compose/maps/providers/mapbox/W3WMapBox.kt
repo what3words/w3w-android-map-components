@@ -128,17 +128,20 @@ fun W3WMapBox(
 
     val mapState = rememberMapState()
 
-    LaunchedEffect(state.isMapGestureEnable) {
-        state.isMapGestureEnable.let {
-            mapState.gesturesSettings = GesturesSettings {
-                pitchEnabled = it
-                rotateEnabled = it
-                scrollEnabled = it
-                quickZoomEnabled = it
-                pinchScrollEnabled = it
-                doubleTapToZoomInEnabled = it
-                doubleTouchToZoomOutEnabled = it
-            }
+    LaunchedEffect(state.isMapGestureEnable, mapConfig.gestureConfig) {
+        // isMapGestureEnable is the master switch; gestureConfig narrows it per gesture.
+        val enabled = state.isMapGestureEnable
+        val gestures = mapConfig.gestureConfig
+        mapState.gesturesSettings = GesturesSettings {
+            pitchEnabled = enabled && gestures.isTiltEnabled
+            rotateEnabled = enabled && gestures.isRotateEnabled
+            scrollEnabled = enabled && gestures.isScrollEnabled
+            quickZoomEnabled = enabled && gestures.isQuickZoomEnabled
+            pinchScrollEnabled = enabled && gestures.isScrollEnabled
+            doubleTapToZoomInEnabled = enabled && gestures.isDoubleTapZoomEnabled
+            doubleTouchToZoomOutEnabled = enabled && gestures.isDoubleTapZoomEnabled
+            // The master switch has never governed pinch to zoom; keep that for compatibility.
+            pinchToZoomEnabled = gestures.isZoomEnabled
         }
     }
 
@@ -212,9 +215,19 @@ fun W3WMapBox(
             }
         },
         attribution = {
-            Attribution(
-                modifier = Modifier.padding(layoutConfig.contentPadding)
-            )
+            if (mapConfig.isAttributionClickable) {
+                Attribution(
+                    modifier = Modifier.padding(layoutConfig.contentPadding)
+                )
+            } else {
+                // Still shown (Mapbox ToS), but a tap closes the dialog it would open at once.
+                Attribution(
+                    modifier = Modifier.padding(layoutConfig.contentPadding),
+                    attributionDialog = { _, onDismissRequest, _ ->
+                        LaunchedEffect(Unit) { onDismissRequest() }
+                    }
+                )
+            }
         },
         onMapClickListener = {
             onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))

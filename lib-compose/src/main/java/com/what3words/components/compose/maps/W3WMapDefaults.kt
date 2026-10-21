@@ -66,6 +66,11 @@ object W3WMapDefaults {
      * @property shouldFocusOnMyLocationOnInitialization Whether to automatically focus on user's location during map initialization
      * @property gridLineConfig The configuration for grid lines on the map
      * @property buttonConfig The configuration for map control buttons
+     * @property gestureConfig Which map gestures are enabled.
+     * [com.what3words.components.compose.maps.state.W3WMapState.isMapGestureEnable] stays the
+     * master switch: a gesture is enabled only when both allow it
+     * @property isAttributionClickable Whether tapping the map attribution opens its dialog
+     * (Mapbox only). When false the attribution stays visible but does nothing on tap
      */
     @Immutable
     data class MapConfig(
@@ -76,7 +81,31 @@ object W3WMapDefaults {
         val isScaleBarEnabled: Boolean,
         val shouldFocusOnMyLocationOnInitialization: Boolean,
         val gridLineConfig: GridLinesConfig,
-        val buttonConfig: ButtonConfig
+        val buttonConfig: ButtonConfig,
+        val gestureConfig: GestureConfig = defaultGestureConfig(),
+        val isAttributionClickable: Boolean = true,
+    )
+
+    /**
+     * Which map gestures are enabled. All default to true, which matches the behaviour before this
+     * configuration existed.
+     *
+     * @property isScrollEnabled Panning the map with one finger, and while pinching
+     * @property isZoomEnabled Pinch to zoom
+     * @property isRotateEnabled Two-finger rotate
+     * @property isTiltEnabled Two-finger tilt (pitch)
+     * @property isDoubleTapZoomEnabled Double tap to zoom in and two-finger tap to zoom out
+     * (Mapbox only; on Google Maps these are part of [isZoomEnabled])
+     * @property isQuickZoomEnabled Double tap and drag to zoom (Mapbox only)
+     */
+    @Immutable
+    data class GestureConfig(
+        val isScrollEnabled: Boolean = true,
+        val isZoomEnabled: Boolean = true,
+        val isRotateEnabled: Boolean = true,
+        val isTiltEnabled: Boolean = true,
+        val isDoubleTapZoomEnabled: Boolean = true,
+        val isQuickZoomEnabled: Boolean = true,
     )
 
     /**
@@ -204,6 +233,8 @@ object W3WMapDefaults {
      * @param isScaleBarEnabled Whether the scale bar is enabled on the map
      * @param gridLineConfig The configuration for grid lines on the map
      * @param buttonConfig The configuration for map control buttons
+     * @param gestureConfig Which map gestures are enabled; see [GestureConfig]
+     * @param isAttributionClickable Whether tapping the map attribution opens its dialog
      * @return A MapConfig instance with the specified parameters
      */
     fun defaultMapConfig(
@@ -215,6 +246,8 @@ object W3WMapDefaults {
         shouldFocusOnMyLocationOnInitialization: Boolean = true,
         gridLineConfig: GridLinesConfig = defaultGridLinesConfig(),
         buttonConfig: ButtonConfig = defaultButtonConfig(),
+        gestureConfig: GestureConfig = defaultGestureConfig(),
+        isAttributionClickable: Boolean = true,
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
@@ -224,9 +257,32 @@ object W3WMapDefaults {
             shouldFocusOnMyLocationOnInitialization = shouldFocusOnMyLocationOnInitialization,
             isCompassButtonEnabled = isCompassButtonEnabled,
             isGoogleCompassAlignedRight = isGoogleCompassAlignedRight,
-            isScaleBarEnabled = isScaleBarEnabled
+            isScaleBarEnabled = isScaleBarEnabled,
+            gestureConfig = gestureConfig,
+            isAttributionClickable = isAttributionClickable,
         )
     }
+
+    /**
+     * Creates a gesture configuration. Every gesture is enabled by default.
+     *
+     * @see GestureConfig
+     */
+    fun defaultGestureConfig(
+        isScrollEnabled: Boolean = true,
+        isZoomEnabled: Boolean = true,
+        isRotateEnabled: Boolean = true,
+        isTiltEnabled: Boolean = true,
+        isDoubleTapZoomEnabled: Boolean = true,
+        isQuickZoomEnabled: Boolean = true,
+    ): GestureConfig = GestureConfig(
+        isScrollEnabled = isScrollEnabled,
+        isZoomEnabled = isZoomEnabled,
+        isRotateEnabled = isRotateEnabled,
+        isTiltEnabled = isTiltEnabled,
+        isDoubleTapZoomEnabled = isDoubleTapZoomEnabled,
+        isQuickZoomEnabled = isQuickZoomEnabled,
+    )
 
     /**
      * Creates a default grid lines configuration with customizable parameters.

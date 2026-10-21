@@ -158,11 +158,13 @@ fun W3WGoogleMap(
             indoorLevelPickerEnabled = false,
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,
-            scrollGesturesEnabled = state.isMapGestureEnable,
-            tiltGesturesEnabled = state.isMapGestureEnable,
-            zoomGesturesEnabled = state.isMapGestureEnable,
-            rotationGesturesEnabled = state.isMapGestureEnable,
-            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable,
+            // isMapGestureEnable is the master switch; gestureConfig narrows it per gesture.
+            // Google Maps has no separate double-tap or quick-zoom setting: both follow zoom.
+            scrollGesturesEnabled = state.isMapGestureEnable && mapConfig.gestureConfig.isScrollEnabled,
+            tiltGesturesEnabled = state.isMapGestureEnable && mapConfig.gestureConfig.isTiltEnabled,
+            zoomGesturesEnabled = state.isMapGestureEnable && mapConfig.gestureConfig.isZoomEnabled,
+            rotationGesturesEnabled = state.isMapGestureEnable && mapConfig.gestureConfig.isRotateEnabled,
+            scrollGesturesEnabledDuringRotateOrZoom = state.isMapGestureEnable && mapConfig.gestureConfig.isScrollEnabled,
             mapToolbarEnabled = mapConfig.isScaleBarEnabled
         ),
         properties = mapProperties,
