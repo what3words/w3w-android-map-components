@@ -18,6 +18,7 @@ import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxMap
+import com.mapbox.maps.Size
 import com.mapbox.maps.extension.compose.DisposableMapEffect
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
@@ -109,37 +110,38 @@ fun W3WMapBox(
 
     val mapViewportState = (state.cameraState as W3WMapboxCameraState).cameraState
 
+    val onCameraBoundUpdate: (W3WRectangle, W3WRectangle) -> Unit = { gridBound, visibleBound ->
+        state.cameraState.gridBound = gridBound
+        state.cameraState.visibleBound = visibleBound
+        onCameraUpdated(state.cameraState)
+    }
+
     LaunchedEffect(mapViewportState.cameraState) {
         snapshotFlow { mapViewportState.cameraState }
             .filterNotNull()
             .onEach { currentCameraState ->
                 mapView?.mapboxMap?.let { mapboxMap ->
-                    updateGridBound(
-                        mapboxMap,
-                        mapConfig.gridLineConfig,
-                        onCameraBoundUpdate = { gridBound, visibleBound ->
-                            state.cameraState.gridBound = gridBound
-                            state.cameraState.visibleBound = visibleBound
-                            onCameraUpdated(state.cameraState)
-                        }
-                    )
+                    updateGridBound(mapboxMap, mapConfig.gridLineConfig, onCameraBoundUpdate)
                 }
             }.launchIn(this)
     }
 
     val mapState = rememberMapState()
 
-    LaunchedEffect(state.isMapGestureEnable) {
-        state.isMapGestureEnable.let {
-            mapState.gesturesSettings = GesturesSettings {
-                pitchEnabled = it
-                rotateEnabled = it
-                scrollEnabled = it
-                quickZoomEnabled = it
-                pinchScrollEnabled = it
-                doubleTapToZoomInEnabled = it
-                doubleTouchToZoomOutEnabled = it
-            }
+    LaunchedEffect(state.isMapGestureEnable, mapConfig.gestureConfig) {
+        // isMapGestureEnable is the master switch; gestureConfig narrows it per gesture.
+        val enabled = state.isMapGestureEnable
+        val gestures = mapConfig.gestureConfig
+        mapState.gesturesSettings = GesturesSettings {
+            pitchEnabled = enabled && gestures.isTiltEnabled
+            rotateEnabled = enabled && gestures.isRotateEnabled
+            scrollEnabled = enabled && gestures.isScrollEnabled
+            quickZoomEnabled = enabled && gestures.isQuickZoomEnabled
+            pinchScrollEnabled = enabled && gestures.isScrollEnabled
+            doubleTapToZoomInEnabled = enabled && gestures.isDoubleTapZoomEnabled
+            doubleTouchToZoomOutEnabled = enabled && gestures.isDoubleTapZoomEnabled
+            // The master switch has never governed pinch to zoom; keep that for compatibility.
+            pinchToZoomEnabled = gestures.isZoomEnabled
         }
     }
 
@@ -213,9 +215,19 @@ fun W3WMapBox(
             }
         },
         attribution = {
-            Attribution(
-                modifier = Modifier.padding(layoutConfig.contentPadding)
-            )
+            if (mapConfig.isAttributionClickable) {
+                Attribution(
+                    modifier = Modifier.padding(layoutConfig.contentPadding)
+                )
+            } else {
+                // Still shown (Mapbox ToS), but a tap closes the dialog it would open at once.
+                Attribution(
+                    modifier = Modifier.padding(layoutConfig.contentPadding),
+                    attributionDialog = { _, onDismissRequest, _ ->
+                        LaunchedEffect(Unit) { onDismissRequest() }
+                    }
+                )
+            }
         },
         onMapClickListener = {
             onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))
@@ -290,6 +302,20 @@ fun W3WMapBox(
                 }
             }
 
+            // Until the render thread applies the surface size the map reports its default 64x64
+            // size, so a bound taken on the first camera update after the map is (re)created
+            // covers only a sliver of the screen. Resizing does not move the camera, so recompute
+            // the bound once a frame has rendered at a new size.
+            var renderedMapSize: Size? = null
+            val renderFrameCancellable = it.mapboxMap.subscribeRenderFrameFinished { _ ->
+                val mapboxMap = it.mapboxMap
+                val mapSize = mapboxMap.getSize()
+                if (mapSize != renderedMapSize) {
+                    renderedMapSize = mapSize
+                    updateGridBound(mapboxMap, mapConfig.gridLineConfig, onCameraBoundUpdate)
+                }
+            }
+
             if (mapConfig.buttonConfig.isRecallFeatureEnabled || onMapProjectionUpdated != null) {
                 mapView?.mapboxMap?.let { map ->
                     onMapProjectionUpdated?.invoke(W3WMapBoxMapProjection(map))
@@ -304,6 +330,7 @@ fun W3WMapBox(
                 }
                 mapIdleCancellable.cancel()
                 cameraChangeCancellable.cancel()
+                renderFrameCancellable.cancel()
             }
         }
 

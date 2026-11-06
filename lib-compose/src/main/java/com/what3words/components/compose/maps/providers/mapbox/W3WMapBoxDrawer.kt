@@ -22,6 +22,7 @@ import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.MapboxExperimental
+import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMapComposable
 import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation
@@ -59,6 +60,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Main drawer component for rendering what3words elements on a Mapbox map.
@@ -473,13 +476,10 @@ private fun DrawZoomInMarkers(
             )
         }
 
-        MapEffect(bitmap) { mapView ->
-            val imageSource: ImageSource? = mapView.mapboxMap.getSourceAs(squareId.toString())
-            imageSource?.updateImage(bitmap)
-        }
-
         val marker = markers.first() // Get the information from the first marker in the list
         key(squareId) {
+            val currentMarker by rememberUpdatedState(marker)
+
             RasterLayer(
                 layerId = remember { squareId.toString() },
                 sourceState = rememberImageSourceState(sourceId = squareId.toString()) {
@@ -494,12 +494,43 @@ private fun DrawZoomInMarkers(
                     RasterLayerState().apply {
                         rasterEmissiveStrength = DoubleValue(1.0)
                         interactionsState.onClicked { _, _ ->
-                            currentOnMarkerClicked(marker)
+                            currentOnMarkerClicked(currentMarker)
                             true
                         }
                     }
                 }
             )
+
+            // The image source state has no bitmap property, so the image is set on the native
+            // source. Keyed per square so an inserted square never inherits another's effect.
+            MapEffect(squareId, bitmap) { mapView ->
+                mapView.mapboxMap.updateImageSource(squareId.toString(), bitmap)
+            }
+        }
+    }
+}
+
+/**
+ * Sets [bitmap] on the image source [sourceId]. A source declared in the same composition may
+ * not be on the style yet, so this waits for it to be added rather than skipping the update.
+ */
+private suspend fun MapboxMap.updateImageSource(sourceId: String, bitmap: Bitmap) {
+    val source = getSourceAs<ImageSource>(sourceId) ?: run {
+        awaitSourceAdded(sourceId)
+        getSourceAs<ImageSource>(sourceId)
+    }
+    source?.updateImage(bitmap)
+}
+
+private suspend fun MapboxMap.awaitSourceAdded(sourceId: String) {
+    suspendCancellableCoroutine { continuation ->
+        val subscription = subscribeSourceAdded { event ->
+            if (event.sourceId == sourceId && continuation.isActive) continuation.resume(Unit)
+        }
+        continuation.invokeOnCancellation { subscription.cancel() }
+        // The source may have been added between the caller's lookup and the subscription.
+        if (getSourceAs<ImageSource>(sourceId) != null && continuation.isActive) {
+            continuation.resume(Unit)
         }
     }
 }
