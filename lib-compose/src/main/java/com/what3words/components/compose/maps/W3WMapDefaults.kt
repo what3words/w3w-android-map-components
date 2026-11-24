@@ -71,6 +71,10 @@ object W3WMapDefaults {
      * master switch: a gesture is enabled only when both allow it
      * @property isAttributionClickable Whether tapping the map attribution opens its dialog
      * (Mapbox only). When false the attribution stays visible but does nothing on tap
+     * @property attributionTouchTarget The height of the area that opens the attribution, spanning
+     * the Mapbox logo and the attribution icon, which keep their size (Mapbox only). Null keeps
+     * Mapbox's own attribution, which only responds on the icon itself. Its web links open through
+     * [androidx.compose.ui.platform.LocalUriHandler], so the app can decide how
      */
     @Immutable
     data class MapConfig(
@@ -84,6 +88,7 @@ object W3WMapDefaults {
         val buttonConfig: ButtonConfig,
         val gestureConfig: GestureConfig = defaultGestureConfig(),
         val isAttributionClickable: Boolean = true,
+        val attributionTouchTarget: Dp? = null,
     )
 
     /**
@@ -235,6 +240,7 @@ object W3WMapDefaults {
      * @param buttonConfig The configuration for map control buttons
      * @param gestureConfig Which map gestures are enabled; see [GestureConfig]
      * @param isAttributionClickable Whether tapping the map attribution opens its dialog
+     * @param attributionTouchTarget The height of the area that opens the attribution; see [MapConfig]
      * @return A MapConfig instance with the specified parameters
      */
     fun defaultMapConfig(
@@ -248,6 +254,7 @@ object W3WMapDefaults {
         buttonConfig: ButtonConfig = defaultButtonConfig(),
         gestureConfig: GestureConfig = defaultGestureConfig(),
         isAttributionClickable: Boolean = true,
+        attributionTouchTarget: Dp? = null,
     ): MapConfig {
         return MapConfig(
             darkModeCustomJsonStyle = darkModeCustomJsonStyle,
@@ -260,6 +267,7 @@ object W3WMapDefaults {
             isScaleBarEnabled = isScaleBarEnabled,
             gestureConfig = gestureConfig,
             isAttributionClickable = isAttributionClickable,
+            attributionTouchTarget = attributionTouchTarget,
         )
     }
 
