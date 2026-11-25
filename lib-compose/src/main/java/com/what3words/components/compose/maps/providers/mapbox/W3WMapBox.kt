@@ -215,19 +215,11 @@ fun W3WMapBox(
             }
         },
         attribution = {
-            if (mapConfig.isAttributionClickable) {
-                Attribution(
-                    modifier = Modifier.padding(layoutConfig.contentPadding)
-                )
-            } else {
-                // Still shown (Mapbox ToS), but a tap closes the dialog it would open at once.
-                Attribution(
-                    modifier = Modifier.padding(layoutConfig.contentPadding),
-                    attributionDialog = { _, onDismissRequest, _ ->
-                        LaunchedEffect(Unit) { onDismissRequest() }
-                    }
-                )
-            }
+            W3WAttribution(
+                contentPadding = layoutConfig.contentPadding,
+                isClickable = mapConfig.isAttributionClickable,
+                touchTarget = mapConfig.attributionTouchTarget,
+            )
         },
         onMapClickListener = {
             onMapClicked(W3WCoordinates(it.latitude(), it.longitude()))
